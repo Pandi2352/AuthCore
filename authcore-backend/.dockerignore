@@ -1,0 +1,15 @@
+# Allowlist: ignore everything, then include only what the image build needs.
+# Secrets (.env files, keys), node_modules, dist, .git, logs and docs can
+# never end up in the build context by accident.
+*
+
+!src/
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.build.json
+!nest-cli.json
+
+# Never include env files, even if a future rule above would match them.
+**/.env
+**/.env.*
