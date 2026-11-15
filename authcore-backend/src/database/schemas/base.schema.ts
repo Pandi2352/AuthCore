@@ -1,12 +1,16 @@
-import { SchemaOptions } from '@nestjs/mongoose';
+import { Prop, type SchemaOptions } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
+import { generateUuid } from '@common/utils/uuid.util';
+
 /**
- * Removes internal fields from API output and exposes `_id` as a string `id`.
+ * Removes internal fields from API output and exposes `_id` as `id`.
  * Applied to both toJSON and toObject so responses stay consistent.
  */
 function transformOutput(_doc: unknown, ret: Record<string, unknown>) {
-  if (ret._id instanceof Types.ObjectId) {
+  if (typeof ret._id === 'string') {
+    ret.id = ret._id;
+  } else if (ret._id instanceof Types.ObjectId) {
     ret.id = ret._id.toHexString();
   }
   delete ret._id;
@@ -34,9 +38,13 @@ export const baseSchemaOptions: SchemaOptions = {
 /**
  * Base fields shared by every document. Contains no business fields.
  * Extend it in each schema class: `class User extends BaseSchema { ... }`.
+ *
+ * `_id` is a UUID v7 string (not an ObjectId), generated on create.
  */
 export abstract class BaseSchema {
-  _id!: Types.ObjectId;
+  @Prop({ type: String, default: () => generateUuid() })
+  _id!: string;
+
   createdAt!: Date;
   updatedAt!: Date;
   __v?: number;

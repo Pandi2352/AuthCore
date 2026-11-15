@@ -121,7 +121,8 @@ function mapMongoError(error: unknown): MappedException | null {
     });
   }
   if (error instanceof MongooseError.CastError) {
-    const isObjectId = error.kind === 'ObjectId';
+    // An id field received a value of the wrong type.
+    const isObjectId = error.kind === 'ObjectId' || error.path === '_id';
     return fromStatus(HttpStatus.BAD_REQUEST, {
       code: isObjectId ? ErrorCode.InvalidId : ErrorCode.BadRequest,
       message: isObjectId

@@ -310,6 +310,20 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 `baseSchemaOptions` gives `createdAt` / `updatedAt` (UTC), rejects unknown fields on save (`strict: 'throw'`), and outputs `id` instead of `_id` / `__v`.
 
+### IDs: UUID v7, never ObjectId
+
+- `BaseSchema` sets `_id` to a **UUID v7 string** on create (`generateUuid()` in `src/common/utils/uuid.util.ts`). v7 ids sort by creation time, which keeps MongoDB index inserts fast.
+- References are UUID strings: `@Prop({ type: String, ref: 'User', index: true }) userId!: string;`
+- Route params: `@Param('id', ParseIdPipe) id: string` (invalid → `400 INVALID_ID`). DTO fields: `@IsUUID()`.
+- UUIDs are identifiers, not secrets. Tokens, reset codes and API keys use `crypto.randomBytes`.
+
+| Helper | Returns |
+| --- | --- |
+| `generateUuid()` | New UUID v7 |
+| `generateRandomUuid()` | New random UUID v4 (when the id must not reveal its creation time) |
+| `isValidUuid(value)` / `isUuidV7(value)` | Validation |
+| `getUuidV7Date(id)` | Creation time embedded in a v7 id |
+
 ### Indexes
 
 - Declare indexes in schemas only.
