@@ -68,6 +68,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
 
+    if (exception instanceof AppException) {
+      for (const [name, value] of Object.entries(exception.headers)) {
+        response.setHeader(name, value);
+      }
+    }
+
     response.status(mapped.statusCode).json(
       buildErrorResponse({
         statusCode: mapped.statusCode,

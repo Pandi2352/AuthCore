@@ -24,6 +24,8 @@ export class AppException extends HttpException {
     readonly code: ErrorCode,
     message?: string,
     readonly errors: ApiFieldError[] = [],
+    /** Extra response headers, e.g. { 'Retry-After': '900' }. */
+    readonly headers: Record<string, string> = {},
   ) {
     super(message ?? getHttpErrorDefaults(status).message, status);
   }

@@ -34,6 +34,8 @@ export function createValidationPipe(): ValidationPipe {
     whitelist: true,
     forbidNonWhitelisted: true,
     forbidUnknownValues: true,
+    // One error per field (the first rule that fails), not every rule.
+    stopAtFirstError: true,
     transform: true,
     transformOptions: { enableImplicitConversion: false },
     validationError: { target: false, value: false },

@@ -69,3 +69,6 @@ tmp/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ----- Local email outbox (development) -----
+mail-outbox/

@@ -20,12 +20,12 @@
 | Backend | NestJS + TypeScript | Installed |
 | Database | MongoDB + Mongoose | Installed |
 | Cache | Redis | Planned |
-| Authentication | Passport + JWT | Planned |
-| Password hashing | Argon2 | Planned |
+| Authentication | JWT (`@nestjs/jwt`, HS256) | Installed |
+| Password hashing | Argon2id (`@node-rs/argon2`) | Installed |
 | Validation | class-validator + class-transformer | Installed |
 | Configuration | @nestjs/config + Joi | Installed |
 | Rate limiting | @nestjs/throttler | Installed |
-| Email | Nodemailer | Planned |
+| Email | Nodemailer (SMTP; outbox files in development) | Installed |
 | Queue | BullMQ | Planned |
 | Logging | Winston (nest-winston) | Installed |
 | API documentation | Swagger | Installed |

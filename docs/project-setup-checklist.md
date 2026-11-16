@@ -552,7 +552,9 @@ Add new codes to the `ErrorCode` enum. Feature-specific codes use a prefix, e.g.
 - Every body, query and param is a DTO class with `class-validator` decorators. No untyped `@Body() body: any`.
 - Query/param numbers use `@Type(() => Number)` so strings are converted before validation.
 - Validate ids with `ParseIdPipe` (route params) or `@IsUUID()` (DTO fields) before they reach the service.
-- The global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`) is enabled in section 8.
+- The global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `stopAtFirstError`, `transform`) is enabled in section 8.
+- With `stopAtFirstError`, each field reports one error: the first rule that fails. class-validator runs the decorator **closest to the property first**, so list decorators from most specific (top) to most basic (bottom): `@Matches` → `@Length` → `@IsString` → `@IsDefined({ message: 'x is required' })`.
+- Trim / lowercase identifiers with `@Transform` in the DTO (e.g. email), so uniqueness checks and storage use the same normalized value.
 
 ### Response serialization
 

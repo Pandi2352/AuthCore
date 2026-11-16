@@ -325,10 +325,9 @@ export default defineConfig(
           patterns: CONTROLLER_RESTRICTED_PATTERNS,
         },
       ],
-      'max-lines-per-function': [
-        'warn',
-        { max: 15, skipBlankLines: true, skipComments: true },
-      ],
+      // Counts statements in handler bodies (decorators don't count): a
+      // handler should only call a service.
+      'max-statements': ['warn', 5],
       complexity: ['warn', 3],
     },
   },

@@ -26,7 +26,9 @@ import {
   securityConfig,
 } from '@config/configuration';
 import { DatabaseModule } from '@database/database.module';
+import { AuthModule } from '@modules/auth/auth.module';
 import { HealthModule } from '@modules/health/health.module';
+import { MailModule } from '@modules/mail/mail.module';
 import { SharedModule } from '@shared/shared.module';
 
 import { AppController } from './app.controller';
@@ -62,7 +64,9 @@ import { AppService } from './app.service';
     }),
     DatabaseModule,
     SharedModule,
+    MailModule,
     HealthModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

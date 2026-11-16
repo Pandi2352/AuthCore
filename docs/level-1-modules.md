@@ -37,16 +37,16 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 2. Identity & User Management Module
 
-- [ ] User registration
+- [x] User registration *(`POST /api/v1/auth/register`)*
 - [ ] User login identity (email/username/mobile)
 - [ ] User profile management
 - [ ] Get current user profile
 - [ ] Update user profile
 - [ ] Change email address
 - [ ] Change mobile number
-- [ ] Email verification status
+- [x] Email verification status
 - [ ] Mobile number verification
-- [ ] Account activation
+- [x] Account activation *(email verification and/or admin approval → `ACTIVE`; CLI approve/reject)*
 - [ ] Account deactivation
 - [ ] Account suspension
 - [ ] Account banning
@@ -59,51 +59,51 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 3. Authentication Module
 
-- [ ] Register
-- [ ] Login
+- [x] Register *(`POST /api/v1/auth/register`)*
+- [x] Login *(`POST /api/v1/auth/login`: email or username + password)*
 - [ ] Logout
 - [ ] Logout from all devices
-- [ ] JWT access token generation
+- [x] JWT access token generation *(HS256, 15 min; `sub`, `sid`, `jti`, `iss`, `aud`)*
 - [ ] JWT access token validation
-- [ ] Refresh token generation
+- [x] Refresh token generation *(256-bit random, SHA-256 stored; rotation comes with the refresh API)*
 - [ ] Refresh token rotation
 - [ ] Refresh token validation
 - [ ] Refresh token reuse detection
 - [ ] Token family management
 - [ ] Token family revocation
-- [ ] Token expiration management
+- [x] Token expiration management
 - [ ] Token revocation
 - [ ] Authentication guards
 - [ ] Public route decorator
 - [ ] Current user decorator
 - [ ] Authentication strategy management
-- [ ] Authentication method tracking
+- [x] Authentication method tracking *(email / username logged per login)*
 
 ## 4. Session & Device Management Module
 
-- [ ] Create user session
+- [x] Create user session
 - [ ] List active sessions
 - [ ] Get session details
 - [ ] Revoke individual session
 - [ ] Revoke all sessions
-- [ ] Device identification
-- [ ] Device information tracking
-- [ ] Browser and OS tracking
-- [ ] IP address tracking
+- [x] Device identification
+- [x] Device information tracking
+- [x] Browser and OS tracking
+- [x] IP address tracking
 - [ ] Login location tracking
-- [ ] Last active tracking
-- [ ] Session expiration
-- [ ] Concurrent session management
+- [x] Last active tracking *(set on login; updated on refresh later)*
+- [x] Session expiration
+- [x] Concurrent session management *(`MAX_SESSIONS_PER_USER`, oldest revoked)*
 - [ ] New device detection
 - [ ] Suspicious session detection
 
 ## 5. Email & Notification Module
 
-- [ ] Email service integration
-- [ ] SMTP configuration
+- [x] Email service integration *(`MailService`: SMTP + development outbox)*
+- [x] SMTP configuration
 - [ ] Email templates
 - [ ] Welcome email
-- [ ] Email verification email
+- [x] Email verification email
 - [ ] Password reset email
 - [ ] Password changed notification
 - [ ] New device login alert
@@ -117,16 +117,16 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 6. Email Verification Module
 
-- [ ] Email verification token generation
-- [ ] Email verification OTP generation
-- [ ] Send verification email
-- [ ] Verify email using token
-- [ ] Verify email using OTP
-- [ ] Resend verification email
-- [ ] OTP expiration
-- [ ] OTP attempt limits
-- [ ] OTP resend cooldown
-- [ ] Verification token invalidation
+- [x] Email verification token generation
+- [x] Email verification OTP generation
+- [x] Send verification email
+- [x] Verify email using token
+- [x] Verify email using OTP
+- [x] Resend verification email
+- [x] OTP expiration *(10 min; links 60 min; TTL index cleanup)*
+- [x] OTP attempt limits *(5 attempts, then a new code is required)*
+- [x] OTP resend cooldown *(60 s)*
+- [x] Verification token invalidation *(single use; a resend replaces the previous code/link)*
 
 ## 7. Password Management Module
 
@@ -138,7 +138,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [ ] Current password verification
 - [ ] Password history
 - [ ] Password reuse prevention
-- [ ] Password strength validation
+- [x] Password strength validation *(registration policy; reused for change/reset)*
 - [ ] Password policy management
 - [ ] Password expiration policy (optional)
 - [ ] Breached password checking (optional)
@@ -183,8 +183,8 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 10. Security & Protection Module
 
-- [ ] Password hashing (Argon2/bcrypt)
-- [ ] Refresh token hashing
+- [x] Password hashing (Argon2/bcrypt) *(Argon2id via `@node-rs/argon2`, `PasswordService`)*
+- [x] Refresh token hashing
 - [ ] Helmet security headers
 - [ ] CORS configuration
 - [ ] CSRF protection
@@ -193,19 +193,19 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [ ] Input sanitization
 - [ ] Request validation
 - [ ] Request rate limiting
-- [ ] Login brute-force protection
-- [ ] Account lockout
-- [ ] OTP brute-force protection
+- [x] Login brute-force protection
+- [x] Account lockout *(temporary, per account and per unknown identifier)*
+- [x] OTP brute-force protection *(attempt limit + per-IP rate limit + HMAC-stored codes)*
 - [ ] Password reset abuse protection
 - [ ] CAPTCHA integration
 - [ ] IP-based restrictions
 - [ ] Suspicious login detection
 - [ ] Replay attack protection
-- [ ] Secure cookie management
+- [x] Secure cookie management *(HttpOnly, Secure, SameSite=Strict, path `/api/v1/auth`)*
 - [ ] Secrets management
 - [ ] Security headers configuration
 - [ ] Sensitive data masking
-- [ ] Timing attack protection
+- [x] Timing attack protection *(dummy Argon2 verify for unknown users)*
 
 ## 11. Audit Logs & Login History Module
 
@@ -325,15 +325,15 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 18. Configuration & Policy Management Module
 
-- [ ] JWT configuration
-- [ ] Access token expiry configuration
-- [ ] Refresh token expiry configuration
+- [x] JWT configuration
+- [x] Access token expiry configuration
+- [x] Refresh token expiry configuration
 - [ ] Password policy configuration
 - [ ] MFA policy configuration
 - [ ] Session timeout configuration
-- [ ] Maximum concurrent sessions
-- [ ] Login attempt limits
-- [ ] Account lockout duration
+- [x] Maximum concurrent sessions
+- [x] Login attempt limits
+- [x] Account lockout duration
 - [ ] OTP expiry and retry configuration
 - [ ] Email configuration
 - [ ] OAuth provider configuration

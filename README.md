@@ -34,7 +34,7 @@
 ---
 
 > [!NOTE]
-> **Status:** the project foundation (setup checklist sections 1–13) is complete. Feature development (Level 1, Module 1 onward) has not started yet. See [Project status](#-project-status).
+> **Status:** the project foundation (setup checklist sections 1–13) is complete. Feature development has started: user registration is live. See [Project status](#-project-status).
 
 ## 📁 Repository structure
 
@@ -48,7 +48,7 @@ AuthCore/
 │   │   ├── database/           MongoDB connection, base schema, plugins, scripts
 │   │   ├── common/             Shared building blocks (filters, interceptors, DTOs, ...)
 │   │   ├── shared/             App-wide services (graceful shutdown)
-│   │   └── modules/            Feature modules (currently: health)
+│   │   └── modules/            Feature modules (health, users, auth)
 │   ├── Dockerfile
 │   └── .env.example
 └── 📘 docs/                    Planning and setup documentation
@@ -64,6 +64,7 @@ AuthCore/
 | 🟥 | [docs/level-3-modules.md](docs/level-3-modules.md) | Modules 25–28: enterprise IAM and compliance |
 | ✅ | [docs/project-setup-checklist.md](docs/project-setup-checklist.md) | Production-ready foundation: every setup decision, convention and verification |
 | 🧰 | [docs/techstack.md](docs/techstack.md) | Technology stack and versions |
+| 🔑 | [docs/login-api-checklist.md](docs/login-api-checklist.md) | Login API: production checklist status |
 | 👩‍💻 | [authcore-backend/README.md](authcore-backend/README.md) | Developer guide for the backend |
 
 ## 🧰 Tech stack
@@ -197,7 +198,9 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 🐳 Docker: image build test, Docker Compose | ⏳ Pending |
 | 📝 Documentation (except deployment) | ✅ Done |
 | 🌿 Git standards, CI/CD, deployment docs (sections 15–17) | ⏳ Not started |
-| 🧩 Feature modules (next: Level 1, Sprint 1) | ⏳ Not started |
+| 🧩 Registration: Direct / Email OTP / Email link / Admin approval (configurable) | ✅ Done |
+| 🔑 Login: email / username + password, JWT, sessions, lockout | ✅ Done |
+| 🔄 Refresh token, logout, /me, session management (next) | ⏳ Not started |
 
 ---
 

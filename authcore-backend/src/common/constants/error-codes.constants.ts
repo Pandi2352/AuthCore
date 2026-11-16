@@ -21,6 +21,20 @@ export enum ErrorCode {
   InternalError = 'INTERNAL_ERROR',
   ServiceUnavailable = 'SERVICE_UNAVAILABLE',
   RequestTimeout = 'REQUEST_TIMEOUT',
+
+  // Auth: email verification
+  AuthInvalidVerificationCode = 'AUTH_INVALID_VERIFICATION_CODE',
+  AuthInvalidVerificationToken = 'AUTH_INVALID_VERIFICATION_TOKEN',
+  AuthVerificationAttemptsExceeded = 'AUTH_VERIFICATION_ATTEMPTS_EXCEEDED',
+
+  // Auth: login
+  AuthInvalidCredentials = 'AUTH_INVALID_CREDENTIALS',
+  AuthTooManyFailedAttempts = 'AUTH_TOO_MANY_FAILED_ATTEMPTS',
+  AuthEmailNotVerified = 'AUTH_EMAIL_NOT_VERIFIED',
+  AuthAccountPendingApproval = 'AUTH_ACCOUNT_PENDING_APPROVAL',
+  AuthAccountSuspended = 'AUTH_ACCOUNT_SUSPENDED',
+  AuthAccountInactive = 'AUTH_ACCOUNT_INACTIVE',
+  AuthAccountDisabled = 'AUTH_ACCOUNT_DISABLED',
 }
 
 /** Default code and safe client message for each HTTP status. */

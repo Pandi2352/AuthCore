@@ -5,6 +5,10 @@
  */
 export const API_TAGS = {
   App: { name: 'App', description: 'Application info' },
+  Auth: {
+    name: 'Auth',
+    description: 'Registration and sign-in',
+  },
   Health: {
     name: 'Health',
     description: 'Liveness and readiness checks for load balancers',

@@ -152,6 +152,61 @@ Config groups: `appConfig`, `databaseConfig`, `securityConfig`, `lifecycleConfig
 | `SHUTDOWN_DRAIN_DELAY_MS` | `0` dev / `5000` others | Readiness fails this long before the server closes |
 | `HEALTH_DB_TIMEOUT_MS` | `1500` | MongoDB ping timeout in readiness |
 
+### Registration flow
+
+| Variable | Default | Rule |
+| --- | --- | --- |
+| `REGISTRATION_EMAIL_VERIFICATION` | `otp` | `none`, `otp`, `link` |
+| `REGISTRATION_REQUIRE_APPROVAL` | `false` | Boolean |
+| `APP_NAME` | `AuthCore` | Shown in emails |
+| `EMAIL_OTP_LENGTH` | `6` | 6–8 |
+| `EMAIL_OTP_TTL_MINUTES` | `10` | 1–60 |
+| `EMAIL_LINK_TTL_MINUTES` | `60` | 5–1440 |
+| `EMAIL_VERIFICATION_MAX_ATTEMPTS` | `5` | 3–10 |
+| `EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS` | `60` | 30–3600 |
+| `EMAIL_VERIFICATION_URL` | — | Frontend page; **required** when `link` |
+| `VERIFICATION_TOKEN_SECRET` | — | 32+ random chars; **required** unless `none` |
+
+### Login, tokens and sessions
+
+| Variable | Default | Rule |
+| --- | --- | --- |
+| `LOGIN_IDENTIFIERS` | `email,username` | `email`, `username` or `email,username` |
+| `LOGIN_MAX_FAILED_ATTEMPTS` | `5` | 3–20 |
+| `LOGIN_FAILED_ATTEMPTS_WINDOW_MINUTES` | `15` | 1–1440 |
+| `LOGIN_LOCKOUT_MINUTES` | `15` | 1–1440 (always temporary) |
+| `MAX_SESSIONS_PER_USER` | `10` | 1–100; oldest session revoked above it |
+| `JWT_ACCESS_SECRET` | — | **Required**; 32+ random chars; different from `VERIFICATION_TOKEN_SECRET` |
+| `JWT_ACCESS_TTL_SECONDS` | `900` | 60–3600 |
+| `JWT_ISSUER` / `JWT_AUDIENCE` | `authcore` / `authcore-api` | |
+| `REFRESH_TOKEN_TTL_DAYS` | `7` | 1–90 |
+| `REFRESH_TOKEN_REMEMBER_ME_TTL_DAYS` | `30` | 1–365 |
+| `REFRESH_TOKEN_DELIVERY` | `cookie` | `cookie` (browsers), `body` (mobile), `both` |
+| `REFRESH_COOKIE_NAME` | `authcore_refresh` | |
+| `REFRESH_COOKIE_SAMESITE` | `strict` | `strict`, `lax`, `none` (needs Secure) |
+| `REFRESH_COOKIE_SECURE` | `true` | Must be `true` in production |
+| `REFRESH_COOKIE_DOMAIN` | unset | Set to share the cookie across subdomains |
+
+### Mail
+
+| Variable | Default | Rule |
+| --- | --- | --- |
+| `MAIL_TRANSPORT` | `outbox` (development), `smtp` (others) | `outbox` not allowed in production |
+| `MAIL_OUTBOX_DIR` | `mail-outbox` | Development only; git-ignored |
+| `MAIL_FROM` | — | **Required** for `smtp`, e.g. `AuthCore <no-reply@example.com>` |
+| `SMTP_HOST` | — | **Required** for `smtp` |
+| `SMTP_PORT` | `587` | |
+| `SMTP_SECURE` | `false` | `true` = TLS on connect (465); `false` = STARTTLS required (587) |
+| `SMTP_USER` / `SMTP_PASSWORD` | — | Optional |
+
+### Password hashing (Argon2id)
+
+| Variable | Default | Rule |
+| --- | --- | --- |
+| `ARGON2_MEMORY_KIB` | `19456` (19 MiB) | Min 19456 (OWASP) |
+| `ARGON2_TIME_COST` | `2` | Min 2 |
+| `ARGON2_PARALLELISM` | `1` | 1–16 |
+
 ### Performance
 
 | Variable | Default | Purpose |
@@ -206,6 +261,9 @@ Config groups: `appConfig`, `databaseConfig`, `securityConfig`, `lifecycleConfig
 | `db:indexes:apply` | Create missing indexes; never drops |
 | `audit:prod` | Vulnerability scan of production dependencies; fails on high/critical |
 | `audit:all` | Vulnerability scan of all dependencies |
+| `users:pending` | List registrations waiting for approval (after `build`) |
+| `users:approve -- <email>` | Approve a registration |
+| `users:reject -- <email> [reason]` | Reject a registration |
 
 ## 5. Architecture and folder structure
 
@@ -489,6 +547,130 @@ docker run --rm -p 3000:3000 \
 - `host.docker.internal` reaches MongoDB on your machine (Docker Desktop).
 - Production defaults apply in the container: JSON logs, Swagger off (it must stay off), auto-indexing off.
 - Stop with a grace period longer than `SHUTDOWN_TIMEOUT_MS`: `docker stop -t 30 <container>`.
+
+## Implemented endpoints
+
+Swagger (`/api/docs`) is the full, always-current reference. Summary:
+
+### Registration flows
+
+Each project picks its flow with two settings:
+
+| `REGISTRATION_EMAIL_VERIFICATION` | `REGISTRATION_REQUIRE_APPROVAL` | Flow | Status after register |
+| --- | --- | --- | --- |
+| `none` | `false` | **Direct**: Register → Login | `ACTIVE` |
+| `otp` | `false` | **Email OTP**: Register → Verify code → Login | `PENDING_VERIFICATION` |
+| `link` | `false` | **Email link**: Register → Open link → Login | `PENDING_VERIFICATION` |
+| `none` | `true` | **Admin approval**: Register → Pending → Approved → Login | `PENDING_APPROVAL` |
+| `otp` / `link` | `true` | Verify email → Pending → Approved → Login | `PENDING_VERIFICATION` |
+
+```text
+PENDING_VERIFICATION ──verify──► ACTIVE              (approval off)
+                     └─verify──► PENDING_APPROVAL    (approval on)
+PENDING_APPROVAL ──approve──► ACTIVE
+                 └─reject───► REJECTED
+```
+
+Only `ACTIVE` users will be able to sign in. Every response tells the client what to show next with `nextStep`: `VERIFY_EMAIL_OTP`, `VERIFY_EMAIL_LINK`, `AWAIT_APPROVAL` or `LOGIN`.
+
+| Endpoint | Purpose | Rate limit / IP |
+| --- | --- | --- |
+| `POST /api/v1/auth/register` | Create the account; sends the code / link or the "pending approval" email | 5 / min |
+| `POST /api/v1/auth/verify-email/otp` | `{ email, code }` (only when `otp`) | 10 / min |
+| `POST /api/v1/auth/verify-email/link` | `{ token }` from the link (only when `link`) | 10 / min |
+| `POST /api/v1/auth/verify-email/resend` | `{ email }`: new code / link | 3 / min |
+
+**Email verification rules**
+
+- OTP: 6 digits, valid 10 minutes, 5 wrong attempts then a new code is needed. Link: 256-bit token, valid 60 minutes.
+- Single use; a resend replaces the previous code / link; resend at most once per 60 s.
+- Only an HMAC-SHA256 of the code / token is stored (`VERIFICATION_TOKEN_SECRET`); expired records are deleted by a TTL index.
+- The link points to the frontend (`EMAIL_VERIFICATION_URL?token=...`); the page POSTs the token to `/auth/verify-email/link`. Verification never happens on a GET.
+- No account probing: a wrong code and an unknown email give the same error; resend always gives the same response.
+- The endpoint for a method that isn't enabled returns `404`.
+- If the email can't be sent, the account is still created and `isVerificationEmailSent` is `false`; the user can use resend.
+
+**Admin approval (command line until the Admin module adds HTTP endpoints)**
+
+```bash
+npm run build
+npm run users:pending                                   # list registrations waiting for approval
+npm run users:approve -- jane@example.com               # → ACTIVE, emails the user
+npm run users:reject  -- jane@example.com "Reason..."   # → REJECTED, emails the user (with reason)
+```
+
+Approve / reject only work on `PENDING_APPROVAL` users; the reviewer (`cli`) and time are stored.
+
+**Emails in development**: with `MAIL_TRANSPORT=outbox`, every email is written to `mail-outbox/` as an `.eml` file (open it in any mail client or text editor) instead of being sent. Production requires `smtp`.
+
+| Error code | Status | When |
+| --- | --- | --- |
+| `AUTH_INVALID_VERIFICATION_CODE` | 400 | Wrong / expired / used code, or unknown email |
+| `AUTH_VERIFICATION_ATTEMPTS_EXCEEDED` | 400 | Too many wrong codes; request a new one |
+| `AUTH_INVALID_VERIFICATION_TOKEN` | 400 | Invalid / expired / used link |
+
+### `POST /api/v1/auth/register`
+
+Creates an account. The starting status depends on the flow (see above). No tokens are issued.
+
+| Field | Required | Rules |
+| --- | --- | --- |
+| `email` | Yes | Valid email, max 254; trimmed and stored lowercase; unique |
+| `password` | Yes | 8–128 chars with lowercase, uppercase, number and symbol; must not contain the email name, username or names |
+| `firstName` | Yes | 1–50 letters (any language), spaces, `'`, `-`, `.` |
+| `lastName` | No | Same as `firstName`; empty string = not given |
+| `username` | No | 3–30: lowercase letters, numbers, `.` `_` `-` (not first/last); stored lowercase; unique; reserved names (admin, root, support, ...) refused |
+
+Any other field (e.g. `status`, `isEmailVerified`) is rejected.
+
+| Response | When |
+| --- | --- |
+| `201` + `{ user, nextStep, isVerificationEmailSent }` (user: `id`, `email`, `username`, `firstName`, `lastName`, `status`, `isEmailVerified`, `emailVerifiedAt`, `createdAt`, `updatedAt`) | Created |
+| `400 VALIDATION_FAILED` | Invalid fields (one message per field) |
+| `409 DUPLICATE_RESOURCE` | Email or username already registered (field named in `errors`) |
+| `429 TOO_MANY_REQUESTS` | More than 5 attempts per minute per IP |
+
+### Implementation
+
+| Module | Contents |
+| --- | --- |
+| `modules/auth` | `AuthController`, `RegistrationService` (flow logic), DTOs, `RegistrationNextStep`, policy constants |
+| `modules/users` | `User` schema, `UsersService` (conditional status transitions), `UserApprovalService`, `scripts/user-approval.ts` |
+| `modules/email-verification` | `EmailVerification` schema (TTL), `EmailVerificationService` (issue / verify / consume codes and tokens) |
+| `modules/mail` | `MailService` (SMTP / outbox), templates (user input HTML-escaped) |
+| `shared/password.service.ts` | Argon2id hash / verify / needsRehash |
+
+The password hash is `select: false` and never mapped into responses. Logs contain user ids only: no emails, codes, tokens or passwords.
+
+### `POST /api/v1/auth/login`
+
+Sign in with **email + password** or **username + password** (`LOGIN_IDENTIFIERS`). Full checklist status: [docs/login-api-checklist.md](../docs/login-api-checklist.md).
+
+```json
+{ "email": "jane.doe@example.com", "password": "Str0ng!Passw0rd", "rememberMe": true }
+```
+
+`200` → `{ user, accessToken, tokenType: "Bearer", expiresIn: 900 }`, plus the refresh token:
+
+- **Browsers (default)**: cookie `authcore_refresh`, `HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`. JavaScript can't read it; it is only sent to auth routes. Without `rememberMe` it is a browser-session cookie (7-day session); with it, persistent (30 days).
+- **Mobile** (`REFRESH_TOKEN_DELIVERY=body`): `refreshToken` and `refreshTokenExpiresAt` in the JSON. Store in Keychain / Keystore.
+
+Use the access token as `Authorization: Bearer <accessToken>`. Claims: `sub` (user id), `sid` (session id), `jti`, `typ: "access"`, `iss`, `aud`, `iat`, `exp`. HS256 only.
+
+| Response | When |
+| --- | --- |
+| `401 AUTH_INVALID_CREDENTIALS` | Wrong password, unknown / deleted account (always the same response and timing) |
+| `403 AUTH_EMAIL_NOT_VERIFIED` | Email not verified (verify / resend, then sign in) |
+| `403 AUTH_ACCOUNT_PENDING_APPROVAL` | Waiting for an administrator |
+| `403 AUTH_ACCOUNT_SUSPENDED` / `AUTH_ACCOUNT_INACTIVE` / `AUTH_ACCOUNT_DISABLED` | Account can't sign in |
+| `429 AUTH_TOO_MANY_FAILED_ATTEMPTS` | 5 failures in 15 min → locked 15 min (`Retry-After`); same for unknown emails |
+| `429 TOO_MANY_REQUESTS` | More than 10 requests / minute from one IP |
+
+403 codes are only returned after a correct password, so account statuses can't be probed.
+
+Each login creates a **session** (`sessions` collection): device / browser / OS, IP, refresh-token SHA-256, token family id, `lastUsedAt`, `expiresAt` (TTL). At most `MAX_SESSIONS_PER_USER` active sessions; the oldest is revoked above that.
+
+Coming next: refresh (rotation + reuse detection), logout, logout all devices, `/me` with the auth guard, session list / revoke.
 
 ## 12. Deployment
 
