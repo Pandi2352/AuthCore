@@ -98,8 +98,8 @@ Verified by an end-to-end test against MongoDB (11 groups, all passing) plus a r
 - [x] 7 days, 30 with `rememberMe` (configurable)
 - [x] Multiple devices; session limit `MAX_SESSIONS_PER_USER` (oldest revoked, reason `session_limit`)
 - [x] Separate from the access token
-- [ ] New token on every refresh, old one invalidated → *Refresh Token API*
-- [ ] Reuse detection → revoke the whole family → *Refresh Token API*
+- [x] New token on every refresh, old one invalidated (`POST /api/v1/auth/refresh`, atomic rotation)
+- [x] Reuse detection → revoke the whole family (after a 10 s grace for parallel tabs)
 - [ ] Logout / session revocation → *Logout APIs*
 
 ## 8. Device and session tracking

@@ -66,11 +66,11 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] JWT access token generation *(HS256, 15 min; `sub`, `sid`, `jti`, `iss`, `aud`)*
 - [ ] JWT access token validation
 - [x] Refresh token generation *(256-bit random, SHA-256 stored; rotation comes with the refresh API)*
-- [ ] Refresh token rotation
-- [ ] Refresh token validation
-- [ ] Refresh token reuse detection
-- [ ] Token family management
-- [ ] Token family revocation
+- [x] Refresh token rotation *(`POST /api/v1/auth/refresh`: new token every refresh, atomic)*
+- [x] Refresh token validation
+- [x] Refresh token reuse detection *(rotated-token history; 10 s grace for parallel tabs)*
+- [x] Token family management
+- [x] Token family revocation *(on reuse; session expiry never extended)*
 - [x] Token expiration management
 - [ ] Token revocation
 - [ ] Authentication guards
@@ -187,7 +187,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Refresh token hashing
 - [ ] Helmet security headers
 - [ ] CORS configuration
-- [ ] CSRF protection
+- [x] CSRF protection *(refresh cookie: SameSite=Strict + Origin/Referer allowlist check)*
 - [ ] XSS protection
 - [ ] NoSQL injection protection
 - [ ] Input sanitization

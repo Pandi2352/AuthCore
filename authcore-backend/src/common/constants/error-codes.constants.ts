@@ -35,6 +35,11 @@ export enum ErrorCode {
   AuthAccountSuspended = 'AUTH_ACCOUNT_SUSPENDED',
   AuthAccountInactive = 'AUTH_ACCOUNT_INACTIVE',
   AuthAccountDisabled = 'AUTH_ACCOUNT_DISABLED',
+
+  // Auth: refresh token
+  AuthInvalidRefreshToken = 'AUTH_INVALID_REFRESH_TOKEN',
+  AuthRefreshTokenReused = 'AUTH_REFRESH_TOKEN_REUSED',
+  AuthInvalidOrigin = 'AUTH_INVALID_ORIGIN',
 }
 
 /** Default code and safe client message for each HTTP status. */

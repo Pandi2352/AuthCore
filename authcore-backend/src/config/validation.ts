@@ -147,6 +147,13 @@ export const envValidationSchema = Joi.object({
     .min(1)
     .max(365)
     .default(30),
+  // A just-rotated refresh token is still accepted this long (parallel
+  // refreshes from several tabs); after that, reuse revokes the session.
+  REFRESH_TOKEN_REUSE_GRACE_SECONDS: Joi.number()
+    .integer()
+    .min(0)
+    .max(60)
+    .default(10),
   // cookie = HttpOnly cookie (browsers); body = in the JSON response (mobile apps); both
   REFRESH_TOKEN_DELIVERY: Joi.string()
     .valid('cookie', 'body', 'both')

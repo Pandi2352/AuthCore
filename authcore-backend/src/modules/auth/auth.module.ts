@@ -16,6 +16,7 @@ import {
   LoginAttemptSchema,
 } from './schemas/login-attempt.schema';
 import { AccessTokenService } from './services/access-token.service';
+import { AccountEligibilityService } from './services/account-eligibility.service';
 import { LoginSecurityService } from './services/login-security.service';
 import { RefreshTokenCookieService } from './services/refresh-token-cookie.service';
 
@@ -54,6 +55,7 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
   providers: [
     RegistrationService,
     AuthService,
+    AccountEligibilityService,
     AccessTokenService,
     LoginSecurityService,
     RefreshTokenCookieService,

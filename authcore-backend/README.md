@@ -181,6 +181,7 @@ Config groups: `appConfig`, `databaseConfig`, `securityConfig`, `lifecycleConfig
 | `JWT_ISSUER` / `JWT_AUDIENCE` | `authcore` / `authcore-api` | |
 | `REFRESH_TOKEN_TTL_DAYS` | `7` | 1–90 |
 | `REFRESH_TOKEN_REMEMBER_ME_TTL_DAYS` | `30` | 1–365 |
+| `REFRESH_TOKEN_REUSE_GRACE_SECONDS` | `10` | 0–60; a just-rotated token still works this long (parallel tabs) |
 | `REFRESH_TOKEN_DELIVERY` | `cookie` | `cookie` (browsers), `body` (mobile), `both` |
 | `REFRESH_COOKIE_NAME` | `authcore_refresh` | |
 | `REFRESH_COOKIE_SAMESITE` | `strict` | `strict`, `lax`, `none` (needs Secure) |
@@ -670,7 +671,34 @@ Use the access token as `Authorization: Bearer <accessToken>`. Claims: `sub` (us
 
 Each login creates a **session** (`sessions` collection): device / browser / OS, IP, refresh-token SHA-256, token family id, `lastUsedAt`, `expiresAt` (TTL). At most `MAX_SESSIONS_PER_USER` active sessions; the oldest is revoked above that.
 
-Coming next: refresh (rotation + reuse detection), logout, logout all devices, `/me` with the auth guard, session list / revoke.
+### `POST /api/v1/auth/refresh`
+
+Exchanges the refresh token for a new access token. Same `200` body as login (`user`, `accessToken`, `tokenType`, `expiresIn`).
+
+| Client | Send | Gets back |
+| --- | --- | --- |
+| Browser (cookie delivery) | No body; cookie `authcore_refresh` is sent automatically. Must come from an allowed origin (`Origin`, or `Referer`, in `CORS_ORIGIN`) | New access token + a new `authcore_refresh` cookie |
+| Mobile (`REFRESH_TOKEN_DELIVERY=body`) | `{ "refreshToken": "..." }` | New access token + new `refreshToken` / `refreshTokenExpiresAt` in JSON |
+
+**Rotation.** Every refresh replaces the refresh token; the old one stops working. The update is atomic, so two requests can't both use the same token. The session's expiry is **not** extended: a 7-day session ends after 7 days however often it is refreshed (30 days with remember me).
+
+**Parallel refreshes.** If several tabs refresh at the same moment, the first rotates; the others (same old token, within `REFRESH_TOKEN_REUSE_GRACE_SECONDS`) get a new access token without rotation, and the browser keeps the new cookie. Mobile apps must not refresh in parallel; keep one refresh in flight.
+
+**Reuse detection.** An already-rotated token presented after the grace window means the token was probably copied. The whole token family (the session) is revoked: `401 AUTH_REFRESH_TOKEN_REUSED`, and the user must sign in again. The last 100 rotated tokens per session are remembered (hashes only).
+
+**Account checks.** The user must still exist and be allowed to sign in (same rules as login). Otherwise the session is revoked and the account's `403` code is returned.
+
+| Response | When | Cookie |
+| --- | --- | --- |
+| `401 AUTH_INVALID_REFRESH_TOKEN` | Missing, unknown, expired or revoked | Cleared |
+| `401 AUTH_REFRESH_TOKEN_REUSED` | Old token reused → session revoked | Cleared |
+| `403 AUTH_INVALID_ORIGIN` | Cookie request from an untrusted / missing origin (CSRF) | Kept |
+| `403 AUTH_ACCOUNT_*` / `AUTH_EMAIL_NOT_VERIFIED` | Account can no longer sign in → session revoked | Cleared |
+| `429 TOO_MANY_REQUESTS` | More than 30 refreshes / minute from one IP | Kept |
+
+Frontend pattern: on any API `401`, call `/auth/refresh` once, then retry the request; if refresh fails, go to sign-in.
+
+Coming next: logout, logout all devices, `/me` with the auth guard, session list / revoke.
 
 ## 12. Deployment
 

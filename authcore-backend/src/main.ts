@@ -3,6 +3,7 @@ import type { ConfigType } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import type { Request, Response } from 'express';
 import helmet from 'helmet';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
@@ -57,6 +58,8 @@ async function bootstrap() {
 
   // Request id first, so every later step (and every log line) has it.
   app.use(requestIdMiddleware);
+  // Reads cookies (refresh token) into request.cookies.
+  app.use(cookieParser());
   if (logging.isHttpRequestLoggingEnabled) {
     app.use(accessLogMiddleware);
   }

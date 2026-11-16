@@ -20,6 +20,24 @@ export class Session extends BaseSchema {
   @Prop({ type: String, required: true, unique: true })
   refreshTokenHash!: string;
 
+  /** Token replaced by the last rotation (accepted briefly for parallel refreshes). */
+  @Prop({ type: String, default: null, index: true })
+  previousRefreshTokenHash!: string | null;
+
+  @Prop({ type: Date, default: null })
+  rotatedAt!: Date | null;
+
+  /** Hashes of already-rotated tokens (most recent 100), for reuse detection. */
+  @Prop({ type: [String], default: [], index: true })
+  rotatedTokenHashes!: string[];
+
+  @Prop({ required: true, default: 0 })
+  rotationCount!: number;
+
+  /** IP of the most recent refresh (ipAddress stays the sign-in IP). */
+  @Prop({ type: String, default: null, maxlength: 64 })
+  lastIpAddress!: string | null;
+
   /** "Remember me": longer lifetime and a persistent cookie. */
   @Prop({ required: true, default: false })
   isPersistent!: boolean;

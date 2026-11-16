@@ -5,11 +5,12 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   Res,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 import { API_TAGS } from '@common/constants/api-tags.constants';
 import {
@@ -24,12 +25,14 @@ import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { AuthService } from './auth.service';
 import {
   LOGIN_THROTTLE,
+  REFRESH_THROTTLE,
   REGISTER_THROTTLE,
   RESEND_VERIFICATION_THROTTLE,
   VERIFY_EMAIL_THROTTLE,
 } from './constants/auth.constants';
 import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
@@ -101,6 +104,49 @@ export class AuthController {
   ): Promise<LoginResponseDto> {
     const { body, session } = await this.authService.login(dto, client);
     this.refreshTokenCookieService.set(response, session);
+    return body;
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: REFRESH_THROTTLE })
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Session refreshed')
+  @ApiOperation({
+    summary: 'Get a new access token with the refresh token',
+    description:
+      'Browsers: send no body; the HttpOnly `authcore_refresh` cookie is used, and the request ' +
+      'must come from an allowed origin (`Origin` header in CORS_ORIGIN; CSRF protection). ' +
+      'Mobile apps (REFRESH_TOKEN_DELIVERY=body / both): send `{ "refreshToken": "..." }`.\n\n' +
+      'Every refresh **rotates** the refresh token: a new cookie is set (or a new `refreshToken` ' +
+      'returned) and the old token stops working. The session expiry is not extended.\n\n' +
+      'Parallel refreshes (several tabs) within REFRESH_TOKEN_REUSE_GRACE_SECONDS get a new access ' +
+      'token without rotation. Presenting an older, already-rotated token is treated as theft: the ' +
+      'whole session is signed out (401 AUTH_REFRESH_TOKEN_REUSED). Mobile clients must not refresh ' +
+      'in parallel.\n\n' +
+      'Errors: 401 AUTH_INVALID_REFRESH_TOKEN (missing / expired / revoked) or ' +
+      'AUTH_REFRESH_TOKEN_REUSED; 403 AUTH_INVALID_ORIGIN, or an account code ' +
+      '(AUTH_ACCOUNT_SUSPENDED, ...) when the account can no longer sign in (session revoked). ' +
+      'The cookie is cleared on these errors.',
+  })
+  @ApiWrappedResponse(LoginResponseDto, { description: 'New access token' })
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  async refresh(
+    @Body() dto: RefreshTokenDto,
+    @Req() request: Request,
+    @ClientInfoParam() client: ClientInfo,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<LoginResponseDto> {
+    const token = this.refreshTokenCookieService.extract(
+      request,
+      dto.refreshToken,
+    );
+    const { body, rotation } = await this.authService
+      .refresh(token, client)
+      .catch((error: unknown) =>
+        this.refreshTokenCookieService.clearIfRejected(response, error),
+      );
+    this.refreshTokenCookieService.apply(response, rotation);
     return body;
   }
 

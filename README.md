@@ -200,7 +200,8 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 🌿 Git standards, CI/CD, deployment docs (sections 15–17) | ⏳ Not started |
 | 🧩 Registration: Direct / Email OTP / Email link / Admin approval (configurable) | ✅ Done |
 | 🔑 Login: email / username + password, JWT, sessions, lockout | ✅ Done |
-| 🔄 Refresh token, logout, /me, session management (next) | ⏳ Not started |
+| 🔄 Refresh token: rotation, reuse detection, CSRF origin check | ✅ Done |
+| 🚪 Logout, /me + auth guard, session management (next) | ⏳ Not started |
 
 ---
 

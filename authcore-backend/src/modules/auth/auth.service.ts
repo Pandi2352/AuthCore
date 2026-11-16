@@ -5,11 +5,10 @@ import { ErrorCode } from '@common/constants/error-codes.constants';
 import { AppException } from '@common/exceptions/app.exception';
 import { ValidationException } from '@common/exceptions/validation.exception';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
-import { authConfig, registrationConfig } from '@config/configuration';
+import { authConfig } from '@config/configuration';
 import type { CreatedSession } from '@modules/sessions/interfaces/session.interface';
 import { SessionsService } from '@modules/sessions/sessions.service';
 import { UserResponseDto } from '@modules/users/dto/user-response.dto';
-import { UserStatus } from '@modules/users/enums/user-status.enum';
 import type { LoginLookup } from '@modules/users/interfaces/user-credentials.interface';
 import { UsersService } from '@modules/users/users.service';
 import { PasswordService } from '@shared/password.service';
@@ -17,8 +16,26 @@ import { PasswordService } from '@shared/password.service';
 import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { AccessTokenService } from './services/access-token.service';
+import { AccountEligibilityService } from './services/account-eligibility.service';
 import { LoginSecurityService } from './services/login-security.service';
-import { RefreshTokenCookieService } from './services/refresh-token-cookie.service';
+import {
+  RefreshTokenCookieService,
+  type RefreshTokenDetails,
+} from './services/refresh-token-cookie.service';
+
+export interface RefreshResult {
+  body: LoginResponseDto;
+  /** New refresh token to deliver; null within the grace period (no rotation). */
+  rotation: RefreshTokenDetails | null;
+}
+
+function invalidRefreshToken(): AppException {
+  return new AppException(
+    HttpStatus.UNAUTHORIZED,
+    ErrorCode.AuthInvalidRefreshToken,
+    'Your session has expired. Please sign in again.',
+  );
+}
 
 export interface LoginResult {
   body: LoginResponseDto;
@@ -52,10 +69,9 @@ export class AuthService {
     private readonly accessTokenService: AccessTokenService,
     private readonly loginSecurityService: LoginSecurityService,
     private readonly refreshTokenCookieService: RefreshTokenCookieService,
+    private readonly accountEligibilityService: AccountEligibilityService,
     @Inject(authConfig.KEY)
     private readonly auth: ConfigType<typeof authConfig>,
-    @Inject(registrationConfig.KEY)
-    private readonly registration: ConfigType<typeof registrationConfig>,
   ) {}
 
   async login(dto: LoginDto, client: ClientInfo): Promise<LoginResult> {
@@ -212,54 +228,116 @@ export class AuthService {
    * without other account details.
    */
   private assertCanSignIn(user: UserResponseDto): void {
-    const refuse = (code: ErrorCode, message: string): never => {
+    const refusal = this.accountEligibilityService.getRefusal(user);
+    if (refusal) {
       this.logger.log({
         message: 'Login refused: account cannot sign in',
         userId: user.id,
         status: user.status,
-        code,
+        code: refusal.code,
       });
-      throw new AppException(HttpStatus.FORBIDDEN, code, message);
-    };
-    const notVerified = (): never =>
-      refuse(
-        ErrorCode.AuthEmailNotVerified,
-        'Verify your email address before signing in',
+      throw new AppException(
+        HttpStatus.FORBIDDEN,
+        refusal.code,
+        refusal.message,
       );
-
-    switch (user.status) {
-      case UserStatus.Active:
-        if (
-          this.registration.emailVerification !== 'none' &&
-          !user.isEmailVerified
-        ) {
-          notVerified();
-        }
-        return;
-      case UserStatus.PendingVerification:
-        return notVerified();
-      case UserStatus.PendingApproval:
-        return refuse(
-          ErrorCode.AuthAccountPendingApproval,
-          'Your account is waiting for approval by an administrator',
-        );
-      case UserStatus.Suspended:
-        return refuse(
-          ErrorCode.AuthAccountSuspended,
-          'Your account is suspended. Contact support for help.',
-        );
-      case UserStatus.Inactive:
-        return refuse(
-          ErrorCode.AuthAccountInactive,
-          'Your account is deactivated. Contact support to reactivate it.',
-        );
-      case UserStatus.Rejected:
-      case UserStatus.Banned:
-        return refuse(
-          ErrorCode.AuthAccountDisabled,
-          'This account cannot be used to sign in. Contact support for help.',
-        );
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Refresh
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Exchanges a refresh token for a new access token (and, normally, a new
+   * refresh token: rotation). See SessionsService.useRefreshToken for the
+   * rotation / grace / reuse rules. The account must still be allowed to
+   * sign in; otherwise the session is revoked.
+   */
+  async refresh(
+    refreshToken: string,
+    client: ClientInfo,
+  ): Promise<RefreshResult> {
+    const result = await this.sessionsService.useRefreshToken(
+      refreshToken,
+      client,
+    );
+
+    if (result.kind === 'invalid') {
+      throw invalidRefreshToken();
+    }
+    if (result.kind === 'reused') {
+      this.logger.warn({
+        message: 'Refresh token reuse detected: token family revoked',
+        userId: result.userId,
+        sessionId: result.sessionId,
+        tokenFamilyId: result.tokenFamilyId,
+        ipAddress: client.ipAddress,
+      });
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCode.AuthRefreshTokenReused,
+        'For your security this session has been signed out. Please sign in again.',
+      );
+    }
+
+    const { session } = result;
+    const user = await this.usersService.findById(session.userId);
+    if (!user) {
+      await this.sessionsService.revoke(session.sessionId, 'user_deleted');
+      throw invalidRefreshToken();
+    }
+    const refusal = this.accountEligibilityService.getRefusal(user);
+    if (refusal) {
+      await this.sessionsService.revoke(session.sessionId, 'account_status');
+      this.logger.log({
+        message: 'Refresh refused: account cannot sign in; session revoked',
+        userId: user.id,
+        sessionId: session.sessionId,
+        status: user.status,
+        code: refusal.code,
+      });
+      throw new AppException(
+        HttpStatus.FORBIDDEN,
+        refusal.code,
+        refusal.message,
+      );
+    }
+
+    const { accessToken, expiresIn } = await this.accessTokenService.issue(
+      user.id,
+      session.sessionId,
+    );
+    this.logger.debug({
+      message:
+        result.kind === 'rotated'
+          ? 'Session refreshed (token rotated)'
+          : 'Session refreshed within grace period (no rotation)',
+      userId: user.id,
+      sessionId: session.sessionId,
+      rotationCount: session.rotationCount,
+    });
+
+    const body: LoginResponseDto = {
+      user,
+      accessToken,
+      tokenType: 'Bearer',
+      expiresIn,
+    };
+    if (result.kind !== 'rotated') {
+      return { body, rotation: null };
+    }
+    const rotation: RefreshTokenDetails = {
+      refreshToken: result.refreshToken,
+      // The session keeps its original expiry: refreshing never extends it.
+      expiresAt: session.expiresAt,
+      isPersistent: session.isPersistent,
+    };
+    if (this.refreshTokenCookieService.isBodyDelivery) {
+      body.refreshToken = rotation.refreshToken;
+      body.refreshTokenExpiresAt = rotation.expiresAt;
+    }
+    return { body, rotation };
   }
 
   /** Re-hash with the current Argon2 settings if the stored hash is weaker. */

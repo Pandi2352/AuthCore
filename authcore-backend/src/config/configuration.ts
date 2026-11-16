@@ -121,6 +121,7 @@ export const authConfig = registerAs('auth', () => ({
   refreshToken: {
     ttlDays: Number(env('REFRESH_TOKEN_TTL_DAYS')),
     rememberMeTtlDays: Number(env('REFRESH_TOKEN_REMEMBER_ME_TTL_DAYS')),
+    reuseGraceSeconds: Number(env('REFRESH_TOKEN_REUSE_GRACE_SECONDS')),
     delivery: toRefreshTokenDelivery(env('REFRESH_TOKEN_DELIVERY')),
     cookie: {
       name: env('REFRESH_COOKIE_NAME'),
