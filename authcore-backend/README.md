@@ -740,7 +740,21 @@ Returns the signed-in user (same fields as the login response's `user`). `Cache-
 curl -H "Authorization: Bearer <accessToken>" http://localhost:3000/api/v1/auth/me
 ```
 
-Coming next: logout, logout all devices, session list / revoke.
+### `POST /api/v1/auth/logout` and `POST /api/v1/auth/logout-all`
+
+Both require `Authorization: Bearer <accessToken>` (not the cookie, so another site can't sign a user out: no CSRF).
+
+| Endpoint | Body | Effect | Response `data` | Cookie |
+| --- | --- | --- | --- | --- |
+| `/auth/logout` | none | Revokes **this** session (reason `logout`) | `null` | Cleared |
+| `/auth/logout-all` | none or `{ "keepCurrentSession": false }` | Revokes **all** the user's sessions, incl. this one (`logout_all`) | `{ revokedSessionCount, isCurrentSessionKept: false }` | Cleared |
+| `/auth/logout-all` | `{ "keepCurrentSession": true }` | Revokes all **other** sessions (`logout_others`); this device stays signed in | `{ revokedSessionCount, isCurrentSessionKept: true }` | Kept |
+
+Revoked sessions take effect immediately: their access tokens get `401 AUTH_SESSION_REVOKED` on the next request (the guard checks the session), and their refresh tokens get `401 AUTH_INVALID_REFRESH_TOKEN`. Only the caller's own sessions can be revoked.
+
+Frontend: if the access token has expired, call `/auth/refresh` and then log out; if refresh fails, the session is already unusable, so just clear the client state.
+
+Coming next: session list / revoke one session (Session Management).
 
 ## 12. Deployment
 

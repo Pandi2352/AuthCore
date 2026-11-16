@@ -100,7 +100,7 @@ Verified by an end-to-end test against MongoDB (11 groups, all passing) plus a r
 - [x] Separate from the access token
 - [x] New token on every refresh, old one invalidated (`POST /api/v1/auth/refresh`, atomic rotation)
 - [x] Reuse detection → revoke the whole family (after a 10 s grace for parallel tabs)
-- [ ] Logout / session revocation → *Logout APIs*
+- [x] Logout (`POST /auth/logout`) and logout from all devices (`POST /auth/logout-all`): access tokens of revoked sessions rejected immediately
 
 ## 8. Device and session tracking
 

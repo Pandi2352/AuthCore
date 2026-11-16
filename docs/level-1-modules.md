@@ -61,8 +61,8 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 - [x] Register *(`POST /api/v1/auth/register`)*
 - [x] Login *(`POST /api/v1/auth/login`: email or username + password)*
-- [ ] Logout
-- [ ] Logout from all devices
+- [x] Logout *(`POST /api/v1/auth/logout`: revokes the current session, clears the cookie)*
+- [x] Logout from all devices *(`POST /api/v1/auth/logout-all`, optional `keepCurrentSession`)*
 - [x] JWT access token generation *(HS256, 15 min; `sub`, `sid`, `jti`, `iss`, `aud`)*
 - [x] JWT access token validation *(every request: signature, alg, exp, iss, aud, typ + active session + account status)*
 - [x] Refresh token generation *(256-bit random, SHA-256 stored; rotation comes with the refresh API)*
@@ -85,7 +85,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [ ] List active sessions
 - [ ] Get session details
 - [ ] Revoke individual session
-- [ ] Revoke all sessions
+- [x] Revoke all sessions *(user: logout-all; admin version in Admin module)*
 - [x] Device identification
 - [x] Device information tracking
 - [x] Browser and OS tracking

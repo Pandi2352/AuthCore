@@ -202,7 +202,8 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 🔑 Login: email / username + password, JWT, sessions, lockout | ✅ Done |
 | 🔄 Refresh token: rotation, reuse detection, CSRF origin check | ✅ Done |
 | 🛡️ Auth guard (secure by default) + GET /auth/me | ✅ Done |
-| 🚪 Logout, logout all devices, session management (next) | ⏳ Not started |
+| 🚪 Logout + logout from all devices | ✅ Done |
+| 📱 Session management: list / revoke sessions (next) | ⏳ Not started |
 
 ---
 

@@ -37,6 +37,8 @@ import {
 } from './constants/auth.constants';
 import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { LogoutAllDto } from './dto/logout-all.dto';
+import { LogoutAllResponseDto } from './dto/logout-all-response.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
@@ -217,6 +219,65 @@ export class AuthController {
   async resendVerification(@Body() dto: ResendVerificationDto): Promise<null> {
     await this.registrationService.resendVerification(dto.email);
     return null;
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @Header('Cache-Control', 'no-store')
+  @ApiBearerAuth('access-token')
+  @ResponseMessage('Signed out')
+  @ApiOperation({
+    summary: 'Sign out of this device',
+    description:
+      'Requires `Authorization: Bearer <accessToken>`. Revokes the current session: its access ' +
+      'token is rejected from the next request on, its refresh token stops working, and the ' +
+      'refresh cookie is cleared. Other devices stay signed in.\n\n' +
+      'If the access token has expired, refresh first and then sign out; if refresh fails, the ' +
+      'session is already unusable and the client only needs to clear its state.',
+  })
+  @ApiWrappedResponse()
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
+  async logout(
+    @CurrentUser() auth: AuthContext,
+    @ClientInfoParam() client: ClientInfo,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<null> {
+    await this.authService.logout(auth, client);
+    this.refreshTokenCookieService.clear(response);
+    return null;
+  }
+
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @Header('Cache-Control', 'no-store')
+  @ApiBearerAuth('access-token')
+  @ResponseMessage('Signed out of all devices')
+  @ApiOperation({
+    summary: 'Sign out of all devices',
+    description:
+      'Requires `Authorization: Bearer <accessToken>`. Revokes every active session of the user ' +
+      '(all their access and refresh tokens stop working) and clears the refresh cookie.\n\n' +
+      'With `{ "keepCurrentSession": true }` only the OTHER devices are signed out and this one ' +
+      'stays signed in (e.g. after a password change or a suspicious sign-in).',
+  })
+  @ApiWrappedResponse(LogoutAllResponseDto)
+  @ApiErrorResponses(HttpStatus.BAD_REQUEST, HttpStatus.UNAUTHORIZED)
+  async logoutAll(
+    @CurrentUser() auth: AuthContext,
+    @Body() dto: LogoutAllDto,
+    @ClientInfoParam() client: ClientInfo,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<LogoutAllResponseDto> {
+    const shouldKeepCurrentSession = dto.keepCurrentSession ?? false;
+    const result = await this.authService.logoutAll(
+      auth,
+      shouldKeepCurrentSession,
+      client,
+    );
+    if (!shouldKeepCurrentSession) {
+      this.refreshTokenCookieService.clear(response);
+    }
+    return result;
   }
 
   @Get('me')

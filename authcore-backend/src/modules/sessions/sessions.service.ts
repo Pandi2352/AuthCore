@@ -180,6 +180,29 @@ export class SessionsService {
     return result.modifiedCount > 0;
   }
 
+  /**
+   * Signs out all active sessions of a user (logout from all devices),
+   * optionally keeping one (the caller's own). Returns how many were revoked.
+   */
+  async revokeAllForUser(
+    userId: string,
+    reason: string,
+    exceptSessionId?: string,
+  ): Promise<number> {
+    const result = await this.sessionModel.updateMany(
+      {
+        userId,
+        revokedAt: null,
+        expiresAt: { $gt: new Date() },
+        ...(exceptSessionId === undefined
+          ? {}
+          : { _id: { $ne: exceptSessionId } }),
+      },
+      { $set: { revokedAt: new Date(), revokedReason: reason } },
+    );
+    return result.modifiedCount;
+  }
+
   /** Signs out every session of a token family (refresh token reuse). */
   async revokeFamily(tokenFamilyId: string, reason: string): Promise<number> {
     const result = await this.sessionModel.updateMany(

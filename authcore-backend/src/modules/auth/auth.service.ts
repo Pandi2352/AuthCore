@@ -16,6 +16,7 @@ import { PasswordService } from '@shared/password.service';
 
 import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { LogoutAllResponseDto } from './dto/logout-all-response.dto';
 import { AccessTokenService } from './services/access-token.service';
 import { AccountEligibilityService } from './services/account-eligibility.service';
 import { LoginSecurityService } from './services/login-security.service';
@@ -140,6 +141,54 @@ export class AuthService {
       body.refreshTokenExpiresAt = session.expiresAt;
     }
     return { body, session };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Logout
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Signs out the current device: revokes the caller's session. Its access
+   * tokens are rejected from the next request on (the guard checks the
+   * session), and its refresh token stops working.
+   */
+  async logout(auth: AuthContext, client: ClientInfo): Promise<void> {
+    await this.sessionsService.revoke(auth.sessionId, 'logout');
+    this.logger.log({
+      message: 'Logout',
+      userId: auth.userId,
+      sessionId: auth.sessionId,
+      ipAddress: client.ipAddress,
+    });
+  }
+
+  /**
+   * Signs out every device of the user, or every device except this one
+   * (`keepCurrentSession`).
+   */
+  async logoutAll(
+    auth: AuthContext,
+    shouldKeepCurrentSession: boolean,
+    client: ClientInfo,
+  ): Promise<LogoutAllResponseDto> {
+    const revokedSessionCount = await this.sessionsService.revokeAllForUser(
+      auth.userId,
+      shouldKeepCurrentSession ? 'logout_others' : 'logout_all',
+      shouldKeepCurrentSession ? auth.sessionId : undefined,
+    );
+    this.logger.log({
+      message: shouldKeepCurrentSession
+        ? 'Logout from all other devices'
+        : 'Logout from all devices',
+      userId: auth.userId,
+      sessionId: auth.sessionId,
+      revokedSessionCount,
+      ipAddress: client.ipAddress,
+    });
+    return {
+      revokedSessionCount,
+      isCurrentSessionKept: shouldKeepCurrentSession,
+    };
   }
 
   /**
