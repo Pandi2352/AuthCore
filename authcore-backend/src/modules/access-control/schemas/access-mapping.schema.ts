@@ -31,6 +31,10 @@ export class AccessMapping extends BaseSchema {
 
   @Prop({ type: String, required: true })
   assignedBy!: string;
+
+  /** Optional end date: after it the link grants nothing (kept for history). */
+  @Prop({ type: Date, default: null, index: true })
+  expiresAt!: Date | null;
 }
 
 export const AccessMappingSchema = SchemaFactory.createForClass(AccessMapping);

@@ -28,7 +28,14 @@ import type { Paginated } from '@common/interfaces/api-response.interface';
 import { ParseIdPipe } from '@common/pipes/parse-id.pipe';
 import { USER_PERMISSIONS as U } from '@modules/access-control/constants/access-control.constants';
 import { CurrentActor } from '@modules/access-control/decorators/current-actor.decorator';
+import { AccessTreeGroupDto } from '@modules/access-control/dto/access-mapping.dto';
 import type { Actor } from '@modules/access-control/interfaces/actor.interface';
+import {
+  ActivityQueryDto,
+  UserActivityDto,
+} from '@modules/user-activity/dto/user-activity.dto';
+import { UserActivityService } from '@modules/user-activity/user-activity.service';
+import { UpdateAttributesDto } from '@modules/user-schema/dto/user-attribute.dto';
 import { AdminUserResponseDto } from '@modules/users/dto/user-response.dto';
 import { UserRole } from '@modules/users/enums/user-role.enum';
 
@@ -36,6 +43,7 @@ import {
   AdminCreateUserDto,
   AdminReasonDto,
   AdminSessionDto,
+  AdminSetPasswordDto,
   AdminSetRoleDto,
   AdminSetStatusDto,
   AdminUpdateUserDto,
@@ -63,7 +71,10 @@ const GUARD_RAILS =
 @ApiStandardErrors()
 @Controller('admin/users')
 export class UserAdminController {
-  constructor(private readonly userAdminService: UserAdminService) {}
+  constructor(
+    private readonly userAdminService: UserAdminService,
+    private readonly activityService: UserActivityService,
+  ) {}
 
   @Get()
   @RequirePermissions(U.Read)
@@ -207,6 +218,83 @@ export class UserAdminController {
     @CurrentActor() actor: Actor,
   ): Promise<PasswordResetSentDto> {
     return this.userAdminService.sendPasswordReset(id, actor);
+  }
+
+  @Patch(':id/attributes')
+  @RequirePermissions(U.Update)
+  @Throttle({ default: WRITE_THROTTLE })
+  @ResponseMessage('Personal details updated')
+  @ApiOperation({
+    summary: "Update the user's personal details (custom variables)",
+    description: `Needs USER_UPDATE. Like PATCH /users/me/attributes, but internal and read-only variables can be set. ${GUARD_RAILS}`,
+  })
+  @ApiWrappedResponse(AdminUserDetailsDto)
+  @ApiErrorResponses(...ERRORS, HttpStatus.CONFLICT)
+  updateAttributes(
+    @Param('id', ParseIdPipe) id: string,
+    @Body() dto: UpdateAttributesDto,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminUserDetailsDto> {
+    return this.userAdminService.updateAttributes(id, dto.attributes, actor);
+  }
+
+  @Post(':id/set-password')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions(U.PasswordManage)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Password set')
+  @ApiOperation({
+    summary: 'Set a new password for the user',
+    description:
+      'Needs USER_PASSWORD_MANAGE. The "Reset password" panel: newPassword + confirmPassword (policy and history ' +
+      'apply; "Generate" = POST /password-policies/generate-password), optional email notice (never contains the ' +
+      'password), "reset password on next login", signs the user out unless signOutAllSessions=false. ' +
+      GUARD_RAILS,
+  })
+  @ApiWrappedResponse(AdminUserDetailsDto)
+  @ApiErrorResponses(...ERRORS, HttpStatus.CONFLICT)
+  setPassword(
+    @Param('id', ParseIdPipe) id: string,
+    @Body() dto: AdminSetPasswordDto,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminUserDetailsDto> {
+    return this.userAdminService.setPassword(id, dto, actor);
+  }
+
+  @Get(':id/access')
+  @RequirePermissions(U.Read)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('User groups and roles')
+  @ApiOperation({
+    summary: "The user's groups, roles and permissions",
+    description:
+      'Needs USER_READ. "Groups & roles" panel: memberships → group roles → role permissions, each with its mapping ' +
+      'id and end date (isExpired). Set an end date with PATCH /access-mappings/:mappingId, remove with ' +
+      'DELETE /access-mappings/:mappingId.',
+  })
+  @ApiWrappedResponse(AccessTreeGroupDto, { isArray: true })
+  @ApiErrorResponses(...ERRORS)
+  access(@Param('id', ParseIdPipe) id: string): Promise<AccessTreeGroupDto[]> {
+    return this.userAdminService.accessTree(id);
+  }
+
+  @Get(':id/activity')
+  @RequirePermissions(U.Read)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('User activity')
+  @ApiOperation({
+    summary: 'Recent user activities',
+    description:
+      'Needs USER_READ. Sign-ins, failed sign-ins, logouts, password / email changes, admin actions; device, browser, IP. Newest first.',
+  })
+  @ApiPaginatedResponse(UserActivityDto)
+  @ApiErrorResponses(...ERRORS)
+  activity(
+    @Param('id', ParseIdPipe) id: string,
+    @Query() query: ActivityQueryDto,
+  ): Promise<Paginated<UserActivityDto>> {
+    return this.activityService.list(id, query);
   }
 
   @Post(':id/force-password-reset')

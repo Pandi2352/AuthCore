@@ -46,6 +46,8 @@ import {
   UpdateSchedulersDto,
 } from './dto/scheduler.dto';
 import {
+  GeneratedPasswordDto,
+  GeneratePasswordDto,
   ValidatePasswordDto,
   ValidatePasswordResponseDto,
 } from './dto/validate-password.dto';
@@ -152,6 +154,27 @@ export class PasswordPolicyController {
   @ApiWrappedResponse(PasswordRequirementsDto)
   getRequirements(): Promise<PasswordRequirementsDto> {
     return this.passwordPolicyService.getRequirements();
+  }
+
+  @Post('generate-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @Throttle({ default: VALIDATE_PASSWORD_THROTTLE })
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Password generated')
+  @ApiOperation({
+    summary: 'Generate a password that meets the policy',
+    description:
+      'Any signed-in user (e.g. the "Generate" button on reset / change / create-user forms). Random, uses a ' +
+      'cryptographic RNG, avoids look-alike characters, satisfies every current policy rule. Never stored or logged.',
+  })
+  @ApiWrappedResponse(GeneratedPasswordDto)
+  @ApiErrorResponses(HttpStatus.BAD_REQUEST, HttpStatus.UNAUTHORIZED)
+  async generatePassword(
+    @Body() dto: GeneratePasswordDto,
+  ): Promise<GeneratedPasswordDto> {
+    const password = await this.passwordValidationService.generate(dto.length);
+    return { password, length: password.length };
   }
 
   @Public()

@@ -9,6 +9,7 @@ import {
   IsEmail,
   IsEnum,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -17,6 +18,7 @@ import {
   MaxLength,
 } from 'class-validator';
 
+import { Match } from '@common/decorators/match.decorator';
 import { ListQueryDto } from '@common/dto/list-query.dto';
 import {
   trim,
@@ -100,6 +102,16 @@ export class AdminUserListQueryDto extends ListQueryDto {
   @Transform(trimUpper)
   @IsOptional()
   deleted?: 'EXCLUDE' | 'ONLY' | 'INCLUDE';
+
+  @ApiPropertyOptional({
+    type: Object,
+    example: { employee_id: 'E123' },
+    description:
+      'Filter by searchable custom variables: ?attr[employee_id]=E123 (exact, case-insensitive)',
+  })
+  @IsObject()
+  @IsOptional()
+  attr?: Record<string, string>;
 
   @ApiPropertyOptional({ enum: ADMIN_USER_SORT_FIELDS, default: 'createdAt' })
   @IsIn(ADMIN_USER_SORT_FIELDS)
@@ -189,6 +201,16 @@ export class AdminCreateUserDto {
   groupIds?: string[];
 
   @ApiPropertyOptional({
+    type: Object,
+    example: { employee_id: 'E123', designation: 'Engineer' },
+    description:
+      'Custom variable values (admin rules: internal and read-only allowed)',
+  })
+  @IsObject()
+  @IsOptional()
+  attributes?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
     default: true,
     description:
       'Email the user that an account was created (without the password)',
@@ -199,6 +221,14 @@ export class AdminCreateUserDto {
 }
 
 export class AdminUpdateUserDto extends UpdateProfileDto {
+  @ApiPropertyOptional({
+    example: true,
+    description: 'The "Email verified" toggle',
+  })
+  @IsBoolean()
+  @IsOptional()
+  isEmailVerified?: boolean;
+
   @ApiPropertyOptional({
     example: 'sam.new@example.com',
     description:
@@ -244,6 +274,47 @@ export class AdminSetRoleDto {
   role!: UserRole;
 }
 
+/** "Reset password" panel: the admin sets (or generates) the new password. */
+export class AdminSetPasswordDto {
+  @ApiProperty({
+    example: 'Gen3rated!Pass26',
+    format: 'password',
+    description:
+      'Password policy and history apply. Use POST /password-policies/generate-password for "Generate".',
+  })
+  @IsNewPassword('newPassword')
+  newPassword!: string;
+
+  @ApiProperty({ example: 'Gen3rated!Pass26', format: 'password' })
+  @Match('newPassword')
+  @IsString()
+  @IsDefined({ message: 'confirmPassword is required' })
+  confirmPassword!: string;
+
+  @ApiPropertyOptional({
+    default: true,
+    description:
+      'Email the user that the password was reset (the password itself is never emailed). SMS needs an SMS provider (not available yet).',
+  })
+  @IsBoolean()
+  @IsOptional()
+  notifyByEmail?: boolean;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      '"Reset password on next login": the user must choose a new password at the next sign-in',
+  })
+  @IsBoolean()
+  @IsOptional()
+  requireChangeOnNextLogin?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsBoolean()
+  @IsOptional()
+  signOutAllSessions?: boolean;
+}
+
 export class ForcePasswordResetDto {
   @ApiPropertyOptional({
     default: true,
@@ -283,6 +354,20 @@ export class AdminUserDetailsDto extends AdminUserResponseDto {
   })
   isLocked!: boolean;
   @ApiProperty({ type: Date, nullable: true }) lockedUntil!: Date | null;
+  @ApiProperty({
+    type: Object,
+    description:
+      'Custom variable values (incl. internal ones; never passwords)',
+  })
+  attributes!: Record<string, unknown>;
+  @ApiProperty({ type: [String] }) missingRequired!: string[];
+  @ApiProperty({
+    type: Date,
+    nullable: true,
+    description:
+      '"Last activity on": latest sign-in, session use or account activity',
+  })
+  lastActivityAt!: Date | null;
 }
 
 export class AdminSessionDto {

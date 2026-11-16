@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 import { HttpStatus, Injectable } from '@nestjs/common';
 
 import { ErrorCode } from '@common/constants/error-codes.constants';
@@ -92,6 +94,57 @@ export class PasswordValidationService {
   }
 
   /** How many previous hashes to keep with a new password. */
+  /**
+   * A random password that satisfies the current policy (required character
+   * classes, length, no whitespace, repeat limit, not a common password).
+   * `length` is clamped to the policy's minimum / maximum; default: the
+   * larger of 16 and the minimum.
+   */
+  async generate(requestedLength?: number): Promise<string> {
+    const policy = await this.passwordPolicyService.getRules();
+    const { characterLength: limits, complexity } = policy;
+    const length = Math.min(
+      limits.maximum,
+      Math.max(limits.minimum, requestedLength ?? Math.max(16, limits.minimum)),
+    );
+    const required = [
+      ...pick(
+        UPPER,
+        effectiveCaseCount(
+          complexity.requireUpperAndLowerCase,
+          complexity.minimumUppercaseCount,
+        ),
+      ),
+      ...pick(
+        LOWER,
+        effectiveCaseCount(
+          complexity.requireUpperAndLowerCase,
+          complexity.minimumLowercaseCount,
+        ),
+      ),
+      ...pick(DIGITS, complexity.minimumDigitCount),
+      ...pick(SPECIALS, complexity.minimumSpecialCharacterCount),
+    ];
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const chars = [
+        ...required,
+        ...pick(
+          UPPER + LOWER + DIGITS + SPECIALS,
+          Math.max(0, length - required.length),
+        ),
+      ];
+      const password = shuffle(chars).join('');
+      if (checkRules(password, {}, policy).length === 0) {
+        return password;
+      }
+    }
+    throw new AppException(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      ErrorCode.UnprocessableEntity,
+      'Could not generate a password for the current policy',
+    );
+  }
+
   async historySize(): Promise<number> {
     const { passwordHistory } = await this.passwordPolicyService.getRules();
     return passwordHistory.preventReuse ? passwordHistory.historyCount : 0;
@@ -284,4 +337,27 @@ function containsPersonalInfo(
     .map((part) => part.toLowerCase())
     .filter((part) => part.length >= PERSONAL_INFO_MIN_LENGTH)
     .some((part) => lower.includes(part));
+}
+
+// Generator alphabet: no look-alike characters (0/O, 1/l/I) and no whitespace.
+const UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const LOWER = 'abcdefghijkmnopqrstuvwxyz';
+const DIGITS = '23456789';
+const SPECIALS = '!@#$%^&*()-_=+[]{}?';
+
+function pick(alphabet: string, count: number): string[] {
+  return Array.from(
+    { length: count },
+    () => alphabet[randomInt(alphabet.length)] ?? '',
+  );
+}
+
+/** Fisher–Yates with a cryptographic RNG. */
+function shuffle(chars: string[]): string[] {
+  const result = [...chars];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [result[i], result[j]] = [result[j] ?? '', result[i] ?? ''];
+  }
+  return result;
 }

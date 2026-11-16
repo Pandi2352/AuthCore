@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Query,
   Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -17,15 +18,26 @@ import type { Response } from 'express';
 import { API_TAGS } from '@common/constants/api-tags.constants';
 import {
   ApiErrorResponses,
+  ApiPaginatedResponse,
   ApiStandardErrors,
   ApiWrappedResponse,
 } from '@common/decorators/api-response.decorator';
 import { ClientInfoParam } from '@common/decorators/client-info.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { ResponseMessage } from '@common/decorators/response-message.decorator';
+import type { Paginated } from '@common/interfaces/api-response.interface';
 import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { RefreshTokenCookieService } from '@modules/auth/services/refresh-token-cookie.service';
+import {
+  ActivityQueryDto,
+  UserActivityDto,
+} from '@modules/user-activity/dto/user-activity.dto';
+import { UserActivityService } from '@modules/user-activity/user-activity.service';
+import {
+  ProfileQueryDto,
+  UpdateAttributesDto,
+} from '@modules/user-schema/dto/user-attribute.dto';
 import { UserResponseDto } from '@modules/users/dto/user-response.dto';
 
 import {
@@ -34,6 +46,7 @@ import {
   DeletionScheduledDto,
   EmailChangeStartedDto,
   EmailCodeDto,
+  ProfileResponseDto,
   UpdatePreferencesDto,
   UpdateProfileDto,
 } from '../dto/account.dto';
@@ -51,6 +64,7 @@ export class AccountController {
   constructor(
     private readonly accountService: AccountService,
     private readonly refreshTokenCookieService: RefreshTokenCookieService,
+    private readonly activityService: UserActivityService,
   ) {}
 
   @Get()
@@ -58,12 +72,53 @@ export class AccountController {
   @ResponseMessage('My profile')
   @ApiOperation({
     summary: 'My profile',
-    description: 'Profile, status and preferences of the signed-in user.',
+    description:
+      'Profile, status, preferences and custom variable values (`include` adds returned=REQUEST ones), plus missingRequired.',
   })
-  @ApiWrappedResponse(UserResponseDto)
+  @ApiWrappedResponse(ProfileResponseDto)
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
-  getProfile(@CurrentUser() auth: AuthContext): Promise<UserResponseDto> {
-    return this.accountService.getProfile(auth);
+  getProfile(
+    @CurrentUser() auth: AuthContext,
+    @Query() query: ProfileQueryDto,
+  ): Promise<ProfileResponseDto> {
+    return this.accountService.getProfile(auth, splitList(query.include));
+  }
+
+  @Patch('attributes')
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Personal details updated')
+  @ApiOperation({
+    summary: 'Update my personal details (custom variables)',
+    description:
+      '{ attributes: { name: value } } validated against the user schema (GET /user-schema/form): types, options, ' +
+      'limits, required, unique, read-only / immutable, internal. given_name / family_name / preferred_username map to ' +
+      'the built-in fields; email and password have their own endpoints. Groups (address) merge; null clears.',
+  })
+  @ApiWrappedResponse(ProfileResponseDto)
+  @ApiErrorResponses(...AUTH_ERRORS, HttpStatus.CONFLICT)
+  updateAttributes(
+    @CurrentUser() auth: AuthContext,
+    @Body() dto: UpdateAttributesDto,
+    @ClientInfoParam() client: ClientInfo,
+  ): Promise<ProfileResponseDto> {
+    return this.accountService.updateAttributes(auth, dto.attributes, client);
+  }
+
+  @Get('activity')
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('My recent activity')
+  @ApiOperation({
+    summary: 'My recent activity',
+    description:
+      'Sign-ins (incl. failed ones), logouts, password / email changes on my account, with device, browser and IP. Newest first.',
+  })
+  @ApiPaginatedResponse(UserActivityDto)
+  @ApiErrorResponses(...AUTH_ERRORS)
+  activity(
+    @CurrentUser() auth: AuthContext,
+    @Query() query: ActivityQueryDto,
+  ): Promise<Paginated<UserActivityDto>> {
+    return this.activityService.list(auth.userId, query);
   }
 
   @Patch()
@@ -192,4 +247,13 @@ export class AccountController {
     this.refreshTokenCookieService.clear(response);
     return result;
   }
+}
+
+function splitList(value: string | undefined): string[] {
+  return value
+    ? value
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
+    : [];
 }

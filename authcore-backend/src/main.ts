@@ -55,6 +55,8 @@ async function bootstrap() {
 
   // Real client IP behind proxies / load balancers (used by rate limiting).
   app.set('trust proxy', security.trustProxyHops);
+  // Nested query objects for filters such as ?attr[employee_id]=E123 (depth capped by qs).
+  app.set('query parser', 'extended');
 
   // Request id first, so every later step (and every log line) has it.
   app.use(requestIdMiddleware);

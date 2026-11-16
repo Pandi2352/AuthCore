@@ -18,6 +18,7 @@ export enum AuditEntity {
   AccessMapping = 'ACCESS_MAPPING',
   User = 'USER',
   Invite = 'INVITE',
+  UserAttribute = 'USER_ATTRIBUTE',
 }
 
 export enum AuditAction {

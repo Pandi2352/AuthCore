@@ -30,8 +30,10 @@ import { AccountModule } from '@modules/account/account.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { HealthModule } from '@modules/health/health.module';
 import { MailModule } from '@modules/mail/mail.module';
+import { UserActivityModule } from '@modules/user-activity/user-activity.module';
 import { UserAdminModule } from '@modules/user-admin/user-admin.module';
 import { UserInvitesModule } from '@modules/user-invites/user-invites.module';
+import { UserSchemaModule } from '@modules/user-schema/user-schema.module';
 import { SharedModule } from '@shared/shared.module';
 
 import { AppController } from './app.controller';
@@ -69,6 +71,8 @@ import { AppService } from './app.service';
     SharedModule,
     MailModule,
     HealthModule,
+    UserActivityModule,
+    UserSchemaModule,
     AuthModule,
     AccountModule,
     UserAdminModule,

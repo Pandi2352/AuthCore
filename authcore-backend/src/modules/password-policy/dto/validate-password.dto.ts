@@ -1,6 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsDefined, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsDefined,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 import { trimOrUndefined } from '@common/utils/transform.util';
 
@@ -66,4 +74,30 @@ export class ValidatePasswordResponseDto {
 
   @ApiProperty({ type: [PasswordViolationDto] })
   violations!: PasswordViolationDto[];
+}
+
+export class GeneratePasswordDto {
+  @ApiPropertyOptional({
+    example: 16,
+    minimum: 8,
+    maximum: 128,
+    description:
+      'Clamped to the policy minimum / maximum (default: the larger of 16 and the minimum)',
+  })
+  @Max(128)
+  @Min(8)
+  @IsInt()
+  @IsOptional()
+  length?: number;
+}
+
+export class GeneratedPasswordDto {
+  @ApiProperty({
+    example: 'q7#Kd2!vXm9@Lp4Z',
+    description: 'Meets the current password policy',
+  })
+  password!: string;
+
+  @ApiProperty({ example: 16 })
+  length!: number;
 }

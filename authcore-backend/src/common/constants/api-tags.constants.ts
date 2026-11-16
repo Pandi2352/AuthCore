@@ -46,6 +46,11 @@ export const API_TAGS = {
     name: 'User Invites',
     description: 'Invite people by email; they accept and create their account',
   },
+  UserSchema: {
+    name: 'User Schema',
+    description:
+      'Custom user variables: the fields a user profile has (types, scopes, locales, rules)',
+  },
   Sessions: {
     name: 'Sessions',
     description: 'My signed-in devices: list and sign out',

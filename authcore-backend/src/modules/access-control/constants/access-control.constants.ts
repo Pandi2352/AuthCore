@@ -276,10 +276,32 @@ const USER_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
   ],
 };
 
+/** Permissions protecting the user schema (custom user variables). */
+export const USER_SCHEMA_PERMISSIONS = {
+  Read: 'USER_SCHEMA_READ',
+  Manage: 'USER_SCHEMA_MANAGE',
+} as const;
+
+const USER_SCHEMA_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
+  USER_SCHEMA_READ: [
+    'View user schema',
+    'View the custom user variables',
+    'user-schema',
+    'READ',
+  ],
+  USER_SCHEMA_MANAGE: [
+    'Manage user schema',
+    'Create, edit and delete custom user variables',
+    'user-schema',
+    'MANAGE',
+  ],
+};
+
 export const SYSTEM_PERMISSIONS = [
   ...toSystemPermissions('access-control', SYSTEM_PERMISSION_DETAILS),
   ...toSystemPermissions('password-policy', PASSWORD_POLICY_PERMISSION_DETAILS),
   ...toSystemPermissions('users', USER_PERMISSION_DETAILS),
+  ...toSystemPermissions('user-schema', USER_SCHEMA_PERMISSION_DETAILS),
 ];
 
 /** Seeded roles: protected, each holding the listed system permissions. */
@@ -306,7 +328,10 @@ export const SYSTEM_ROLES = [
     category: SYSTEM_ROLE_CATEGORY,
     description:
       'Manages user accounts and invites. System role: cannot be edited or deleted.',
-    permissionKeys: Object.keys(USER_PERMISSION_DETAILS),
+    permissionKeys: [
+      ...Object.keys(USER_PERMISSION_DETAILS),
+      ...Object.keys(USER_SCHEMA_PERMISSION_DETAILS),
+    ],
   },
 ];
 

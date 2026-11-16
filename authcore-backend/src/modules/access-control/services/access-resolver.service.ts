@@ -67,7 +67,10 @@ export class AccessResolverService {
 
   async resolve(userId: string): Promise<ResolvedAccess> {
     const memberships = await this.mappingModel
-      .find({ type: MappingType.GroupUser, userId }, { groupId: 1 })
+      .find(
+        { type: MappingType.GroupUser, userId, ...notExpired() },
+        { groupId: 1 },
+      )
       .lean();
     const groups = await this.activeGroupsWithInherited(
       memberships.map((m) => m.groupId ?? ''),
@@ -142,7 +145,11 @@ export class AccessResolverService {
     }
     const links = await this.mappingModel
       .find(
-        { type: MappingType.GroupRole, groupId: { $in: groupIds } },
+        {
+          type: MappingType.GroupRole,
+          groupId: { $in: groupIds },
+          ...notExpired(),
+        },
         { roleId: 1 },
       )
       .lean();
@@ -163,7 +170,11 @@ export class AccessResolverService {
     }
     const links = await this.mappingModel
       .find(
-        { type: MappingType.RolePermission, roleId: { $in: roleIds } },
+        {
+          type: MappingType.RolePermission,
+          roleId: { $in: roleIds },
+          ...notExpired(),
+        },
         { permissionId: 1 },
       )
       .lean();
@@ -175,4 +186,9 @@ export class AccessResolverService {
           .lean()
       : [];
   }
+}
+
+/** Links without an end date, or whose end date is still ahead. */
+export function notExpired(): { $or: Record<string, unknown>[] } {
+  return { $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] };
 }

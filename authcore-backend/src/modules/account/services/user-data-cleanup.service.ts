@@ -19,6 +19,7 @@ const USER_DATA: readonly {
   { collection: 'password_resets', filter: (userId) => ({ userId }) },
   { collection: 'email_verifications', filter: (userId) => ({ userId }) },
   { collection: 'account_codes', filter: (userId) => ({ userId }) },
+  { collection: 'user_activities', filter: (userId) => ({ userId }) },
   {
     collection: 'password_expiry_notifications',
     filter: (userId) => ({ userId }),

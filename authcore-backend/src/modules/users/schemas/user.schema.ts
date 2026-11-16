@@ -91,6 +91,10 @@ export class User extends BaseSchema {
   })
   preferences!: UserPreferences;
 
+  /** Values of custom user variables (see the user schema). Not part of UserResponseDto. */
+  @Prop({ type: Object, default: () => ({}) })
+  attributes!: Record<string, unknown>;
+
   /** Set by an admin ("force password reset") or on admin-created accounts. */
   @Prop({ required: true, default: false })
   mustChangePassword!: boolean;

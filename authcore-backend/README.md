@@ -222,6 +222,7 @@ Password rules themselves (length, complexity, history, expiry) are not env vars
 | `ACCOUNT_CODE_MAX_ATTEMPTS` | `5` | 3–10 |
 | `ACCOUNT_CODE_RESEND_COOLDOWN_SECONDS` | `60` | 30–3600 |
 | `ACCOUNT_DELETION_GRACE_DAYS` | `14` | 0–90; "delete my account" → permanent purge (0 = next run) |
+| `USER_ACTIVITY_RETENTION_DAYS` | `90` | 1–3650; recent-activity entries (sign-ins, password / email changes …) are removed after this (TTL index) |
 | `ACCOUNT_PURGE_INTERVAL_MINUTES` | `60` | 1–1440 |
 | `INVITE_ACCEPT_URL` | `http://localhost:5173/accept-invite` | Frontend page for invite links |
 | `INVITE_TTL_DAYS` | `7` | 1–30 |
@@ -934,8 +935,10 @@ npm run users:role -- jane@example.com USER
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /users/me` | Profile, status, preferences |
+| `GET /users/me` | Profile, status, preferences, custom variable values (`attributes`; `?include=` adds returned=REQUEST ones) and `missingRequired` |
 | `PATCH /users/me` | firstName, lastName, username (registration rules; `null` removes lastName / username) |
+| `PATCH /users/me/attributes` | Personal details: `{ attributes: { gender, birthdate, phone_number, address: { … }, employee_id, … } }` validated against the user schema; `given_name` / `family_name` / `preferred_username` map to the built-in fields; groups merge; `null` clears |
+| `GET /users/me/activity` | Recent activity: sign-ins (incl. failed), logouts, password / email / profile changes, with device, browser, IP and verification type; `?event=` filter |
 | `PATCH /users/me/preferences` | language, timezone (IANA), notifications.productUpdates / loginAlerts |
 | `POST /users/me/email/change` | `{ newEmail, currentPassword }` → 6-digit code to the **new** address (nothing changes yet) |
 | `POST /users/me/email/confirm` | `{ code }` → email changed (verified); the old address gets a notice |
@@ -956,10 +959,14 @@ Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWO
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /admin/users` | List: search (email, username, names), status, role, source, isEmailVerified, isPendingDeletion, `deleted=EXCLUDE\|ONLY\|INCLUDE`, dates, sort |
-| `GET /admin/users/:id` | User info: profile, status history, active sessions, groups, effective permissions, sign-in lock |
+| `GET /admin/users` | List: search (email, username, names), status, role, source, isEmailVerified, isPendingDeletion, `deleted=EXCLUDE\|ONLY\|INCLUDE`, dates, sort, `attr[name]=value` (searchable custom variables) |
+| `GET /admin/users/:id` | User info: profile, status history, active sessions, groups, effective permissions, sign-in lock, `lastActivityAt`, custom variable values |
 | `POST /admin/users` | Create: ACTIVE, initial password (policy; never emailed), verified email and "must change password" by default, optional groups and welcome email |
-| `PATCH /admin/users/:id` | Names, username, email (old address notified) |
+| `PATCH /admin/users/:id` | Names, username, email (old address notified), `isEmailVerified` toggle |
+| `PATCH /admin/users/:id/attributes` | Personal details (custom variables), incl. internal and read-only ones |
+| `POST /admin/users/:id/set-password` | "Reset password" panel: `{ newPassword, confirmPassword, notifyByEmail, requireChangeOnNextLogin, signOutAllSessions }`; policy + history apply; the email never contains the password. "Generate" = `POST /password-policies/generate-password` |
+| `GET /admin/users/:id/access` | Groups & roles panel: group → roles → permissions with mapping ids and end dates (`PATCH /access-mappings/:id { expiresAt }` = "Set Expiry", `DELETE /access-mappings/:id` = remove) |
+| `GET /admin/users/:id/activity` | Recent user activities (same as `/users/me/activity`) |
 | `PATCH /admin/users/:id/status` | ACTIVE / INACTIVE / SUSPENDED / BANNED + reason (emailed unless `notifyUser: false`); non-ACTIVE signs out everywhere |
 | `PATCH /admin/users/:id/role` | ADMIN / USER: **ADMIN callers only** |
 | `POST /admin/users/:id/reset-password` | Sends the normal password-reset email |
@@ -985,6 +992,25 @@ Guard rails: admins can't act on their own account here (use `/users/me`); only 
 | `POST /user-invites/accept` | Public `{ token, password, confirmPassword, firstName?, lastName?, username? }` → ACTIVE, verified account in the invite's groups |
 
 Needs `USER_INVITE` (send / resend / revoke / delete) and `USER_READ` (list / details). Tokens are HMAC-stored and travel in request bodies only (never in URLs or logs). Groups on an invite follow the no-escalation rule; accepting works once (atomic).
+
+### User schema (custom user variables): `/api/v1/user-schema`
+
+The fields a user profile has. Needs `USER_SCHEMA_READ` / `USER_SCHEMA_MANAGE` (both in the `USER_ADMIN` role); `GET /user-schema/form` is open to any signed-in user.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /user-schema/attributes` | Tree (groups with `children`) or `?flat=true`; `?search=` by name / label |
+| `GET /user-schema/attributes/:id` | One variable (groups include their children) |
+| `POST /user-schema/attributes` | Create a FIELD (data type) or GROUP (Field Group Type OBJECT / LIST); `parentId` adds a child to a group |
+| `PATCH /user-schema/attributes/:id` | Update (name, kind, type and parent are fixed; optimistic `version`) |
+| `DELETE /user-schema/attributes/:id` | Custom variables only; groups must be empty; removes the value from every user |
+| `GET /user-schema/options` | Dropdown values: kinds, data types, group types, scopes, locales, mutability, returned |
+| `GET /user-schema/form` | Enabled, non-internal variables as a tree, to render the profile form |
+
+- **Data types:** TEXT, TEXTAREA, EMAIL, MOBILE (E.164), NUMBER (min / max), BOOLEAN, DATE (YYYY-MM-DD), DATETIME, URL, DROPDOWN, MULTI_SELECT (options). Text-like types take minLength / maxLength.
+- **Settings:** scopes (openid, profile, email, phone, address or custom like `hr:read`), locales, isEnabled, isRequired, isInternal (admins only), isUsername (sign in with it; implies unique), isPassword (Argon2-hashed, write-only, never returned), isUnique (case-insensitive), isMatchEnabled + matchWith (e.g. confirm fields; never stored), includeInToken (access-token claim `attrs`, max 2 KB), includeInSearchFilter (`GET /admin/users?attr[name]=value`), mutability READ_WRITE / READ_ONLY (admins write) / IMMUTABLE (set once) / WRITE_ONLY, returned ALWAYS / DEFAULT / REQUEST / NEVER, displayOrder.
+- **System variables** (seeded; cannot be deleted; structure and security flags fixed): the OpenID Connect claims given_name, family_name, middle_name, nickname, preferred_username, profile, picture, website, email, email_verified, gender, birthdate, zoneinfo, locale, phone_number, phone_number_verified, address (formatted, street_address, locality, region, postal_code, country), password, confirm_password. Core ones map to built-in user fields; email and password keep their own endpoints.
+- Values are stored on the user (`attributes`) and validated on every write; all problems come back at once (`attributes.<path>`). Changes are audited (`entityType=USER_ATTRIBUTE`).
 
 ## 12. Deployment
 

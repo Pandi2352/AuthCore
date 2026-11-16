@@ -5,6 +5,7 @@ import { AccountModule } from '@modules/account/account.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { PasswordPolicyModule } from '@modules/password-policy/password-policy.module';
 import { SessionsModule } from '@modules/sessions/sessions.module';
+import { UserSchemaModule } from '@modules/user-schema/user-schema.module';
 import { UsersModule } from '@modules/users/users.module';
 
 import { UserAdminService } from './services/user-admin.service';
@@ -19,6 +20,7 @@ import { UserAdminController } from './user-admin.controller';
     AccessControlModule,
     PasswordPolicyModule,
     AccountModule,
+    UserSchemaModule,
   ],
   controllers: [UserAdminController],
   providers: [UserAdminService],

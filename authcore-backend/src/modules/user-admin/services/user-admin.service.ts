@@ -30,9 +30,16 @@ import {
   accountStatusChangedEmail,
   adminCreatedAccountEmail,
   emailChangedNoticeEmail,
+  passwordSetByAdminEmail,
 } from '@modules/mail/templates/mail-templates';
 import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import { SessionsService } from '@modules/sessions/sessions.service';
+import {
+  ActivityEvent,
+  VerificationType,
+} from '@modules/user-activity/enums/user-activity.enum';
+import { UserActivityService } from '@modules/user-activity/user-activity.service';
+import { UserAttributeValuesService } from '@modules/user-schema/services/user-attribute-values.service';
 import type {
   AdminUserResponseDto,
   UserResponseDto,
@@ -47,6 +54,7 @@ import {
   ADMIN_USER_SORT_FIELDS,
   type AdminCreateUserDto,
   type AdminSessionDto,
+  type AdminSetPasswordDto,
   type AdminSetStatusDto,
   type AdminUpdateUserDto,
   type AdminUserDetailsDto,
@@ -79,6 +87,8 @@ export class UserAdminService {
     private readonly cleanupService: UserDataCleanupService,
     private readonly purgeService: AccountPurgeService,
     private readonly mailService: MailService,
+    private readonly activityService: UserActivityService,
+    private readonly attributeValuesService: UserAttributeValuesService,
     @Inject(registrationConfig.KEY)
     private readonly registration: ConfigType<typeof registrationConfig>,
   ) {}
@@ -128,6 +138,9 @@ export class UserAdminService {
         : {}),
       ...(createdAt ? { createdAt } : {}),
       ...(updatedAt ? { updatedAt } : {}),
+      ...(query.attr
+        ? await this.attributeValuesService.searchFilter(query.attr)
+        : {}),
     };
     const { items, total } = await this.usersService.listForAdmin(
       filter,
@@ -145,18 +158,29 @@ export class UserAdminService {
 
   async get(id: string): Promise<AdminUserDetailsDto> {
     const user = await this.findOrThrow(id, true);
-    const [sessions, links, keys, lockedUntil] = await Promise.all([
-      this.sessionsService.listActiveForUser(id),
-      this.mappingsService.list({
-        type: MappingType.GroupUser,
-        userId: id,
-        page: 1,
-        limit: 100,
-      }),
-      this.resolver.resolve(id),
-      this.loginSecurityService.getActiveLock(
-        this.loginSecurityService.keyFor(id, ''),
-      ),
+    const [sessions, links, keys, lockedUntil, lastActivity] =
+      await Promise.all([
+        this.sessionsService.listActiveForUser(id),
+        this.mappingsService.list({
+          type: MappingType.GroupUser,
+          userId: id,
+          page: 1,
+          limit: 100,
+        }),
+        this.resolver.resolve(id),
+        this.loginSecurityService.getActiveLock(
+          this.loginSecurityService.keyFor(id, ''),
+        ),
+        this.activityService.lastActivityAt(id),
+      ]);
+    const values = await this.attributeValuesService.filterForOutput(
+      await this.usersService.getAttributes(id),
+      { isAdmin: true, include: [] },
+    );
+    const lastActivityAt = latest([
+      user.lastLoginAt,
+      lastActivity,
+      ...sessions.map((s) => s.lastUsedAt),
     ]);
     return Object.assign(user, {
       activeSessionCount: sessions.length,
@@ -164,6 +188,9 @@ export class UserAdminService {
       permissionKeys: keys.permissions.map((p) => p.permissionKey),
       isLocked: lockedUntil !== null,
       lockedUntil,
+      lastActivityAt,
+      attributes: values.attributes,
+      missingRequired: values.missingRequired,
     });
   }
 
@@ -188,6 +215,25 @@ export class UserAdminService {
       'password',
       dto,
     );
+    const attributeChanges = dto.attributes
+      ? await this.attributeValuesService.merge({}, dto.attributes, {
+          isAdmin: true,
+          userId: null,
+        })
+      : null;
+    if (attributeChanges && Object.keys(attributeChanges.core).length > 0) {
+      throw new AppException(
+        HttpStatus.BAD_REQUEST,
+        ErrorCode.ValidationFailed,
+        'Validation failed',
+        [
+          {
+            field: 'attributes',
+            message: 'set names and username with the top-level fields',
+          },
+        ],
+      );
+    }
     const groupIds = dto.groupIds ?? [];
     if (groupIds.length > 0) {
       // Validate the groups and the escalation rule before creating anything.
@@ -210,6 +256,12 @@ export class UserAdminService {
       source: UserSource.Admin,
       createdBy: actor.auth.userId,
     });
+    if (attributeChanges) {
+      await this.usersService.setAttributes(
+        user.id,
+        attributeChanges.attributes,
+      );
+    }
     for (const groupId of groupIds) {
       await this.mappingsService.assignGroupUsers(
         { groupId, userIds: [user.id] },
@@ -267,6 +319,12 @@ export class UserAdminService {
       ...(dto.username !== undefined ? { username: dto.username } : {}),
     };
     await this.usersService.updateProfile(id, changes);
+    if (
+      dto.isEmailVerified !== undefined &&
+      dto.isEmailVerified !== user.isEmailVerified
+    ) {
+      await this.usersService.setEmailVerified(id, dto.isEmailVerified);
+    }
     if (dto.email && dto.email !== user.email) {
       await this.usersService.changeEmail(id, user.email, dto.email);
       await this.send(user, 'email-changed-notice', () =>
@@ -324,6 +382,18 @@ export class UserAdminService {
       { status: user.status },
       { status: dto.status, reason: dto.reason ?? null },
     );
+    await this.activityService.record({
+      userId: id,
+      event: ActivityEvent.StatusChanged,
+      client: actor.client,
+      verificationType: VerificationType.Admin,
+      actorId: actor.auth.userId,
+      details: {
+        from: user.status,
+        to: dto.status,
+        reason: dto.reason ?? null,
+      },
+    });
     if (dto.notifyUser ?? true) {
       await this.send(user, 'account-status-changed', () =>
         accountStatusChangedEmail({
@@ -379,6 +449,114 @@ export class UserAdminService {
     return { sentTo: user.email, expiresInMinutes };
   }
 
+  /**
+   * The admin sets a new password (typed or generated). Policy and password
+   * history apply; the user is signed out; optional "change at next login"
+   * and email notice (never containing the password).
+   */
+  async setPassword(
+    id: string,
+    dto: AdminSetPasswordDto,
+    actor: Actor,
+  ): Promise<AdminUserDetailsDto> {
+    const user = await this.manageable(id, actor);
+    const account = await this.usersService.findPasswordHashes(id);
+    if (!account) {
+      throw AccessErrorsNotFound();
+    }
+    await this.passwordValidationService.assertAcceptable(
+      dto.newPassword,
+      'newPassword',
+      user,
+      {
+        passwordHash: account.passwordHash,
+        history: account.history,
+      },
+    );
+    const isUpdated = await this.usersService.changePasswordHash(
+      id,
+      account.passwordHash,
+      await this.passwordService.hash(dto.newPassword),
+      await this.passwordValidationService.historySize(),
+    );
+    if (!isUpdated) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        ErrorCode.Conflict,
+        'The password was changed meanwhile. Try again.',
+      );
+    }
+    const isChangeRequired = dto.requireChangeOnNextLogin ?? false;
+    if (isChangeRequired) {
+      await this.usersService.setMustChangePassword(id, true);
+    }
+    const revoked =
+      (dto.signOutAllSessions ?? true)
+        ? await this.sessionsService.revokeAllForUser(
+            id,
+            'password_set_by_admin',
+          )
+        : 0;
+    await this.loginSecurityService.clear(
+      this.loginSecurityService.keyFor(id, ''),
+    );
+    await this.activityService.record({
+      userId: id,
+      event: ActivityEvent.PasswordSetByAdmin,
+      client: actor.client,
+      verificationType: VerificationType.Admin,
+      actorId: actor.auth.userId,
+      details: {
+        revokedSessionCount: revoked,
+        mustChangePassword: isChangeRequired,
+      },
+    });
+    await this.audit(actor, id, AuditAction.Update, null, {
+      passwordSetByAdmin: true,
+      mustChangePassword: isChangeRequired,
+      revokedSessionCount: revoked,
+    });
+    if (dto.notifyByEmail ?? true) {
+      await this.send(user, 'password-set-by-admin', () =>
+        passwordSetByAdminEmail({
+          appName: this.registration.appName,
+          firstName: user.firstName,
+          mustChangePassword: isChangeRequired,
+        }),
+      );
+    }
+    return this.get(id);
+  }
+
+  /** Admin edit of the personal details (internal and read-only variables allowed). */
+  async updateAttributes(
+    id: string,
+    patch: Record<string, unknown>,
+    actor: Actor,
+  ): Promise<AdminUserDetailsDto> {
+    await this.manageable(id, actor);
+    const current = await this.usersService.getAttributes(id);
+    const { attributes, core } = await this.attributeValuesService.merge(
+      current,
+      patch,
+      { isAdmin: true, userId: id },
+    );
+    await this.attributeValuesService.assertCoreChanges(core, id);
+    if (Object.keys(core).length > 0) {
+      await this.usersService.updateProfile(id, core);
+    }
+    await this.usersService.setAttributes(id, attributes);
+    await this.audit(actor, id, AuditAction.Update, null, {
+      attributesChanged: Object.keys(patch),
+    });
+    return this.get(id);
+  }
+
+  async accessTree(id: string) {
+    await this.findOrThrow(id, true);
+    return this.mappingsService.userAccessTree(id);
+  }
+
   /** Silent: no email. The user must change the password at the next sign-in. */
   async forcePasswordReset(
     id: string,
@@ -393,6 +571,14 @@ export class UserAdminService {
           'password_change_required',
         )
       : 0;
+    await this.activityService.record({
+      userId: id,
+      event: ActivityEvent.PasswordChangeRequired,
+      client: actor.client,
+      verificationType: VerificationType.Admin,
+      actorId: actor.auth.userId,
+      details: { revokedSessionCount: revoked },
+    });
     await this.audit(actor, id, AuditAction.Update, null, {
       mustChangePassword: true,
       revokedSessionCount: revoked,
@@ -428,6 +614,14 @@ export class UserAdminService {
       id,
       'revoked_by_admin',
     );
+    await this.activityService.record({
+      userId: id,
+      event: ActivityEvent.SessionsRevoked,
+      client: actor.client,
+      verificationType: VerificationType.Admin,
+      actorId: actor.auth.userId,
+      details: { revokedSessionCount: count },
+    });
     await this.audit(actor, id, AuditAction.Revoke, null, {
       revokedSessionCount: count,
     });
@@ -601,6 +795,13 @@ export class UserAdminService {
       );
     }
   }
+}
+
+function latest(dates: (Date | null)[]): Date | null {
+  const times = dates
+    .filter((d): d is Date => d instanceof Date)
+    .map((d) => d.getTime());
+  return times.length ? new Date(Math.max(...times)) : null;
 }
 
 function AccessErrorsNotFound(): AppException {

@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { AuthModule } from '@modules/auth/auth.module';
 import { SessionsModule } from '@modules/sessions/sessions.module';
+import { UserSchemaModule } from '@modules/user-schema/user-schema.module';
 import { UsersModule } from '@modules/users/users.module';
 
 import { AccountController } from './controllers/account.controller';
@@ -22,6 +23,7 @@ import { UserDataCleanupService } from './services/user-data-cleanup.service';
     UsersModule,
     SessionsModule,
     AuthModule,
+    UserSchemaModule,
     MongooseModule.forFeature([
       { name: AccountCode.name, schema: AccountCodeSchema },
     ]),

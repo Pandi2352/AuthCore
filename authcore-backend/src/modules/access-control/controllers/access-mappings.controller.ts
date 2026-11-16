@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -38,6 +39,7 @@ import {
   MappingResponseDto,
   RemoveResultDto,
   RolePermissionsDto,
+  SetMappingExpiryDto,
 } from '../dto/access-mapping.dto';
 import type { Actor } from '../interfaces/actor.interface';
 import { AccessMappingsService } from '../services/access-mappings.service';
@@ -210,6 +212,26 @@ export class AccessMappingsController {
     @Param('userId', ParseIdPipe) userId: string,
   ): Promise<EffectiveAccessDto> {
     return this.mappingsService.effectiveAccess(userId);
+  }
+
+  @Patch(':id')
+  @RequirePermissions(P.MappingAssign)
+  @Throttle({ default: ACCESS_ADMIN_THROTTLE })
+  @ResponseMessage('Assignment end date updated')
+  @ApiOperation({
+    summary: 'Set or remove an assignment end date',
+    description:
+      'Needs ACCESS_MAPPING_ASSIGN. { expiresAt } (future date) or null for no end date. After the end date the ' +
+      'link grants nothing (shown as isExpired). Extending follows the assign rules (no escalation, no self-membership).',
+  })
+  @ApiWrappedResponse(MappingResponseDto)
+  @ApiErrorResponses(...WRITE_ERRORS)
+  setExpiry(
+    @Param('id', ParseIdPipe) id: string,
+    @Body() dto: SetMappingExpiryDto,
+    @CurrentActor() actor: Actor,
+  ): Promise<MappingResponseDto> {
+    return this.mappingsService.setExpiry(id, dto.expiresAt, actor);
   }
 
   @Delete(':id')

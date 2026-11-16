@@ -19,6 +19,12 @@ import {
   emailChangedNoticeEmail,
 } from '@modules/mail/templates/mail-templates';
 import { SessionsService } from '@modules/sessions/sessions.service';
+import {
+  ActivityEvent,
+  VerificationType,
+} from '@modules/user-activity/enums/user-activity.enum';
+import { UserActivityService } from '@modules/user-activity/user-activity.service';
+import { UserAttributeValuesService } from '@modules/user-schema/services/user-attribute-values.service';
 import type { UserResponseDto } from '@modules/users/dto/user-response.dto';
 import { UserRole } from '@modules/users/enums/user-role.enum';
 import { UserStatus } from '@modules/users/enums/user-status.enum';
@@ -29,6 +35,7 @@ import type {
   CloseAccountDto,
   DeletionScheduledDto,
   EmailChangeStartedDto,
+  ProfileResponseDto,
   RecoveryConfirmDto,
   UpdatePreferencesDto,
   UpdateProfileDto,
@@ -53,14 +60,52 @@ export class AccountService {
     private readonly passwordManagementService: PasswordManagementService,
     private readonly codeService: AccountCodeService,
     private readonly mailService: MailService,
+    private readonly activityService: UserActivityService,
+    private readonly attributeValuesService: UserAttributeValuesService,
     @Inject(accountConfig.KEY)
     private readonly config: ConfigType<typeof accountConfig>,
     @Inject(registrationConfig.KEY)
     private readonly registration: ConfigType<typeof registrationConfig>,
   ) {}
 
-  async getProfile(auth: AuthContext): Promise<UserResponseDto> {
-    return this.requireUser(auth.userId);
+  async getProfile(
+    auth: AuthContext,
+    include: string[] = [],
+  ): Promise<ProfileResponseDto> {
+    const user = await this.requireUser(auth.userId);
+    const values = await this.attributeValuesService.filterForOutput(
+      await this.usersService.getAttributes(auth.userId),
+      { isAdmin: false, include },
+    );
+    return Object.assign(user, values);
+  }
+
+  /** Personal details form: custom variables (and given / family name, username). */
+  async updateAttributes(
+    auth: AuthContext,
+    patch: Record<string, unknown>,
+    client: ClientInfo,
+  ): Promise<ProfileResponseDto> {
+    await this.requireUser(auth.userId);
+    const current = await this.usersService.getAttributes(auth.userId);
+    const { attributes, core } = await this.attributeValuesService.merge(
+      current,
+      patch,
+      { isAdmin: false, userId: auth.userId },
+    );
+    await this.attributeValuesService.assertCoreChanges(core, auth.userId);
+    if (Object.keys(core).length > 0) {
+      await this.usersService.updateProfile(auth.userId, core);
+    }
+    await this.usersService.setAttributes(auth.userId, attributes);
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.ProfileUpdated,
+      client,
+      sessionId: auth.sessionId,
+      details: { fields: Object.keys(patch) },
+    });
+    return this.getProfile(auth);
   }
 
   async updateProfile(
@@ -203,6 +248,13 @@ export class AccountService {
         newEmail,
       }),
     );
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.EmailChanged,
+      client,
+      verificationType: VerificationType.EmailCode,
+      sessionId: auth.sessionId,
+    });
     this.logger.log({
       message: 'Email changed',
       userId: auth.userId,
@@ -245,6 +297,13 @@ export class AccountService {
         firstName: user.firstName,
       }),
     );
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.AccountDeactivated,
+      client,
+      verificationType: VerificationType.Password,
+      details: { revokedSessionCount: revoked },
+    });
     this.logger.log({
       message: 'Account deactivated by the user',
       userId: auth.userId,
@@ -288,6 +347,13 @@ export class AccountService {
         deletionDate: at,
       }),
     );
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.AccountDeletionRequested,
+      client,
+      verificationType: VerificationType.Password,
+      details: { deletionScheduledAt: at.toISOString() },
+    });
     this.logger.log({
       message: 'Account deletion requested',
       userId: auth.userId,
@@ -350,6 +416,12 @@ export class AccountService {
         firstName: user.firstName,
       }),
     );
+    await this.activityService.record({
+      userId: user.id,
+      event: ActivityEvent.AccountRecovered,
+      client,
+      verificationType: VerificationType.EmailCode,
+    });
     this.logger.log({
       message: 'Account recovered',
       userId: user.id,

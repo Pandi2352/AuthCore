@@ -167,6 +167,7 @@ export const accountConfig = registerAs('account', () => ({
   ),
   deletionGraceDays: Number(env('ACCOUNT_DELETION_GRACE_DAYS')),
   purgeIntervalMinutes: Number(env('ACCOUNT_PURGE_INTERVAL_MINUTES')),
+  activityRetentionDays: Number(env('USER_ACTIVITY_RETENTION_DAYS')),
   tokenSecret: env('VERIFICATION_TOKEN_SECRET'),
 }));
 

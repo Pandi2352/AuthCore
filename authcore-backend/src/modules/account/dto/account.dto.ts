@@ -23,6 +23,7 @@ import {
   RESERVED_USERNAMES,
   USERNAME_PATTERN,
 } from '@modules/auth/constants/auth.constants';
+import { UserResponseDto } from '@modules/users/dto/user-response.dto';
 
 /** "" or null clears an optional field. */
 const nullable = ({ value }: { value: unknown }): unknown =>
@@ -31,6 +32,23 @@ const nullableLower = ({ value }: { value: unknown }): unknown => {
   const v = nullable({ value });
   return typeof v === 'string' ? v.toLowerCase() : v;
 };
+
+/** GET /users/me: the profile plus custom variable values. */
+export class ProfileResponseDto extends UserResponseDto {
+  @ApiProperty({
+    type: Object,
+    example: { designation: 'Engineer', address: { locality: 'Bengaluru' } },
+    description: 'Custom variable values you may see',
+  })
+  attributes!: Record<string, unknown>;
+
+  @ApiProperty({
+    type: [String],
+    example: ['phone_number'],
+    description: 'Required variables still empty',
+  })
+  missingRequired!: string[];
+}
 
 /** PATCH /users/me and PATCH /admin/users/:id: send only what changes. */
 export class UpdateProfileDto {

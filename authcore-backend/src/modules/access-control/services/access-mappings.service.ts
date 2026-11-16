@@ -11,6 +11,7 @@ import { UserStatus } from '@modules/users/enums/user-status.enum';
 import { UsersService } from '@modules/users/users.service';
 
 import type {
+  AccessTreeGroupDto,
   AssignResultDto,
   EffectiveAccessDto,
   GroupRolesDto,
@@ -103,6 +104,7 @@ export class AccessMappingsService {
       })),
       (link) => link.userId ?? '',
       actor,
+      dto.expiresAt ?? null,
     );
   }
 
@@ -143,6 +145,7 @@ export class AccessMappingsService {
       })),
       (link) => link.roleId ?? '',
       actor,
+      dto.expiresAt ?? null,
     );
   }
 
@@ -239,6 +242,7 @@ export class AccessMappingsService {
       })),
       (link) => link.permissionId ?? '',
       actor,
+      dto.expiresAt ?? null,
     );
   }
 
@@ -369,11 +373,202 @@ export class AccessMappingsService {
 
   // ----- Helpers ------------------------------------------------------------
 
+  /**
+   * Sets or removes an assignment's end date. Extending (later date or none)
+   * follows the assign rules: no self-membership changes, no escalation,
+   * system role fixed.
+   */
+  async setExpiry(
+    id: string,
+    expiresAt: Date | null,
+    actor: Actor,
+  ): Promise<MappingResponseDto> {
+    const mapping = await this.mappingModel.findById(id).lean();
+    if (!mapping) {
+      throw AccessErrors.notFound('Access mapping');
+    }
+    const isExtending =
+      expiresAt === null ||
+      mapping.expiresAt === null ||
+      expiresAt > mapping.expiresAt;
+    if (mapping.type === MappingType.GroupUser) {
+      this.assertNotSelf(actor, [mapping.userId ?? '']);
+      if (isExtending) {
+        await this.resolver.assertCanGrant(
+          actor,
+          await this.resolver.permissionKeysOfGroups([mapping.groupId ?? '']),
+        );
+      }
+    } else if (mapping.type === MappingType.GroupRole) {
+      if (isExtending) {
+        await this.resolver.assertCanGrant(
+          actor,
+          await this.resolver.permissionKeysOfRoles([mapping.roleId ?? '']),
+        );
+      }
+    } else {
+      await this.roleForPermissionChange(mapping.roleId ?? '');
+      if (isExtending) {
+        const permission = await this.permissionModel
+          .findById(mapping.permissionId)
+          .lean();
+        await this.resolver.assertCanGrant(
+          actor,
+          permission ? [permission.permissionKey] : [],
+        );
+      }
+    }
+    await this.mappingModel.updateOne({ _id: id }, { $set: { expiresAt } });
+    this.resolver.invalidate();
+    await this.auditService.record(actor, [
+      {
+        entityType: AuditEntity.AccessMapping,
+        entityId: id,
+        action: AuditAction.Update,
+        before: { expiresAt: mapping.expiresAt },
+        after: { expiresAt },
+      },
+    ]);
+    const updated = await this.mappingModel.findById(id).lean();
+    return (
+      await this.hydrate(updated ? [updated] : [])
+    )[0] as MappingResponseDto;
+  }
+
+  /**
+   * A user's access as a tree for the admin screen: group memberships → the
+   * groups' roles → the roles' permissions, each with its mapping id and end
+   * date (expired links included, flagged).
+   */
+  async userAccessTree(userId: string): Promise<AccessTreeGroupDto[]> {
+    const memberships = await this.mappingModel
+      .find({ type: MappingType.GroupUser, userId })
+      .sort({ createdAt: 1 })
+      .lean();
+    const groupIds = memberships.map((m) => m.groupId ?? '');
+    const roleLinks = groupIds.length
+      ? await this.mappingModel
+          .find({ type: MappingType.GroupRole, groupId: { $in: groupIds } })
+          .lean()
+      : [];
+    const roleIds = [...new Set(roleLinks.map((l) => l.roleId ?? ''))];
+    const permissionLinks = roleIds.length
+      ? await this.mappingModel
+          .find({ type: MappingType.RolePermission, roleId: { $in: roleIds } })
+          .lean()
+      : [];
+    const [groups, roles, permissions] = await Promise.all([
+      this.groupModel
+        .find(
+          { _id: { $in: groupIds }, isDeleted: false },
+          { groupId: 1, groupName: 1 },
+        )
+        .lean(),
+      this.roleModel
+        .find(
+          { _id: { $in: roleIds }, isDeleted: false },
+          { roleKey: 1, roleName: 1 },
+        )
+        .lean(),
+      this.permissionModel
+        .find(
+          {
+            _id: { $in: permissionLinks.map((l) => l.permissionId ?? '') },
+            isDeleted: false,
+          },
+          { permissionKey: 1, permissionName: 1 },
+        )
+        .lean(),
+    ]);
+    const groupById = new Map(groups.map((g) => [g._id, g]));
+    const roleById = new Map(roles.map((r) => [r._id, r]));
+    const permissionById = new Map(permissions.map((p) => [p._id, p]));
+    const result: AccessTreeGroupDto[] = [];
+    for (const m of memberships) {
+      const group = groupById.get(m.groupId ?? '');
+      if (!group) {
+        continue;
+      }
+      const groupRoles = [];
+      for (const l of roleLinks) {
+        const role = roleById.get(l.roleId ?? '');
+        if (l.groupId !== group._id || !role) {
+          continue;
+        }
+        const rolePermissions = [];
+        for (const p of permissionLinks) {
+          const permission = permissionById.get(p.permissionId ?? '');
+          if (p.roleId !== role._id || !permission) {
+            continue;
+          }
+          rolePermissions.push({
+            mappingId: p._id,
+            permission: {
+              id: permission._id,
+              permissionKey: permission.permissionKey,
+              permissionName: permission.permissionName,
+            },
+            expiresAt: p.expiresAt,
+            isExpired: isExpired(p.expiresAt),
+          });
+        }
+        groupRoles.push({
+          mappingId: l._id,
+          role: {
+            id: role._id,
+            roleKey: role.roleKey,
+            roleName: role.roleName,
+          },
+          expiresAt: l.expiresAt,
+          isExpired: isExpired(l.expiresAt),
+          permissions: rolePermissions,
+        });
+      }
+      result.push({
+        mappingId: m._id,
+        group: {
+          id: group._id,
+          groupId: group.groupId,
+          groupName: group.groupName,
+        },
+        expiresAt: m.expiresAt,
+        isExpired: isExpired(m.expiresAt),
+        roles: groupRoles,
+      });
+    }
+    return result;
+  }
+
+  /** Re-activates an expired link with a new end date; true when renewed. */
+  private async renewExpired(
+    type: MappingType,
+    link: LinkFields,
+    expiresAt: Date | null,
+    actor: Actor,
+  ): Promise<boolean> {
+    const result = await this.mappingModel.updateOne(
+      { type, ...link, expiresAt: { $ne: null, $lte: new Date() } },
+      { $set: { expiresAt, assignedBy: actor.auth.userId } },
+    );
+    return result.modifiedCount === 1;
+  }
+
+  private async idOfLink(
+    type: MappingType,
+    link: LinkFields,
+  ): Promise<string | null> {
+    const found = await this.mappingModel
+      .findOne({ type, ...link }, { _id: 1 })
+      .lean();
+    return found?._id ?? null;
+  }
+
   private async assign(
     type: MappingType,
     links: LinkFields[],
     idOf: (link: LinkFields) => string,
     actor: Actor,
+    expiresAt: Date | null = null,
   ): Promise<AssignResultDto> {
     const created: { id: string; link: LinkFields }[] = [];
     const alreadyAssignedIds: string[] = [];
@@ -389,12 +584,16 @@ export class AccessMappingsService {
               type,
               ...link,
               assignedBy: actor.auth.userId,
+              expiresAt,
             },
           },
           { upsert: true },
         );
         if (result.upsertedCount === 1) {
           created.push({ id, link });
+        } else if (await this.renewExpired(type, link, expiresAt, actor)) {
+          // An expired link counts as not assigned: assigning renews it.
+          created.push({ id: (await this.idOfLink(type, link)) ?? id, link });
         } else {
           alreadyAssignedIds.push(idOf(link));
         }
@@ -639,6 +838,8 @@ export class AccessMappingsService {
           : null,
         assignedBy: m.assignedBy,
         assignedAt: m.createdAt,
+        expiresAt: m.expiresAt,
+        isExpired: isExpired(m.expiresAt),
       };
     });
   }
@@ -650,6 +851,10 @@ function withoutNulls(link: LinkFields): Record<string, string> {
       .filter((key) => link[key] !== null)
       .map((key) => [key, link[key] ?? '']),
   );
+}
+
+function isExpired(expiresAt: Date | null): boolean {
+  return expiresAt !== null && expiresAt <= new Date();
 }
 
 function isDuplicateKey(error: unknown): boolean {

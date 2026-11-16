@@ -10,6 +10,12 @@ import { authConfig } from '@config/configuration';
 import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import type { CreatedSession } from '@modules/sessions/interfaces/session.interface';
 import { SessionsService } from '@modules/sessions/sessions.service';
+import {
+  ActivityEvent,
+  VerificationType,
+} from '@modules/user-activity/enums/user-activity.enum';
+import { UserActivityService } from '@modules/user-activity/user-activity.service';
+import { UserAttributeValuesService } from '@modules/user-schema/services/user-attribute-values.service';
 import { UserResponseDto } from '@modules/users/dto/user-response.dto';
 import type { LoginLookup } from '@modules/users/interfaces/user-credentials.interface';
 import { UsersService } from '@modules/users/users.service';
@@ -74,6 +80,8 @@ export class AuthService {
     private readonly refreshTokenCookieService: RefreshTokenCookieService,
     private readonly accountEligibilityService: AccountEligibilityService,
     private readonly passwordValidationService: PasswordValidationService,
+    private readonly activityService: UserActivityService,
+    private readonly attributeValuesService: UserAttributeValuesService,
     @Inject(authConfig.KEY)
     private readonly auth: ConfigType<typeof authConfig>,
   ) {}
@@ -96,7 +104,14 @@ export class AuthService {
   async login(dto: LoginDto, client: ClientInfo): Promise<LoginResult> {
     const lookup = this.resolveLookup(dto);
     const method = 'email' in lookup ? 'email' : 'username';
-    const credentials = await this.usersService.findCredentials(lookup);
+    const credentials =
+      (await this.usersService.findCredentials(lookup)) ??
+      ('username' in lookup
+        ? await this.usersService.findCredentialsByAttributes(
+            await this.attributeValuesService.usernameAttributeNames(),
+            lookup.username,
+          )
+        : null);
     const userId = credentials?.user.id ?? null;
     const attemptKey = this.loginSecurityService.keyFor(
       userId,
@@ -117,7 +132,19 @@ export class AuthService {
 
     await this.loginSecurityService.clear(attemptKey);
     const { user, passwordHash } = credentials;
-    this.assertCanSignIn(user);
+    try {
+      this.assertCanSignIn(user);
+    } catch (error) {
+      await this.activityService.record({
+        userId: user.id,
+        event: ActivityEvent.LoginFailed,
+        client,
+        verificationType: VerificationType.Password,
+        isSuccess: false,
+        details: { reason: 'account_not_allowed', status: user.status },
+      });
+      throw error;
+    }
     await this.upgradePasswordHashIfNeeded(user.id, passwordHash, dto.password);
 
     const session = await this.sessionsService.create({
@@ -128,8 +155,19 @@ export class AuthService {
     const { accessToken, expiresIn } = await this.accessTokenService.issue(
       user.id,
       session.sessionId,
+      await this.attributeValuesService.tokenClaims(
+        await this.usersService.getAttributes(user.id),
+      ),
     );
     await this.usersService.recordLogin(user.id);
+    await this.activityService.record({
+      userId: user.id,
+      event: ActivityEvent.Login,
+      client,
+      verificationType: VerificationType.Password,
+      sessionId: session.sessionId,
+      details: { method },
+    });
 
     this.logger.log({
       message: 'Login succeeded',
@@ -172,6 +210,12 @@ export class AuthService {
    */
   async logout(auth: AuthContext, client: ClientInfo): Promise<void> {
     await this.sessionsService.revoke(auth.sessionId, 'logout');
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.Logout,
+      client,
+      sessionId: auth.sessionId,
+    });
     this.logger.log({
       message: 'Logout',
       userId: auth.userId,
@@ -194,6 +238,16 @@ export class AuthService {
       shouldKeepCurrentSession ? 'logout_others' : 'logout_all',
       shouldKeepCurrentSession ? auth.sessionId : undefined,
     );
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.LogoutAll,
+      client,
+      sessionId: auth.sessionId,
+      details: {
+        revokedSessionCount,
+        isCurrentSessionKept: shouldKeepCurrentSession,
+      },
+    });
     this.logger.log({
       message: shouldKeepCurrentSession
         ? 'Logout from all other devices'
@@ -285,6 +339,16 @@ export class AuthService {
   ): Promise<AppException> {
     const { lockedUntil } =
       await this.loginSecurityService.recordFailure(attemptKey);
+    if (userId) {
+      await this.activityService.record({
+        userId,
+        event: ActivityEvent.LoginFailed,
+        client,
+        verificationType: VerificationType.Password,
+        isSuccess: false,
+        details: { reason: 'wrong_password', isLocked: lockedUntil !== null },
+      });
+    }
     this.logger.warn({
       message: 'Login failed: invalid credentials',
       userId,
@@ -392,6 +456,9 @@ export class AuthService {
     const { accessToken, expiresIn } = await this.accessTokenService.issue(
       user.id,
       session.sessionId,
+      await this.attributeValuesService.tokenClaims(
+        await this.usersService.getAttributes(user.id),
+      ),
     );
     this.logger.debug({
       message:

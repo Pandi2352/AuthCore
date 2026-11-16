@@ -39,9 +39,17 @@ export class AccessTokenService {
     private readonly auth: ConfigType<typeof authConfig>,
   ) {}
 
-  async issue(userId: string, sessionId: string): Promise<IssuedAccessToken> {
+  async issue(
+    userId: string,
+    sessionId: string,
+    attributeClaims?: Record<string, unknown>,
+  ): Promise<IssuedAccessToken> {
     const accessToken = await this.jwtService.signAsync(
-      { sid: sessionId, typ: 'access' },
+      {
+        sid: sessionId,
+        typ: 'access',
+        ...(attributeClaims ? { attrs: attributeClaims } : {}),
+      },
       { subject: userId, jwtid: generateUuid() },
     );
     return { accessToken, expiresIn: this.auth.jwt.ttlSeconds };

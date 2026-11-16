@@ -157,6 +157,12 @@ export const envValidationSchema = Joi.object({
     .min(1)
     .max(1440)
     .default(60),
+  // Account activity history (sign-ins, password changes, …) is kept this long
+  USER_ACTIVITY_RETENTION_DAYS: Joi.number()
+    .integer()
+    .min(1)
+    .max(3650)
+    .default(90),
 
   // User invites
   INVITE_ACCEPT_URL: Joi.string()

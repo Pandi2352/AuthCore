@@ -467,3 +467,24 @@ export function userInviteEmail(params: {
     }),
   };
 }
+
+export function passwordSetByAdminEmail(params: {
+  appName: string;
+  firstName: string;
+  mustChangePassword: boolean;
+}): MailContent {
+  return noticeEmail({
+    ...params,
+    subject: `Your ${params.appName} password was reset by an administrator`,
+    heading: 'Password reset by an administrator',
+    paragraphs: [
+      'An administrator set a new password for your account and you were signed out. Your administrator will give you the new password.',
+      ...(params.mustChangePassword
+        ? [
+            'You will be asked to choose your own password when you next sign in.',
+          ]
+        : []),
+    ],
+    footer: NOT_YOU,
+  });
+}

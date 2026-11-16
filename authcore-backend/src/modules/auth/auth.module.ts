@@ -10,6 +10,7 @@ import { EmailVerificationModule } from '@modules/email-verification/email-verif
 import { PasswordPolicyModule } from '@modules/password-policy/password-policy.module';
 import { PasswordResetModule } from '@modules/password-reset/password-reset.module';
 import { SessionsModule } from '@modules/sessions/sessions.module';
+import { UserSchemaModule } from '@modules/user-schema/user-schema.module';
 import { UsersModule } from '@modules/users/users.module';
 
 import { AuthController } from './auth.controller';
@@ -40,6 +41,7 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
     PasswordResetModule,
     PasswordPolicyModule,
     AccessControlModule,
+    UserSchemaModule,
     MongooseModule.forFeature([
       { name: LoginAttempt.name, schema: LoginAttemptSchema },
     ]),

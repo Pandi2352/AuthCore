@@ -214,6 +214,87 @@ export class UsersService {
     return user ? toUserResponse(user) : null;
   }
 
+  /** Custom variable values (raw; filter with UserAttributeValuesService before returning). */
+  async getAttributes(id: string): Promise<Record<string, unknown>> {
+    const user = await this.userModel
+      .findOne({ _id: id }, { attributes: 1 })
+      .lean();
+    return (user?.attributes as Record<string, unknown> | undefined) ?? {};
+  }
+
+  async setAttributes(
+    id: string,
+    attributes: Record<string, unknown>,
+  ): Promise<void> {
+    await this.userModel.updateOne({ _id: id }, { $set: { attributes } });
+  }
+
+  /** Another (non-deleted) user already has this value at attributes.<path> (case-insensitive for text). */
+  async isAttributeValueTaken(
+    path: string,
+    value: unknown,
+    excludeId: string | null,
+  ): Promise<boolean> {
+    const query = this.userModel.exists({
+      [`attributes.${path}`]: value,
+      deletedAt: null,
+      ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+    });
+    if (typeof value === 'string') {
+      query.collation({ locale: 'en', strength: 2 });
+    }
+    return (await query) !== null;
+  }
+
+  /** Removes a deleted variable's value from every user; returns how many had one. */
+  async unsetAttributeEverywhere(path: string): Promise<number> {
+    const result = await this.userModel.updateMany(
+      { [`attributes.${path}`]: { $exists: true } },
+      { $unset: { [`attributes.${path}`]: '' } },
+    );
+    return result.modifiedCount;
+  }
+
+  /** Sign-in by a custom "username" variable (e.g. employee_id), case-insensitive. */
+  async findCredentialsByAttributes(
+    names: string[],
+    value: string,
+  ): Promise<UserCredentials | null> {
+    if (names.length === 0) {
+      return null;
+    }
+    const user = await this.userModel
+      .findOne({
+        deletedAt: null,
+        $or: names.map((name) => ({ [`attributes.${name}`]: value })),
+      })
+      .collation({ locale: 'en', strength: 2 })
+      .select('+passwordHash')
+      .lean();
+    return user
+      ? { user: toUserResponse(user), passwordHash: user.passwordHash }
+      : null;
+  }
+
+  async setEmailVerified(
+    id: string,
+    isVerified: boolean,
+  ): Promise<UserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: null },
+        {
+          $set: {
+            isEmailVerified: isVerified,
+            emailVerifiedAt: isVerified ? new Date() : null,
+          },
+        },
+        { new: true },
+      )
+      .lean();
+    return user ? toUserResponse(user) : null;
+  }
+
   async setMustChangePassword(
     id: string,
     value: boolean,

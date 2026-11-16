@@ -13,8 +13,10 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
+import { IsFutureDate } from '@common/decorators/is-future-date.decorator';
 import { PaginationQueryDto } from '@common/dto/pagination-query.dto';
 import {
   trimLower,
@@ -73,6 +75,20 @@ function SingleId(field: string) {
 }
 
 export class GroupUsersDto {
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    example: '2027-01-31T00:00:00.000Z',
+    description:
+      'Optional end date for new assignments (must be in the future); ignored when removing',
+  })
+  @IsFutureDate()
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  expiresAt?: Date;
+
   @ApiProperty({ example: '01a1e31b-d536-7092-8577-df304d74a00e' })
   @SingleId('groupId')
   groupId!: string;
@@ -87,6 +103,20 @@ export class GroupUsersDto {
 }
 
 export class GroupRolesDto {
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    example: '2027-01-31T00:00:00.000Z',
+    description:
+      'Optional end date for new assignments (must be in the future); ignored when removing',
+  })
+  @IsFutureDate()
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  expiresAt?: Date;
+
   @ApiProperty({ example: '01a1e31b-d536-7092-8577-df304d74a00e' })
   @SingleId('groupId')
   groupId!: string;
@@ -101,6 +131,20 @@ export class GroupRolesDto {
 }
 
 export class RolePermissionsDto {
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    example: '2027-01-31T00:00:00.000Z',
+    description:
+      'Optional end date for new assignments (must be in the future); ignored when removing',
+  })
+  @IsFutureDate()
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  expiresAt?: Date;
+
   @ApiProperty({ example: '01a1e31b-d536-7092-8577-df304d74a010' })
   @SingleId('roleId')
   roleId!: string;
@@ -252,6 +296,62 @@ export class MappingResponseDto {
 
   @ApiProperty({ example: '2026-11-16T05:30:00.000Z' })
   assignedAt!: Date;
+
+  @ApiProperty({
+    type: Date,
+    nullable: true,
+    description: 'null = no end date',
+  })
+  expiresAt!: Date | null;
+
+  @ApiProperty({ example: false })
+  isExpired!: boolean;
+}
+
+/** PATCH /access-mappings/:id */
+export class SetMappingExpiryDto {
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    example: '2027-01-31T00:00:00.000Z',
+    description: 'New end date (future), or null to remove the end date',
+  })
+  @IsFutureDate()
+  @IsDate()
+  @Type(() => Date)
+  @ValidateIf((dto: SetMappingExpiryDto) => dto.expiresAt !== null)
+  @IsDefined({ message: 'expiresAt is required (null removes the end date)' })
+  expiresAt!: Date | null;
+}
+
+class AccessTreePermissionDto {
+  @ApiProperty() mappingId!: string;
+  @ApiProperty({ type: MappingPermissionDto })
+  permission!: MappingPermissionDto;
+  @ApiProperty({ type: Date, nullable: true }) expiresAt!: Date | null;
+  @ApiProperty() isExpired!: boolean;
+}
+
+class AccessTreeRoleDto {
+  @ApiProperty() mappingId!: string;
+  @ApiProperty({ type: MappingRoleDto }) role!: MappingRoleDto;
+  @ApiProperty({ type: Date, nullable: true }) expiresAt!: Date | null;
+  @ApiProperty() isExpired!: boolean;
+  @ApiProperty({ type: [AccessTreePermissionDto] })
+  permissions!: AccessTreePermissionDto[];
+}
+
+export class AccessTreeGroupDto {
+  @ApiProperty({
+    description:
+      'Membership mapping id (DELETE /access-mappings/:id removes the user from the group)',
+  })
+  mappingId!: string;
+  @ApiProperty({ type: MappingGroupDto }) group!: MappingGroupDto;
+  @ApiProperty({ type: Date, nullable: true }) expiresAt!: Date | null;
+  @ApiProperty() isExpired!: boolean;
+  @ApiProperty({ type: [AccessTreeRoleDto] }) roles!: AccessTreeRoleDto[];
 }
 
 export class EffectivePermissionDto extends MappingPermissionDto {

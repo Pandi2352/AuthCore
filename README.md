@@ -209,6 +209,7 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 🧑‍🤝‍🧑 Access control: roles, permissions, groups, access mapping (RBAC) | ✅ Done |
 | 👤 My account: profile, preferences, email change, deactivate / delete, recovery | ✅ Done |
 | 🛠️ User administration + invites | ✅ Done |
+| 🧩 User schema (custom user variables), personal details, recent activity, admin set-password, password generator | ✅ Done |
 
 ---
 

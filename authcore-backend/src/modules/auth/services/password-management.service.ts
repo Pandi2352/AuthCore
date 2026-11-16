@@ -17,6 +17,11 @@ import { PasswordValidationService } from '@modules/password-policy/services/pas
 import { PasswordResetService } from '@modules/password-reset/password-reset.service';
 import { PasswordResetMethod } from '@modules/password-reset/schemas/password-reset.schema';
 import { SessionsService } from '@modules/sessions/sessions.service';
+import {
+  ActivityEvent,
+  VerificationType,
+} from '@modules/user-activity/enums/user-activity.enum';
+import { UserActivityService } from '@modules/user-activity/user-activity.service';
 import type { UserResponseDto } from '@modules/users/dto/user-response.dto';
 import { UserStatus } from '@modules/users/enums/user-status.enum';
 import { UsersService } from '@modules/users/users.service';
@@ -59,6 +64,7 @@ export class PasswordManagementService {
     private readonly loginSecurityService: LoginSecurityService,
     private readonly accountEligibilityService: AccountEligibilityService,
     private readonly mailService: MailService,
+    private readonly activityService: UserActivityService,
     @Inject(passwordResetConfig.KEY)
     private readonly config: ConfigType<typeof passwordResetConfig>,
     @Inject(registrationConfig.KEY)
@@ -182,6 +188,16 @@ export class PasswordManagementService {
       this.loginSecurityService.keyFor(userId, ''),
     );
 
+    await this.activityService.record({
+      userId,
+      event: ActivityEvent.PasswordReset,
+      client,
+      verificationType:
+        this.passwordResetService.method === PasswordResetMethod.Link
+          ? VerificationType.EmailLink
+          : VerificationType.EmailCode,
+      details: { revokedSessionCount },
+    });
     this.logger.log({
       message: 'Password reset',
       userId,
@@ -253,6 +269,14 @@ export class PasswordManagementService {
     await this.passwordResetService.invalidateForUser(auth.userId);
     await this.loginSecurityService.clear(lockKey);
 
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.PasswordChanged,
+      client,
+      verificationType: VerificationType.Password,
+      sessionId: auth.sessionId,
+      details: { revokedSessionCount },
+    });
     this.logger.log({
       message: 'Password changed',
       userId: auth.userId,
