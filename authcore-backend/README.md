@@ -222,6 +222,20 @@ Password rules themselves (length, complexity, history, expiry) are not env vars
 | `ACCOUNT_CODE_MAX_ATTEMPTS` | `5` | 3–10 |
 | `ACCOUNT_CODE_RESEND_COOLDOWN_SECONDS` | `60` | 30–3600 |
 | `ACCOUNT_DELETION_GRACE_DAYS` | `14` | 0–90; "delete my account" → permanent purge (0 = next run) |
+| `STORAGE_DRIVER` | `local` | Where uploaded files are stored (`local` = a folder; more drivers can be added) |
+| `STORAGE_LOCAL_DIR` | `uploads` | Folder for uploads, relative to the project folder or absolute (git-ignored; mount a volume in Docker) |
+| `FILES_PUBLIC_BASE_URL` | `http://localhost:3000/api/v1/files/public` | Base of public file URLs (avatars): `<base>/<fileId>` |
+| `UPLOAD_MAX_FILE_SIZE_MB` | `10` | Largest upload (1–100) |
+| `UPLOAD_AVATAR_MAX_SIZE_MB` | `2` | Largest profile picture |
+| `UPLOAD_MAX_FILES_PER_USER` | `200` | Files one user can own (avatars excluded) |
+| `IMAGE_AVATAR_SIZE` | `512` | Avatars are cropped to this square (px) |
+| `IMAGE_MAX_DIMENSION` | `4096` | Image documents are shrunk to fit (never enlarged) |
+| `IMAGE_QUALITY` | `85` | JPEG / WebP quality when re-encoding |
+| `IMAGE_MAX_INPUT_PIXELS` | `50000000` | Larger images are rejected before decoding (decompression bombs) |
+| `VIRUS_SCAN_ENABLED` | `false` | Scan uploads with ClamAV (set `true` in production) |
+| `CLAMAV_HOST` · `CLAMAV_PORT` | `127.0.0.1` · `3310` | clamd TCP address |
+| `CLAMAV_TIMEOUT_MS` | `15000` | Per-scan timeout |
+| `VIRUS_SCAN_FAIL_CLOSED` | `true` | Scanner unreachable: `true` = reject uploads (503), `false` = accept them unscanned (`SCAN_FAILED`, logged) |
 | `USER_ACTIVITY_RETENTION_DAYS` | `90` | 1–3650; recent-activity entries (sign-ins, password / email changes …) are removed after this (TTL index) |
 | `ACCOUNT_PURGE_INTERVAL_MINUTES` | `60` | 1–1440 |
 | `INVITE_ACCEPT_URL` | `http://localhost:5173/accept-invite` | Frontend page for invite links |
@@ -938,6 +952,7 @@ npm run users:role -- jane@example.com USER
 | `GET /users/me` | Profile, status, preferences, custom variable values (`attributes`; `?include=` adds returned=REQUEST ones) and `missingRequired` |
 | `PATCH /users/me` | firstName, lastName, username (registration rules; `null` removes lastName / username) |
 | `PATCH /users/me/attributes` | Personal details: `{ attributes: { gender, birthdate, phone_number, address: { … }, employee_id, … } }` validated against the user schema; `given_name` / `family_name` / `preferred_username` map to the built-in fields; groups merge; `null` clears |
+| `GET /users/me/avatar` · `POST /users/me/avatar` · `DELETE /users/me/avatar` | Profile picture: multipart `file` (JPEG / PNG / WebP ≤ `UPLOAD_AVATAR_MAX_SIZE_MB`); replaces the previous one; sets `picture` to its public URL |
 | `GET /users/me/activity` | Recent activity: sign-ins (incl. failed), logouts, password / email / profile changes, with device, browser, IP and verification type; `?event=` filter |
 | `PATCH /users/me/preferences` | language, timezone (IANA), notifications.productUpdates / loginAlerts |
 | `POST /users/me/email/change` | `{ newEmail, currentPassword }` → 6-digit code to the **new** address (nothing changes yet) |
@@ -966,6 +981,7 @@ Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWO
 | `PATCH /admin/users/:id/attributes` | Personal details (custom variables), incl. internal and read-only ones |
 | `POST /admin/users/:id/set-password` | "Reset password" panel: `{ newPassword, confirmPassword, notifyByEmail, requireChangeOnNextLogin, signOutAllSessions }`; policy + history apply; the email never contains the password. "Generate" = `POST /password-policies/generate-password` |
 | `GET /admin/users/:id/access` | Groups & roles panel: group → roles → permissions with mapping ids and end dates (`PATCH /access-mappings/:id { expiresAt }` = "Set Expiry", `DELETE /access-mappings/:id` = remove) |
+| `POST /admin/users/:id/avatar` · `DELETE /admin/users/:id/avatar` | Profile picture for the user (USER_UPDATE) |
 | `GET /admin/users/:id/activity` | Recent user activities (same as `/users/me/activity`) |
 | `PATCH /admin/users/:id/status` | ACTIVE / INACTIVE / SUSPENDED / BANNED + reason (emailed unless `notifyUser: false`); non-ACTIVE signs out everywhere |
 | `PATCH /admin/users/:id/role` | ADMIN / USER: **ADMIN callers only** |
@@ -1011,6 +1027,35 @@ The fields a user profile has. Needs `USER_SCHEMA_READ` / `USER_SCHEMA_MANAGE` (
 - **Settings:** scopes (openid, profile, email, phone, address or custom like `hr:read`), locales, isEnabled, isRequired, isInternal (admins only), isUsername (sign in with it; implies unique), isPassword (Argon2-hashed, write-only, never returned), isUnique (case-insensitive), isMatchEnabled + matchWith (e.g. confirm fields; never stored), includeInToken (access-token claim `attrs`, max 2 KB), includeInSearchFilter (`GET /admin/users?attr[name]=value`), mutability READ_WRITE / READ_ONLY (admins write) / IMMUTABLE (set once) / WRITE_ONLY, returned ALWAYS / DEFAULT / REQUEST / NEVER, displayOrder.
 - **System variables** (seeded; cannot be deleted; structure and security flags fixed): the OpenID Connect claims given_name, family_name, middle_name, nickname, preferred_username, profile, picture, website, email, email_verified, gender, birthdate, zoneinfo, locale, phone_number, phone_number_verified, address (formatted, street_address, locality, region, postal_code, country), password, confirm_password. Core ones map to built-in user fields; email and password keep their own endpoints.
 - Values are stored on the user (`attributes`) and validated on every write; all problems come back at once (`attributes.<path>`). Changes are audited (`entityType=USER_ATTRIBUTE`).
+
+### Files (common uploads): `/api/v1/files`
+
+One module every feature uses for uploads: inject `FilesService` (`upload`, `list`, `get`, `content`, `remove`, `removeAllOf`) and put `@UseInterceptors(FileUploadInterceptor)` on a multipart route. Bytes go through a storage driver (`STORAGE_DRIVER=local` → `STORAGE_LOCAL_DIR`, default `./uploads` in the project, git-ignored); metadata is in the `files` collection.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /files` | multipart/form-data: `file` + `purpose` → 201 file info |
+| `GET /files` | My files (paginated, `purpose` filter); `ownerId` = another user's (FILE_READ) |
+| `GET /files/:id` · `GET /files/:id/content` | Details / download: owner or FILE_READ (404 otherwise) |
+| `GET /files/public/:id` | No sign-in, public purposes only (avatars) — usable in `<img src>` |
+| `DELETE /files/:id` | Owner or FILE_DELETE: record and bytes |
+
+| Purpose | Types | Max size | Visibility |
+| --- | --- | --- | --- |
+| `AVATAR` | JPEG, PNG, WebP | `UPLOAD_AVATAR_MAX_SIZE_MB` | Public; one per user (a new one replaces the old) |
+| `DOCUMENT` | JPEG, PNG, WebP, GIF, PDF | `UPLOAD_MAX_FILE_SIZE_MB` | Private |
+
+New purposes: add to `FilePurpose` and `FILE_PURPOSES` (`modules/files/constants/file.constants.ts`).
+
+Safety:
+- The type comes from the file's bytes (magic numbers), never from the name or Content-Type; SVG / HTML / anything unknown is rejected (415 `FILE_TYPE_NOT_ALLOWED`).
+- Size limits are enforced while reading (413 `FILE_TOO_LARGE`); one file and a few small fields per request; uploads are read only after the auth guard passed.
+- Stored names are generated (`<purpose>/<yyyy>/<mm>/<uuid>.<ext>`); the client's name is only kept (sanitized) for display and Content-Disposition. Keys are checked so nothing can leave the storage folder. Writes are atomic (temp file + rename).
+- Downloads send the exact type, `X-Content-Type-Options: nosniff`, a sandboxing CSP, inline only for images, `private, no-store` for private files and long caching for public ones.
+- Quota per user (`UPLOAD_MAX_FILES_PER_USER` → 409 `FILE_LIMIT_REACHED`); permanent user deletion removes their files; `/health/ready` checks the storage folder is writable.
+- multipart/form-data is accepted only on upload routes; every other route stays JSON-only.
+- **Images are re-encoded** with sharp (libvips): fully decoded (damaged / disguised files → 422 `FILE_UNREADABLE`), auto-rotated from EXIF, then **all metadata removed** (EXIF, GPS location, camera, XMP, IPTC). Avatars are cropped to an `IMAGE_AVATAR_SIZE` square; image documents shrink to fit `IMAGE_MAX_DIMENSION`. Images above `IMAGE_MAX_INPUT_PIXELS` are refused before decoding. The format stays the same (GIF animation kept); PDFs are stored unchanged. `size` / `sha256` describe the stored bytes, `originalSize` the upload.
+- **Virus scanning** with ClamAV over the clamd protocol (INSTREAM, 64 KB chunks; no extra package). The original upload is scanned before anything is stored: malware → 422 `FILE_INFECTED` (logged with the signature, nothing kept). Scanner unreachable → 503 `FILE_SCAN_UNAVAILABLE` (`VIRUS_SCAN_FAIL_CLOSED=true`) or accepted as `SCAN_FAILED`. Every file records `scanStatus` (CLEAN / NOT_SCANNED / SCAN_FAILED); `/health/ready` pings ClamAV when enabled. Start one with `docker run -d --name clamav -p 3310:3310 clamav/clamav` (first start downloads signatures, ~1–2 min).
 
 ## 12. Deployment
 

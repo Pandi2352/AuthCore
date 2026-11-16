@@ -53,7 +53,8 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Account soft deletion *(`DELETE /users/me` (scheduled, recoverable) and `DELETE /admin/users/:id` (restorable))*
 - [x] Account permanent deletion *(scheduled purge after ACCOUNT_DELETION_GRACE_DAYS; `DELETE /admin/users/:id/permanent`)*
 - [x] Account recovery *(`POST /account/recovery/request` + `/confirm` (self-closed accounts only))*
-- [ ] User avatar management *(the `picture` variable holds a URL; file upload needs storage (later))*
+- [x] User avatar management *(`POST`/`GET`/`DELETE /users/me/avatar`, admin `/admin/users/:id/avatar`; public URL in `picture`)*
+- [x] Common file uploads *(`/files`: local folder storage, purposes AVATAR / DOCUMENT, content-detected types, size limits, quota; images re-encoded with metadata removed; ClamAV virus scanning)*
 - [x] Custom user variables / User schema *(`/user-schema/attributes`: 11 data types, groups, scopes, locales, required / unique / internal / username / password / match / token / search, mutability, returned; OpenID Connect claims seeded)*
 - [x] Personal details *(`PATCH /users/me/attributes`, `PATCH /admin/users/:id/attributes`)*
 - [x] Recent user activity *(`GET /users/me/activity`, `GET /admin/users/:id/activity`; device, browser, IP; `USER_ACTIVITY_RETENTION_DAYS`)*

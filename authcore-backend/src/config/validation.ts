@@ -164,6 +164,51 @@ export const envValidationSchema = Joi.object({
     .max(3650)
     .default(90),
 
+  // File uploads (local folder storage; more drivers can be added later)
+  STORAGE_DRIVER: Joi.string().valid('local').default('local'),
+  // Relative to the working directory (inside the project) or absolute
+  STORAGE_LOCAL_DIR: Joi.string().trim().min(1).default('uploads'),
+  // Base URL of public files (avatars): <base>/<fileId>
+  FILES_PUBLIC_BASE_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .default('http://localhost:3000/api/v1/files/public'),
+  UPLOAD_MAX_FILE_SIZE_MB: Joi.number().min(1).max(100).default(10),
+  UPLOAD_AVATAR_MAX_SIZE_MB: Joi.number().min(0.1).max(20).default(2),
+  UPLOAD_MAX_FILES_PER_USER: Joi.number()
+    .integer()
+    .min(1)
+    .max(100000)
+    .default(200),
+
+  // Uploaded images are re-encoded: auto-rotated, metadata (EXIF / GPS) removed, resized
+  IMAGE_AVATAR_SIZE: Joi.number().integer().min(64).max(2048).default(512),
+  IMAGE_MAX_DIMENSION: Joi.number().integer().min(256).max(16384).default(4096),
+  IMAGE_QUALITY: Joi.number().integer().min(40).max(100).default(85),
+  // Decompression-bomb guard: larger images are rejected before decoding
+  IMAGE_MAX_INPUT_PIXELS: Joi.number()
+    .integer()
+    .min(1_000_000)
+    .max(268_402_689)
+    .default(50_000_000),
+
+  // Virus scanning of uploads with ClamAV (clamd over TCP)
+  VIRUS_SCAN_ENABLED: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(false),
+  CLAMAV_HOST: Joi.string().trim().min(1).default('127.0.0.1'),
+  CLAMAV_PORT: Joi.number().port().default(3310),
+  CLAMAV_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(120_000)
+    .default(15_000),
+  // true = reject uploads while the scanner is unreachable; false = accept them unscanned (logged)
+  VIRUS_SCAN_FAIL_CLOSED: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(true),
+
   // User invites
   INVITE_ACCEPT_URL: Joi.string()
     .uri({ scheme: ['http', 'https'] })

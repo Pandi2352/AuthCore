@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import type { Connection } from 'mongoose';
 
+import { FilesService } from '@modules/files/services/files.service';
 import { UsersService } from '@modules/users/users.service';
 
 /**
@@ -44,6 +45,7 @@ export class UserDataCleanupService {
   constructor(
     @InjectConnection() private readonly connection: Connection,
     private readonly usersService: UsersService,
+    private readonly filesService: FilesService,
   ) {}
 
   async purge(
@@ -58,6 +60,8 @@ export class UserDataCleanupService {
         .deleteMany(filter(userId));
       removed[collection] = result.deletedCount;
     }
+    // Uploaded files: records and stored bytes.
+    removed.files = await this.filesService.removeAllOf(userId);
     const isDeleted = await this.usersService.hardDelete(userId);
     this.logger.log({
       message: 'User permanently deleted',

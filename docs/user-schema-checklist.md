@@ -32,7 +32,9 @@ Custom user variables ("Schemas"), the personal-details form, the admin user pag
 - [x] Password-type variables Argon2-hashed and never returned; confirm fields never stored
 - [x] Sign in with a custom `isUsername` variable (e.g. employee id)
 - [x] `GET /users/me/activity`: recent activity
-- [ ] Profile image upload *(needs file storage; `picture` holds a URL for now)*
+- [x] Profile image upload *(`POST /users/me/avatar`: stored in the local upload folder, public URL in `picture`)*
+- [x] Photos re-encoded: auto-rotated, location / camera metadata removed, avatar cropped to a square, large images shrunk
+- [x] Virus scanning of uploads (ClamAV; fail-closed by default)
 - [ ] Phone verification / SMS *(needs an SMS provider)*
 
 ## Admin user page (`/api/v1/admin/users/:id`)

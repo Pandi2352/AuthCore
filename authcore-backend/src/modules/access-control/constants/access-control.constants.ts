@@ -276,6 +276,27 @@ const USER_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
   ],
 };
 
+/** Permissions over other users' files (owners always manage their own). */
+export const FILE_PERMISSIONS = {
+  Read: 'FILE_READ',
+  Delete: 'FILE_DELETE',
+} as const;
+
+const FILE_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
+  FILE_READ: [
+    "View users' files",
+    'List, view and download files uploaded by other users',
+    'file',
+    'READ',
+  ],
+  FILE_DELETE: [
+    "Delete users' files",
+    'Delete files uploaded by other users',
+    'file',
+    'DELETE',
+  ],
+};
+
 /** Permissions protecting the user schema (custom user variables). */
 export const USER_SCHEMA_PERMISSIONS = {
   Read: 'USER_SCHEMA_READ',
@@ -302,6 +323,7 @@ export const SYSTEM_PERMISSIONS = [
   ...toSystemPermissions('password-policy', PASSWORD_POLICY_PERMISSION_DETAILS),
   ...toSystemPermissions('users', USER_PERMISSION_DETAILS),
   ...toSystemPermissions('user-schema', USER_SCHEMA_PERMISSION_DETAILS),
+  ...toSystemPermissions('files', FILE_PERMISSION_DETAILS),
 ];
 
 /** Seeded roles: protected, each holding the listed system permissions. */
@@ -331,6 +353,7 @@ export const SYSTEM_ROLES = [
     permissionKeys: [
       ...Object.keys(USER_PERMISSION_DETAILS),
       ...Object.keys(USER_SCHEMA_PERMISSION_DETAILS),
+      ...Object.keys(FILE_PERMISSION_DETAILS),
     ],
   },
 ];

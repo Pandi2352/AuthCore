@@ -46,6 +46,11 @@ export const API_TAGS = {
     name: 'User Invites',
     description: 'Invite people by email; they accept and create their account',
   },
+  Files: {
+    name: 'Files',
+    description:
+      'Common file uploads: avatars (public) and private documents, stored in a local folder by default',
+  },
   UserSchema: {
     name: 'User Schema',
     description:

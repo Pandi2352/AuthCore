@@ -17,6 +17,9 @@ export const ALLOWED_HTTP_METHODS = [
 
 const ALLOWED_METHODS = new Set<string>(ALLOWED_HTTP_METHODS);
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+/** Upload routes: the only ones that accept multipart/form-data (POST /files, POST …/avatar). */
+const MULTIPART_ROUTE =
+  /\/v\d+\/(files|users\/me\/avatar|admin\/users\/[^/]+\/avatar)$/;
 
 /** A request body is present (Content-Length > 0 or chunked). */
 function hasBody(request: Request): boolean {
@@ -64,9 +67,14 @@ export class SecurityMiddleware implements NestMiddleware {
 
     // The API only accepts JSON bodies: anything else would be silently ignored
     // by the JSON parser and fail with a misleading validation error.
+    const isUpload =
+      request.method === 'POST' &&
+      MULTIPART_ROUTE.test(request.originalUrl.split('?')[0] ?? '') &&
+      request.is('multipart/form-data') !== false;
     if (
       BODY_METHODS.has(request.method) &&
       hasBody(request) &&
+      !isUpload &&
       request.is('application/json') === false
     ) {
       throw new AppException(

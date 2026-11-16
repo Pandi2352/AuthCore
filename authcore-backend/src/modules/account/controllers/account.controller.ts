@@ -10,8 +10,16 @@ import {
   Post,
   Query,
   Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 
@@ -30,9 +38,17 @@ import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { RefreshTokenCookieService } from '@modules/auth/services/refresh-token-cookie.service';
 import {
+  AVATAR_BODY_SCHEMA,
+  FileResponseDto,
+} from '@modules/files/dto/file.dto';
+import { FileUploadInterceptor } from '@modules/files/interceptors/file-upload.interceptor';
+import { AvatarService } from '@modules/files/services/avatar.service';
+import type { IncomingFile } from '@modules/files/services/files.service';
+import {
   ActivityQueryDto,
   UserActivityDto,
 } from '@modules/user-activity/dto/user-activity.dto';
+import { ActivityEvent } from '@modules/user-activity/enums/user-activity.enum';
 import { UserActivityService } from '@modules/user-activity/user-activity.service';
 import {
   ProfileQueryDto,
@@ -65,6 +81,7 @@ export class AccountController {
     private readonly accountService: AccountService,
     private readonly refreshTokenCookieService: RefreshTokenCookieService,
     private readonly activityService: UserActivityService,
+    private readonly avatarService: AvatarService,
   ) {}
 
   @Get()
@@ -102,6 +119,68 @@ export class AccountController {
     @ClientInfoParam() client: ClientInfo,
   ): Promise<ProfileResponseDto> {
     return this.accountService.updateAttributes(auth, dto.attributes, client);
+  }
+
+  @Get('avatar')
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('My profile picture')
+  @ApiOperation({
+    summary: 'My profile picture',
+    description: 'The AVATAR file (public `url`), 404 if none.',
+  })
+  @ApiWrappedResponse(FileResponseDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND)
+  getAvatar(@CurrentUser() auth: AuthContext): Promise<FileResponseDto> {
+    return this.avatarService.get(auth.userId);
+  }
+
+  @Post('avatar')
+  @UseInterceptors(FileUploadInterceptor)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ResponseMessage('Profile picture updated')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: AVATAR_BODY_SCHEMA })
+  @ApiOperation({
+    summary: 'Upload my profile picture',
+    description:
+      'multipart/form-data, field `file`: JPEG / PNG / WebP (detected from the content), up to UPLOAD_AVATAR_MAX_SIZE_MB. ' +
+      'Replaces the previous picture and sets the `picture` variable to its public URL.',
+  })
+  @ApiWrappedResponse(FileResponseDto, { status: HttpStatus.CREATED })
+  @ApiErrorResponses(
+    HttpStatus.BAD_REQUEST,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.PAYLOAD_TOO_LARGE,
+    HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+  )
+  async uploadAvatar(
+    @CurrentUser() auth: AuthContext,
+    @UploadedFile() file: IncomingFile | undefined,
+    @ClientInfoParam() client: ClientInfo,
+  ): Promise<FileResponseDto> {
+    const avatar = await this.avatarService.set(auth.userId, file, auth.userId);
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.ProfileUpdated,
+      client,
+      sessionId: auth.sessionId,
+      details: { fields: ['picture'] },
+    });
+    return avatar;
+  }
+
+  @Delete('avatar')
+  @ResponseMessage('Profile picture removed')
+  @ApiOperation({
+    summary: 'Remove my profile picture',
+    description: 'Deletes the AVATAR file and clears `picture`.',
+  })
+  @ApiWrappedResponse()
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
+  removeAvatar(
+    @CurrentUser() auth: AuthContext,
+  ): Promise<{ isRemoved: boolean }> {
+    return this.avatarService.remove(auth.userId);
   }
 
   @Get('activity')

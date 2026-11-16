@@ -78,6 +78,15 @@ export enum ErrorCode {
   InvalidGroupHierarchy = 'INVALID_GROUP_HIERARCHY',
   VersionConflict = 'VERSION_CONFLICT',
   BulkOperationFailed = 'BULK_OPERATION_FAILED',
+
+  // Files
+  FileRequired = 'FILE_REQUIRED',
+  FileTypeNotAllowed = 'FILE_TYPE_NOT_ALLOWED',
+  FileTooLarge = 'FILE_TOO_LARGE',
+  FileLimitReached = 'FILE_LIMIT_REACHED',
+  FileUnreadable = 'FILE_UNREADABLE',
+  FileInfected = 'FILE_INFECTED',
+  FileScanUnavailable = 'FILE_SCAN_UNAVAILABLE',
 }
 
 /** Default code and safe client message for each HTTP status. */

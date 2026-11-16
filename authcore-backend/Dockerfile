@@ -53,7 +53,8 @@ WORKDIR /app
 COPY package.json ./
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-RUN mkdir -p /app/logs && chown node:node /app/logs
+# Uploaded files (STORAGE_DRIVER=local): mount a volume here in production.
+RUN mkdir -p /app/logs /app/uploads && chown node:node /app/logs /app/uploads
 
 # Built-in non-root user from the official Node image (uid 1000).
 USER node

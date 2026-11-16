@@ -7,6 +7,7 @@ import { isShuttingDown } from '@common/context/app-state';
 import { AppException } from '@common/exceptions/app.exception';
 import { ApiFieldError } from '@common/interfaces/api-response.interface';
 import { lifecycleConfig } from '@config/configuration';
+import { FilesService } from '@modules/files/services/files.service';
 
 import { HealthResponseDto } from './dto/health-response.dto';
 
@@ -28,6 +29,7 @@ export class HealthService {
     private readonly mongoose: MongooseHealthIndicator,
     @Inject(lifecycleConfig.KEY)
     private readonly lifecycle: ConfigType<typeof lifecycleConfig>,
+    private readonly filesService: FilesService,
   ) {}
 
   /** Liveness: the process is running and can answer. No dependencies. */
@@ -52,7 +54,27 @@ export class HealthService {
         { field: 'database', message: 'Database is not reachable' },
       ]);
     }
-    return { status: 'ok', checks: { database: 'up' } };
+    if (!(await this.filesService.isHealthy())) {
+      this.logger.warn('Readiness check failed: file storage not writable');
+      throw unavailable([
+        { field: 'storage', message: 'File storage is not writable' },
+      ]);
+    }
+    const isScannerUp = await this.filesService.isScannerHealthy();
+    if (isScannerUp === false) {
+      this.logger.warn('Readiness check failed: virus scanner not reachable');
+      throw unavailable([
+        { field: 'virusScanner', message: 'Virus scanner is not reachable' },
+      ]);
+    }
+    return {
+      status: 'ok',
+      checks: {
+        database: 'up',
+        storage: 'up',
+        ...(isScannerUp ? { virusScanner: 'up' as const } : {}),
+      },
+    };
   }
 
   /** Overall health: readiness plus process uptime. */

@@ -10,8 +10,16 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
 import { API_TAGS } from '@common/constants/api-tags.constants';
@@ -30,6 +38,12 @@ import { USER_PERMISSIONS as U } from '@modules/access-control/constants/access-
 import { CurrentActor } from '@modules/access-control/decorators/current-actor.decorator';
 import { AccessTreeGroupDto } from '@modules/access-control/dto/access-mapping.dto';
 import type { Actor } from '@modules/access-control/interfaces/actor.interface';
+import {
+  AVATAR_BODY_SCHEMA,
+  FileResponseDto,
+} from '@modules/files/dto/file.dto';
+import { FileUploadInterceptor } from '@modules/files/interceptors/file-upload.interceptor';
+import type { IncomingFile } from '@modules/files/services/files.service';
 import {
   ActivityQueryDto,
   UserActivityDto,
@@ -236,6 +250,48 @@ export class UserAdminController {
     @CurrentActor() actor: Actor,
   ): Promise<AdminUserDetailsDto> {
     return this.userAdminService.updateAttributes(id, dto.attributes, actor);
+  }
+
+  @Post(':id/avatar')
+  @RequirePermissions(U.Update)
+  @UseInterceptors(FileUploadInterceptor)
+  @Throttle({ default: WRITE_THROTTLE })
+  @ResponseMessage('Profile picture updated')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: AVATAR_BODY_SCHEMA })
+  @ApiOperation({
+    summary: "Upload the user's profile picture",
+    description: `Needs USER_UPDATE. Same rules as POST /users/me/avatar. ${GUARD_RAILS}`,
+  })
+  @ApiWrappedResponse(FileResponseDto, { status: HttpStatus.CREATED })
+  @ApiErrorResponses(
+    ...ERRORS,
+    HttpStatus.PAYLOAD_TOO_LARGE,
+    HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+  )
+  uploadAvatar(
+    @Param('id', ParseIdPipe) id: string,
+    @UploadedFile() file: IncomingFile | undefined,
+    @CurrentActor() actor: Actor,
+  ): Promise<FileResponseDto> {
+    return this.userAdminService.setAvatar(id, file, actor);
+  }
+
+  @Delete(':id/avatar')
+  @RequirePermissions(U.Update)
+  @Throttle({ default: WRITE_THROTTLE })
+  @ResponseMessage('Profile picture removed')
+  @ApiOperation({
+    summary: "Remove the user's profile picture",
+    description: `Needs USER_UPDATE. ${GUARD_RAILS}`,
+  })
+  @ApiWrappedResponse()
+  @ApiErrorResponses(...ERRORS)
+  removeAvatar(
+    @Param('id', ParseIdPipe) id: string,
+    @CurrentActor() actor: Actor,
+  ): Promise<{ isRemoved: boolean }> {
+    return this.userAdminService.removeAvatar(id, actor);
   }
 
   @Post(':id/set-password')

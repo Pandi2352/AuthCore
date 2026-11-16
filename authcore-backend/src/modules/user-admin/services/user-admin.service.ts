@@ -24,6 +24,9 @@ import { AccountPurgeService } from '@modules/account/services/account-purge.ser
 import { UserDataCleanupService } from '@modules/account/services/user-data-cleanup.service';
 import { LoginSecurityService } from '@modules/auth/services/login-security.service';
 import { PasswordManagementService } from '@modules/auth/services/password-management.service';
+import type { FileResponseDto } from '@modules/files/dto/file.dto';
+import { AvatarService } from '@modules/files/services/avatar.service';
+import type { IncomingFile } from '@modules/files/services/files.service';
 import type { MailContent } from '@modules/mail/interfaces/mail-message.interface';
 import { MailService } from '@modules/mail/mail.service';
 import {
@@ -89,6 +92,7 @@ export class UserAdminService {
     private readonly mailService: MailService,
     private readonly activityService: UserActivityService,
     private readonly attributeValuesService: UserAttributeValuesService,
+    private readonly avatarService: AvatarService,
     @Inject(registrationConfig.KEY)
     private readonly registration: ConfigType<typeof registrationConfig>,
   ) {}
@@ -526,6 +530,31 @@ export class UserAdminService {
       );
     }
     return this.get(id);
+  }
+
+  async setAvatar(
+    id: string,
+    file: IncomingFile | undefined,
+    actor: Actor,
+  ): Promise<FileResponseDto> {
+    await this.manageable(id, actor);
+    const avatar = await this.avatarService.set(id, file, actor.auth.userId);
+    await this.audit(actor, id, AuditAction.Update, null, {
+      avatarFileId: avatar.id,
+    });
+    return avatar;
+  }
+
+  async removeAvatar(
+    id: string,
+    actor: Actor,
+  ): Promise<{ isRemoved: boolean }> {
+    await this.manageable(id, actor);
+    const result = await this.avatarService.remove(id);
+    await this.audit(actor, id, AuditAction.Update, null, {
+      avatarRemoved: result.isRemoved,
+    });
+    return result;
   }
 
   /** Admin edit of the personal details (internal and read-only variables allowed). */

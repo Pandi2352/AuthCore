@@ -171,6 +171,28 @@ export const accountConfig = registerAs('account', () => ({
   tokenSecret: env('VERIFICATION_TOKEN_SECRET'),
 }));
 
+export const storageConfig = registerAs('storage', () => ({
+  driver: env('STORAGE_DRIVER'),
+  localDir: env('STORAGE_LOCAL_DIR'),
+  publicBaseUrl: env('FILES_PUBLIC_BASE_URL').replace(/\/+$/, ''),
+  maxFileSizeBytes: Number(env('UPLOAD_MAX_FILE_SIZE_MB')) * 1024 * 1024,
+  avatarMaxSizeBytes: Number(env('UPLOAD_AVATAR_MAX_SIZE_MB')) * 1024 * 1024,
+  maxFilesPerUser: Number(env('UPLOAD_MAX_FILES_PER_USER')),
+  image: {
+    avatarSize: Number(env('IMAGE_AVATAR_SIZE')),
+    maxDimension: Number(env('IMAGE_MAX_DIMENSION')),
+    quality: Number(env('IMAGE_QUALITY')),
+    maxInputPixels: Number(env('IMAGE_MAX_INPUT_PIXELS')),
+  },
+  virusScan: {
+    isEnabled: env('VIRUS_SCAN_ENABLED') === 'true',
+    host: env('CLAMAV_HOST'),
+    port: Number(env('CLAMAV_PORT')),
+    timeoutMs: Number(env('CLAMAV_TIMEOUT_MS')),
+    isFailClosed: env('VIRUS_SCAN_FAIL_CLOSED') === 'true',
+  },
+}));
+
 export const inviteConfig = registerAs('invite', () => ({
   acceptUrl: env('INVITE_ACCEPT_URL'),
   ttlDays: Number(env('INVITE_TTL_DAYS')),
@@ -235,6 +257,7 @@ export const configModuleOptions: ConfigModuleOptions = {
     accessControlConfig,
     accountConfig,
     inviteConfig,
+    storageConfig,
     performanceConfig,
     loggingConfig,
     swaggerConfig,
