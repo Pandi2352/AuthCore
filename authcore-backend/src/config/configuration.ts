@@ -159,6 +159,10 @@ export const mailConfig = registerAs('mail', () => ({
   },
 }));
 
+export const accessControlConfig = registerAs('accessControl', () => ({
+  inheritParentGroups: env('ACCESS_INHERIT_PARENT_GROUPS') === 'true',
+}));
+
 export const schedulerConfig = registerAs('scheduler', () => ({
   isEnabled: env('SCHEDULER_ENABLED') !== 'false',
   pollSeconds: Number(env('SCHEDULER_POLL_SECONDS')),
@@ -209,6 +213,7 @@ export const configModuleOptions: ConfigModuleOptions = {
     mailConfig,
     lifecycleConfig,
     schedulerConfig,
+    accessControlConfig,
     performanceConfig,
     loggingConfig,
     swaggerConfig,

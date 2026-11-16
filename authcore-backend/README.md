@@ -208,6 +208,12 @@ Password rules themselves (length, complexity, history, expiry) are not env vars
 | `SCHEDULER_ENABLED` | `true` | `false` on instances that must never run jobs |
 | `SCHEDULER_POLL_SECONDS` | `30` | 5–300; how often each instance checks for due jobs |
 
+### Access control
+
+| Variable | Default | Rule |
+| --- | --- | --- |
+| `ACCESS_INHERIT_PARENT_GROUPS` | `false` | `true`: members of a sub-group also get the roles of its parent groups |
+
 ### Mail
 
 | Variable | Default | Rule |
@@ -870,6 +876,46 @@ npm run build
 npm run users:role -- jane@example.com ADMIN
 npm run users:role -- jane@example.com USER
 ```
+
+### Access control (RBAC): roles, permissions, groups, access mapping
+
+**Model:** User → Group → Role → Permission. A user's permissions are the union over all their groups' roles (active, non-deleted only, no duplicates). With `ACCESS_INHERIT_PARENT_GROUPS=true`, members of a sub-group also get the roles of its parent groups (off by default).
+
+**Who may call what:** every endpoint needs a permission, checked by the global guard with `@RequirePermissions('ROLE_CREATE')`. Users with `role: ADMIN` (from `npm run users:role -- <email> ADMIN`) pass every check, so the service can't be locked out. On startup AuthCore seeds 16 system permissions (`ROLE_*`, `PERMISSION_*`, `GROUP_*`, `ACCESS_MAPPING_READ / ASSIGN / REVOKE`, `ACCESS_AUDIT_READ`) and the system role `ACCESS_CONTROL_ADMIN` that holds them all. System entities can't be edited or deleted.
+
+| Area | Endpoints |
+| --- | --- |
+| Roles | `POST /roles` · `GET /roles` · `GET /roles/dropdown` · `GET /roles/categories` · `GET /roles/exists` · `PATCH /roles/bulk` · `POST /roles/setup` · `GET / PATCH / DELETE /roles/key/:roleKey` · `GET / PATCH / DELETE /roles/:id` |
+| Permissions | `POST /permissions` · `GET /permissions` · `GET /permissions/dropdown` · `GET /permissions/actions` · `GET /permissions/exists` · `GET / PATCH / DELETE /permissions/:id` |
+| Groups | `POST /groups` · `GET /groups` · `GET /groups/dropdown` · `GET /groups/categories` · `GET /groups/tree` · `GET /groups/exists` · `GET /groups/code/:groupCode` · `GET / PATCH / DELETE /groups/:id` · `GET /groups/:id/children` · `GET /groups/:id/permission-matrix` |
+| Access mapping | `POST /access-mappings/group-users` (+ `/remove`) · `POST /access-mappings/group-roles` (+ `/remove`) · `POST /access-mappings/role-permissions` (+ `/remove`) · `GET /access-mappings` · `DELETE /access-mappings/:id` · `GET /access-mappings/users/:userId/effective-access` |
+| Other | `GET /access-control/me` (any signed-in user: my groups, roles, permission keys) · `GET /access-control/audit-logs` |
+
+**Fields**
+- Role: `roleKey` (uppercase `A-Z 0-9 _`, unique), `roleName` (unique within its category, case-insensitive), `category` (`/roles/categories`; SYSTEM reserved), `description`, `status`.
+- Permission: `permissionKey` (uppercase, unique), `permissionName` (unique, case-insensitive), `description`, `metadata: [{ key, value, action }]` (up to 20, unique keys, actions from `/permissions/actions`, plain-text values only), `status`.
+- Group: `category` (`/groups/categories`), `parentGroupId` (empty = main group), `groupId` (optional; letters, numbers, `_ - :`, stored uppercase; generated `GRP-XXXXXX` when empty), `groupName` (unique among siblings), `description`, `tags` (comma-separated string or array; each tag letters, numbers, `_ - :`; stored lowercase without duplicates; max 20 × 30 chars), `status`.
+
+**Lists** (`GET /roles`, `/permissions`, `/groups`): `page`, `limit` (≤ 100), `search` (case-insensitive, literal), status / category filters, `createdFrom/To`, `updatedFrom/To`, `sortBy` (allowlisted) + `sortOrder`; default newest update first. Permissions also filter by `metadataKey`, `metadataValue`, `action`; groups by `parentGroupId`, `level=ROOT|CHILD`, `tags=a,b` + `tagMode=ANY|ALL`. **Dropdowns** are separate endpoints returning **every** active record (no limit; optional `search`) as `{ id, label, key, parentId?, category?, level? }`; groups with `withPath=true` add `path` ("Development / Backend Team"); `GET /groups/dropdown?excludeId=<group>` gives valid parents while editing (the group and its sub-groups are left out).
+
+**Rules**
+- Duplicates: one `409 DUPLICATE_RESOURCE` listing every clashing field; backed by partial unique indexes (concurrent duplicates also get 409). Keys and names are reusable after a delete.
+- Updates: partial; optional `version` → `409 VERSION_CONFLICT` if someone else changed the record.
+- Deletes are soft and blocked while in use (`409 RESOURCE_IN_USE` with counts): a role used by groups, a permission used by roles, a group with sub-groups or members. A deleted role's permission links and a deleted group's role links are removed with it.
+- Hierarchy: no own-parent, no cycles (moving under a descendant), max 10 levels (`400 INVALID_GROUP_HIERARCHY`). Moving a group moves its whole subtree.
+- Assignments: bulk (≤ 100 ids), everything must exist and be ACTIVE (`404` / `400 RESOURCE_INACTIVE` listing the ids); already-assigned ids are skipped and reported. Users who are suspended / banned / rejected / deactivated can't be added.
+- **No privilege escalation:** non-ADMIN callers can only grant permissions they hold themselves (`403` listing the missing keys) and can't change their own group membership.
+- Inactive roles / permissions / groups grant nothing. Changes apply immediately on the instance that made them; other instances within 30 seconds (permission cache).
+- Every change is in the audit log (who, IP, before / after of the changed fields).
+
+**More group / role tools**
+- `GET /groups/tree`: the hierarchy as nested nodes; `category`, `rootId` (one sub-tree), `maxDepth`, `status`, `withCounts` (members / roles per node).
+- `GET /groups/code/:groupCode?category=`: details by business group ID (e.g. GRP-DEV), optionally only within a category. Details (also `GET /groups/:id`) include the group's roles.
+- `GET /groups/:id/permission-matrix?category=`: the group's roles (columns), the permissions they grant (rows, `grantedByRoleIds`) and a module × action grid from the permission metadata.
+- `GET /roles|permissions|groups/exists`: "is this key / name taken?" for live form validation (`excludeId` while editing) → `{ exists, conflicts[] }`.
+- `GET / PATCH / DELETE /roles/key/:roleKey`: the same as by id, addressed by role key.
+- `PATCH /roles/bulk`: up to 100 role updates; all validated first, nothing applied if any fails (`400 BULK_OPERATION_FAILED` with `roles.<index>.<field>`).
+- `POST /roles/setup`: create or update (matched by roleKey) a role and assign its groups and permissions in one call; `replaceAssignments` makes the lists complete. Validated before anything is written.
 
 ## 12. Deployment
 

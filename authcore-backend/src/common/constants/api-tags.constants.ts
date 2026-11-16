@@ -18,6 +18,20 @@ export const API_TAGS = {
     description:
       'Password rules, expiry and scheduled reminders (admin); requirements and pre-check (public)',
   },
+  Roles: { name: 'Roles', description: 'Business roles (access control)' },
+  Permissions: {
+    name: 'Permissions',
+    description: 'Permissions and their metadata (access control)',
+  },
+  Groups: {
+    name: 'Groups',
+    description: 'Hierarchical groups: main groups and nested sub-groups, tags',
+  },
+  AccessMappings: {
+    name: 'Access Mapping',
+    description:
+      'Users ↔ groups, roles ↔ groups, permissions ↔ roles; effective access and audit',
+  },
   Sessions: {
     name: 'Sessions',
     description: 'My signed-in devices: list and sign out',

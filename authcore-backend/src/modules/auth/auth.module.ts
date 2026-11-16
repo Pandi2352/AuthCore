@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { authConfig } from '@config/configuration';
+import { AccessControlModule } from '@modules/access-control/access-control.module';
 import { EmailVerificationModule } from '@modules/email-verification/email-verification.module';
 import { PasswordPolicyModule } from '@modules/password-policy/password-policy.module';
 import { PasswordResetModule } from '@modules/password-reset/password-reset.module';
@@ -38,6 +39,7 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
     SessionsModule,
     PasswordResetModule,
     PasswordPolicyModule,
+    AccessControlModule,
     MongooseModule.forFeature([
       { name: LoginAttempt.name, schema: LoginAttemptSchema },
     ]),

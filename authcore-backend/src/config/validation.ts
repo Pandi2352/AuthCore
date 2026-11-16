@@ -135,6 +135,8 @@ export const envValidationSchema = Joi.object({
   // Scheduled jobs (password expiry reminders). Every instance polls; a database
   // lock makes each run happen once. Set false on instances that must not run jobs.
   SCHEDULER_ENABLED: Joi.boolean().default(true),
+  // Access control: members of a sub-group also get the roles of its parent groups.
+  ACCESS_INHERIT_PARENT_GROUPS: Joi.boolean().default(false),
   SCHEDULER_POLL_SECONDS: Joi.number().integer().min(5).max(300).default(30),
 
   // Login (optional)

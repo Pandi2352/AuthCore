@@ -147,38 +147,38 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 8. Role-Based Access Control (RBAC) Module
 
-- [ ] Create roles
-- [ ] Update roles
-- [ ] Delete roles
-- [ ] List roles
-- [ ] Assign roles to users
-- [ ] Remove roles from users
-- [ ] Multiple roles per user
+- [x] Create roles *(`POST /api/v1/roles`)*
+- [x] Update roles
+- [x] Delete roles *(soft delete; blocked while groups use the role)*
+- [x] List roles *(search, filters, sort, pagination + dropdown)*
+- [x] Assign roles to users *(through groups: User → Group → Role)*
+- [x] Remove roles from users *(remove the user from the group or the role from the group)*
+- [x] Multiple roles per user *(several groups / roles, merged without duplicates)*
 - [ ] Default role assignment
-- [ ] System roles
-- [ ] Custom roles
+- [x] System roles *(seeded ACCESS_CONTROL_ADMIN; protected)*
+- [x] Custom roles *(categories)*
 - [ ] Role hierarchy
-- [ ] Role-based guards *(minimal USER / ADMIN + `@Roles()` in place; full RBAC pending)*
-- [ ] Roles decorator (`@Roles()`)
-- [ ] Role validation
+- [x] Role-based guards *(`@Roles()` for USER / ADMIN; permission checks via `@RequirePermissions()`)*
+- [x] Roles decorator (`@Roles()`)
+- [x] Role validation
 
 ## 9. Permission Management Module
 
-- [ ] Create permissions
-- [ ] Update permissions
-- [ ] Delete permissions
-- [ ] List permissions
-- [ ] Assign permissions to roles
-- [ ] Remove permissions from roles
+- [x] Create permissions *(`POST /api/v1/permissions`, metadata key / value / action)*
+- [x] Update permissions
+- [x] Delete permissions *(soft delete; blocked while roles use it)*
+- [x] List permissions *(search, metadata / action filters + dropdown)*
+- [x] Assign permissions to roles *(`POST /api/v1/access-mappings/role-permissions`)*
+- [x] Remove permissions from roles
 - [ ] Direct user permissions
-- [ ] Permission-based guards
-- [ ] Permissions decorator (`@Permissions()`)
-- [ ] Permission validation
-- [ ] Permission grouping by module
+- [x] Permission-based guards *(global guard, ADMIN passes)*
+- [x] Permissions decorator (`@RequirePermissions()`)
+- [x] Permission validation
+- [x] Permission grouping by module *(metadata `module`, filter / dropdown by module)*
 - [ ] Resource-level permissions
 - [ ] Ownership-based authorization
 - [ ] Policy-based authorization
-- [ ] Permission inheritance
+- [x] Permission inheritance *(optional: ACCESS_INHERIT_PARENT_GROUPS (sub-group members get parent groups' roles))*
 - [ ] Dynamic permission evaluation
 
 ## 10. Security & Protection Module
@@ -216,8 +216,8 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Password reset logs
 - [ ] Email verification logs
 - [ ] MFA activity logs
-- [ ] Role modification logs
-- [ ] Permission modification logs
+- [x] Role modification logs *(`GET /api/v1/access-control/audit-logs`)*
+- [x] Permission modification logs
 - [ ] User activation/deactivation logs
 - [ ] Session revocation logs
 - [ ] API key activity logs

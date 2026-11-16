@@ -58,6 +58,14 @@ export enum ErrorCode {
 
   // Password policy
   InvalidPasswordPolicy = 'INVALID_PASSWORD_POLICY',
+
+  // Access control
+  ResourceInUse = 'RESOURCE_IN_USE',
+  SystemResourceProtected = 'SYSTEM_RESOURCE_PROTECTED',
+  ResourceInactive = 'RESOURCE_INACTIVE',
+  InvalidGroupHierarchy = 'INVALID_GROUP_HIERARCHY',
+  VersionConflict = 'VERSION_CONFLICT',
+  BulkOperationFailed = 'BULK_OPERATION_FAILED',
 }
 
 /** Default code and safe client message for each HTTP status. */

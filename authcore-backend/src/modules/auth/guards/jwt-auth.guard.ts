@@ -10,10 +10,13 @@ import type { Request } from 'express';
 import { ErrorCode } from '@common/constants/error-codes.constants';
 import { ALLOW_EXPIRED_PASSWORD_KEY } from '@common/decorators/allow-expired-password.decorator';
 import { IS_PUBLIC_KEY } from '@common/decorators/public.decorator';
+import { PERMISSIONS_KEY } from '@common/decorators/require-permissions.decorator';
 import { ROLES_KEY } from '@common/decorators/roles.decorator';
 import { AppException } from '@common/exceptions/app.exception';
+import { AccessResolverService } from '@modules/access-control/services/access-resolver.service';
 import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import { SessionsService } from '@modules/sessions/sessions.service';
+import { UserRole } from '@modules/users/enums/user-role.enum';
 import { UsersService } from '@modules/users/users.service';
 
 import { AccessTokenService } from '../services/access-token.service';
@@ -43,6 +46,7 @@ function unauthorized(
  *  3. Session still active: logout / revocation takes effect immediately
  *  4. User still allowed to sign in (same rules as login and refresh)
  *  5. Role, if the route has @Roles(...)
+ *  5b. Permissions, if the route has @RequirePermissions(...) (ADMIN passes)
  *  6. Password not expired, unless the route has @AllowExpiredPassword()
  * Then `request.auth` = { userId, sessionId, tokenId } (see @CurrentUser()).
  */
@@ -55,6 +59,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly usersService: UsersService,
     private readonly accountEligibilityService: AccountEligibilityService,
     private readonly passwordValidationService: PasswordValidationService,
+    private readonly accessResolverService: AccessResolverService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -143,6 +148,27 @@ export class JwtAuthGuard implements CanActivate {
       );
     }
 
+    // Permissions (groups → roles → permissions); ADMIN passes every check.
+    const permissions = this.reflector.getAllAndOverride<string[] | undefined>(
+      PERMISSIONS_KEY,
+      targets,
+    );
+    if (permissions?.length && user.role !== UserRole.Admin) {
+      const held = await this.accessResolverService.getPermissionKeys(user.id);
+      const missing = permissions.filter((key) => !held.has(key));
+      if (missing.length > 0) {
+        throw new AppException(
+          HttpStatus.FORBIDDEN,
+          ErrorCode.Forbidden,
+          'You do not have permission to perform this action',
+          missing.map((key) => ({
+            field: 'permission',
+            message: `requires ${key}`,
+          })),
+        );
+      }
+    }
+
     // Expired password (policy: forceChangeOnExpiry, grace over): only the
     // routes needed to change it stay usable.
     const isExpiredAllowed = this.reflector.getAllAndOverride<
@@ -165,6 +191,7 @@ export class JwtAuthGuard implements CanActivate {
       userId: payload.sub,
       sessionId: payload.sid,
       tokenId: payload.jti,
+      role: user.role,
     };
     return true;
   }

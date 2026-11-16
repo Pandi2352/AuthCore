@@ -6,4 +6,6 @@ export interface AuthContext {
   sessionId: string;
   /** Access token id (JWT `jti`). */
   tokenId: string;
+  /** USER or ADMIN (ADMIN passes every permission check). */
+  role: string;
 }

@@ -126,6 +126,36 @@ export class UsersService {
     return result.modifiedCount > 0;
   }
 
+  /** Non-deleted users among these ids (order not guaranteed). */
+  async findManyByIds(ids: string[]): Promise<UserResponseDto[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const users = await this.userModel
+      .find({ _id: { $in: ids }, deletedAt: null })
+      .lean();
+    return users.map(toUserResponse);
+  }
+
+  /** Ids of users whose email, first or last name contains `pattern` (bounded). */
+  async findIdsMatching(pattern: RegExp, limit: number): Promise<string[]> {
+    const users = await this.userModel
+      .find(
+        {
+          deletedAt: null,
+          $or: [
+            { email: pattern },
+            { firstName: pattern },
+            { lastName: pattern },
+          ],
+        },
+        { _id: 1 },
+      )
+      .limit(limit)
+      .lean();
+    return users.map((u) => u._id);
+  }
+
   /** Sets a user's role by email. null if no such user. */
   async setRole(
     email: string,

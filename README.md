@@ -206,6 +206,7 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 📱 Session management: list / view / revoke my devices | ✅ Done |
 | 🔐 Forgot / reset / change password | ✅ Done |
 | 📏 Password policy: rules, expiry, reminder scheduler (admin API) | ✅ Done |
+| 🧑‍🤝‍🧑 Access control: roles, permissions, groups, access mapping (RBAC) | ✅ Done |
 
 ---
 
