@@ -458,6 +458,7 @@ export class UserInvitesService {
       { _id: invite._id },
       { $set: { acceptedUserId: user.id } },
     );
+    await this.mappingsService.assignDefaultGroups(user.id, 'INVITE');
     const groupsJoined = await this.joinGroups(invite, user.id, client);
     this.logger.log({
       message: 'Invite accepted',

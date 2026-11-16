@@ -107,6 +107,7 @@ export class GroupsService {
       description: dto.description ?? '',
       tags: dto.tags ?? [],
       status: dto.status ?? RecordStatus.Active,
+      isDefault: dto.isDefault ?? false,
       createdBy: actor.auth.userId,
       updatedBy: actor.auth.userId,
     });
@@ -168,6 +169,7 @@ export class GroupsService {
         ? { parentGroupId: { $ne: null } }
         : {}),
       ...(query.status ? { status: query.status } : {}),
+      ...(query.isDefault !== undefined ? { isDefault: query.isDefault } : {}),
       ...(createdAt ? { createdAt } : {}),
       ...(updatedAt ? { updatedAt } : {}),
     };
@@ -636,6 +638,7 @@ export class GroupsService {
       description: dto.description ?? group.description,
       tags: dto.tags ?? group.tags,
       status: dto.status ?? group.status,
+      isDefault: dto.isDefault ?? group.isDefault,
     };
     const diff = changedValues(auditView(group), next);
     if (Object.keys(diff.after).length === 0) {
@@ -647,6 +650,13 @@ export class GroupsService {
       parentGroupId,
       id,
     );
+    if (next.isDefault && !group.isDefault) {
+      // Every future user gets this group's permissions: only someone who may grant them can do that.
+      await this.resolver.assertCanGrant(
+        actor,
+        await this.resolver.permissionKeysOfGroups([id]),
+      );
+    }
 
     const ancestorIds = isMoving
       ? newParent
@@ -930,6 +940,7 @@ function auditView(group: Group): Record<string, unknown> {
     description: group.description,
     tags: group.tags,
     status: group.status,
+    isDefault: group.isDefault,
   };
 }
 
@@ -948,6 +959,7 @@ function toListItem(
     description: group.description,
     tags: group.tags,
     status: group.status,
+    isDefault: group.isDefault,
     updatedAt: group.updatedAt,
   };
 }

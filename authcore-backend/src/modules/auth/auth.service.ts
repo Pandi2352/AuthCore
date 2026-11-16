@@ -7,6 +7,7 @@ import { ValidationException } from '@common/exceptions/validation.exception';
 import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { authConfig } from '@config/configuration';
+import { LoginAlertsService } from '@modules/login-alerts/services/login-alerts.service';
 import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import type { CreatedSession } from '@modules/sessions/interfaces/session.interface';
 import { SessionsService } from '@modules/sessions/sessions.service';
@@ -82,6 +83,7 @@ export class AuthService {
     private readonly passwordValidationService: PasswordValidationService,
     private readonly activityService: UserActivityService,
     private readonly attributeValuesService: UserAttributeValuesService,
+    private readonly loginAlertsService: LoginAlertsService,
     @Inject(authConfig.KEY)
     private readonly auth: ConfigType<typeof authConfig>,
   ) {}
@@ -168,6 +170,11 @@ export class AuthService {
       sessionId: session.sessionId,
       details: { method },
     });
+    const { isNewDevice } = await this.loginAlertsService.onSignIn(
+      user,
+      client,
+      session.sessionId,
+    );
 
     this.logger.log({
       message: 'Login succeeded',
@@ -190,6 +197,7 @@ export class AuthService {
       accessToken,
       tokenType: 'Bearer',
       expiresIn,
+      isNewDevice,
       ...(await this.passwordStatus(user)),
     };
     if (this.refreshTokenCookieService.isBodyDelivery) {
@@ -363,6 +371,13 @@ export class AuthService {
         lockedUntil,
         ipAddress: client.ipAddress,
       });
+      if (userId) {
+        await this.loginAlertsService.onAccountLocked(
+          userId,
+          lockedUntil,
+          client,
+        );
+      }
     }
     return new AppException(
       HttpStatus.UNAUTHORIZED,
@@ -475,6 +490,7 @@ export class AuthService {
       accessToken,
       tokenType: 'Bearer',
       expiresIn,
+      isNewDevice: false,
       ...(await this.passwordStatus(user)),
     };
     if (result.kind !== 'rotated') {

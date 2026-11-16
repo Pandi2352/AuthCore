@@ -163,6 +163,16 @@ export class CreateGroupDto {
   @IsEnum(RecordStatus)
   @IsOptional()
   status?: RecordStatus;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'Default group: every new user (registration, invite, admin-created) joins it automatically, getting its roles. ' +
+      "Needs permission to grant the group's permissions.",
+  })
+  @IsBoolean()
+  @IsOptional()
+  isDefault?: boolean;
 }
 
 export class UpdateGroupDto extends PartialType(
@@ -238,6 +248,14 @@ export class GroupListQueryDto extends ListQueryDto {
   @IsEnum(RecordStatus)
   @IsOptional()
   status?: RecordStatus;
+
+  @ApiPropertyOptional({
+    description: 'Only default groups (true) or only others (false)',
+  })
+  @IsBoolean()
+  @Transform(toBoolean)
+  @IsOptional()
+  isDefault?: boolean;
 
   @ApiPropertyOptional({ enum: GROUP_SORT_FIELDS, default: 'updatedAt' })
   @IsIn(GROUP_SORT_FIELDS)
@@ -330,6 +348,12 @@ export class GroupListItemDto {
 
   @ApiProperty({ enum: RecordStatus, example: RecordStatus.Active })
   status!: RecordStatus;
+
+  @ApiProperty({
+    example: false,
+    description: 'New users join it automatically',
+  })
+  isDefault!: boolean;
 
   @ApiProperty({ example: '2026-11-16T05:30:00.000Z' })
   updatedAt!: Date;

@@ -266,6 +266,7 @@ export class UserAdminService {
         attributeChanges.attributes,
       );
     }
+    await this.mappingsService.assignDefaultGroups(user.id, 'ADMIN');
     for (const groupId of groupIds) {
       await this.mappingsService.assignGroupUsers(
         { groupId, userIds: [user.id] },

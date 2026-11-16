@@ -168,7 +168,21 @@ export const accountConfig = registerAs('account', () => ({
   deletionGraceDays: Number(env('ACCOUNT_DELETION_GRACE_DAYS')),
   purgeIntervalMinutes: Number(env('ACCOUNT_PURGE_INTERVAL_MINUTES')),
   activityRetentionDays: Number(env('USER_ACTIVITY_RETENTION_DAYS')),
+  isNewDeviceAlertEnabled: env('NEW_DEVICE_ALERTS_ENABLED') === 'true',
+  isAccountLockedEmailEnabled: env('ACCOUNT_LOCKED_EMAIL_ENABLED') === 'true',
+  knownDeviceRetentionDays: Number(env('KNOWN_DEVICE_RETENTION_DAYS')),
   tokenSecret: env('VERIFICATION_TOKEN_SECRET'),
+}));
+
+/** First administrator, created at startup when the email doesn't exist yet. */
+export const bootstrapAdminConfig = registerAs('bootstrapAdmin', () => ({
+  isEnabled: env('BOOTSTRAP_ADMIN_ENABLED') === 'true',
+  email: env('BOOTSTRAP_ADMIN_EMAIL').trim().toLowerCase(),
+  password: env('BOOTSTRAP_ADMIN_PASSWORD'),
+  firstName: env('BOOTSTRAP_ADMIN_FIRST_NAME'),
+  lastName: env('BOOTSTRAP_ADMIN_LAST_NAME'),
+  isPasswordChangeRequired:
+    env('BOOTSTRAP_ADMIN_MUST_CHANGE_PASSWORD') === 'true',
 }));
 
 export const storageConfig = registerAs('storage', () => ({
@@ -258,6 +272,7 @@ export const configModuleOptions: ConfigModuleOptions = {
     accountConfig,
     inviteConfig,
     storageConfig,
+    bootstrapAdminConfig,
     performanceConfig,
     loggingConfig,
     swaggerConfig,

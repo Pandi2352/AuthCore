@@ -42,6 +42,10 @@ export class Group extends ManagedEntity {
   /** Lowercase, unique per group. */
   @Prop({ type: [String], default: [], index: true })
   tags!: string[];
+
+  /** New users (registration, invite, admin-created) join every active default group. */
+  @Prop({ required: true, default: false, index: true })
+  isDefault!: boolean;
 }
 
 export const GroupSchema = SchemaFactory.createForClass(Group);

@@ -15,6 +15,10 @@ export enum ActivityEvent {
   AccountRecovered = 'ACCOUNT_RECOVERED',
   StatusChanged = 'STATUS_CHANGED',
   SessionsRevoked = 'SESSIONS_REVOKED',
+  /** Successful sign-in from a device (browser + OS) not seen before. */
+  NewDeviceLogin = 'NEW_DEVICE_LOGIN',
+  /** Too many failed sign-ins: the account is locked for a while. */
+  AccountLocked = 'ACCOUNT_LOCKED',
 }
 
 /** How the user proved who they were for the event. */

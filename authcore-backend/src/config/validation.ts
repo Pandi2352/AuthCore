@@ -164,6 +164,59 @@ export const envValidationSchema = Joi.object({
     .max(3650)
     .default(90),
 
+  // First administrator (created at startup if this email doesn't exist; never overwritten)
+  BOOTSTRAP_ADMIN_ENABLED: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(true),
+  BOOTSTRAP_ADMIN_EMAIL: Joi.string()
+    .trim()
+    .lowercase()
+    .email({ tlds: { allow: false } })
+    .allow('')
+    .default(''),
+  // Must satisfy the password policy; required together with the email
+  BOOTSTRAP_ADMIN_PASSWORD: Joi.string()
+    .allow('')
+    .default('')
+    .when('BOOTSTRAP_ADMIN_EMAIL', {
+      is: Joi.string().min(1),
+      then: Joi.string().min(8).required(),
+    }),
+  BOOTSTRAP_ADMIN_FIRST_NAME: Joi.string()
+    .trim()
+    .min(1)
+    .max(50)
+    .default('System'),
+  BOOTSTRAP_ADMIN_LAST_NAME: Joi.string()
+    .trim()
+    .max(50)
+    .allow('')
+    .default('Admin'),
+  // true = the admin must choose a new password at first sign-in (recommended)
+  BOOTSTRAP_ADMIN_MUST_CHANGE_PASSWORD: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(true),
+
+  // Security notifications
+  // Email the user when they sign in from a device (browser + OS) not seen before
+  NEW_DEVICE_ALERTS_ENABLED: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(true),
+  // Email the user when too many failed sign-ins lock their account
+  ACCOUNT_LOCKED_EMAIL_ENABLED: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(true),
+  // A device unused for this long counts as new again
+  KNOWN_DEVICE_RETENTION_DAYS: Joi.number()
+    .integer()
+    .min(1)
+    .max(3650)
+    .default(180),
+
   // File uploads (local folder storage; more drivers can be added later)
   STORAGE_DRIVER: Joi.string().valid('local').default('local'),
   // Relative to the working directory (inside the project) or absolute

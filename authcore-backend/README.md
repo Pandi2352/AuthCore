@@ -236,6 +236,13 @@ Password rules themselves (length, complexity, history, expiry) are not env vars
 | `CLAMAV_HOST` · `CLAMAV_PORT` | `127.0.0.1` · `3310` | clamd TCP address |
 | `CLAMAV_TIMEOUT_MS` | `15000` | Per-scan timeout |
 | `VIRUS_SCAN_FAIL_CLOSED` | `true` | Scanner unreachable: `true` = reject uploads (503), `false` = accept them unscanned (`SCAN_FAILED`, logged) |
+| `BOOTSTRAP_ADMIN_ENABLED` | `true` | Create the first administrator at startup (see "First administrator") |
+| `BOOTSTRAP_ADMIN_EMAIL` · `BOOTSTRAP_ADMIN_PASSWORD` | (empty) | Its sign-in; the password must meet the password policy (the sample `Test@123` is refused in production) |
+| `BOOTSTRAP_ADMIN_FIRST_NAME` · `BOOTSTRAP_ADMIN_LAST_NAME` | `System` · `Admin` | Its name |
+| `BOOTSTRAP_ADMIN_MUST_CHANGE_PASSWORD` | `true` | Must choose a new password at first sign-in |
+| `NEW_DEVICE_ALERTS_ENABLED` | `true` | Email users when they sign in from a device (browser + OS) not seen before (users can turn it off: `loginAlerts`) |
+| `ACCOUNT_LOCKED_EMAIL_ENABLED` | `true` | Email users when failed sign-ins lock their account |
+| `KNOWN_DEVICE_RETENTION_DAYS` | `180` | A device unused this long counts as new again |
 | `USER_ACTIVITY_RETENTION_DAYS` | `90` | 1–3650; recent-activity entries (sign-ins, password / email changes …) are removed after this (TTL index) |
 | `ACCOUNT_PURGE_INTERVAL_MINUTES` | `60` | 1–1440 |
 | `INVITE_ACCEPT_URL` | `http://localhost:5173/accept-invite` | Frontend page for invite links |
@@ -953,6 +960,7 @@ npm run users:role -- jane@example.com USER
 | `PATCH /users/me` | firstName, lastName, username (registration rules; `null` removes lastName / username) |
 | `PATCH /users/me/attributes` | Personal details: `{ attributes: { gender, birthdate, phone_number, address: { … }, employee_id, … } }` validated against the user schema; `given_name` / `family_name` / `preferred_username` map to the built-in fields; groups merge; `null` clears |
 | `GET /users/me/avatar` · `POST /users/me/avatar` · `DELETE /users/me/avatar` | Profile picture: multipart `file` (JPEG / PNG / WebP ≤ `UPLOAD_AVATAR_MAX_SIZE_MB`); replaces the previous one; sets `picture` to its public URL |
+| `GET /users/me/devices` · `DELETE /users/me/devices/:id` | Known devices (new-device alerts); forgetting one makes its next sign-in "new" again |
 | `GET /users/me/activity` | Recent activity: sign-ins (incl. failed), logouts, password / email / profile changes, with device, browser, IP and verification type; `?event=` filter |
 | `PATCH /users/me/preferences` | language, timezone (IANA), notifications.productUpdates / loginAlerts |
 | `POST /users/me/email/change` | `{ newEmail, currentPassword }` → 6-digit code to the **new** address (nothing changes yet) |
@@ -1056,6 +1064,35 @@ Safety:
 - multipart/form-data is accepted only on upload routes; every other route stays JSON-only.
 - **Images are re-encoded** with sharp (libvips): fully decoded (damaged / disguised files → 422 `FILE_UNREADABLE`), auto-rotated from EXIF, then **all metadata removed** (EXIF, GPS location, camera, XMP, IPTC). Avatars are cropped to an `IMAGE_AVATAR_SIZE` square; image documents shrink to fit `IMAGE_MAX_DIMENSION`. Images above `IMAGE_MAX_INPUT_PIXELS` are refused before decoding. The format stays the same (GIF animation kept); PDFs are stored unchanged. `size` / `sha256` describe the stored bytes, `originalSize` the upload.
 - **Virus scanning** with ClamAV over the clamd protocol (INSTREAM, 64 KB chunks; no extra package). The original upload is scanned before anything is stored: malware → 422 `FILE_INFECTED` (logged with the signature, nothing kept). Scanner unreachable → 503 `FILE_SCAN_UNAVAILABLE` (`VIRUS_SCAN_FAIL_CLOSED=true`) or accepted as `SCAN_FAILED`. Every file records `scanStatus` (CLEAN / NOT_SCANNED / SCAN_FAILED); `/health/ready` pings ClamAV when enabled. Start one with `docker run -d --name clamav -p 3310:3310 clamav/clamav` (first start downloads signatures, ~1–2 min).
+
+### First administrator (bootstrap)
+
+A fresh database has no one who can sign in as admin. At startup, if `BOOTSTRAP_ADMIN_EMAIL` doesn't exist yet, AuthCore creates it from `BOOTSTRAP_ADMIN_*`: ACTIVE, email verified, role **ADMIN** (all permissions), source `SYSTEM`. Local `.env` default: `sytemuser@authcore.com` / `Test@123`.
+
+- Sign in with those credentials; with `BOOTSTRAP_ADMIN_MUST_CHANGE_PASSWORD=true` (default) only change-password, `/users/me` and logout work until you choose a new password (`PATCH /auth/change-password`).
+- Runs on every start but **never changes an existing account**: editing the env values later does not reset the password, name, role or status (safe with several instances).
+- The password must pass the password policy; in production the sample `Test@123` is refused. A refusal is logged and the API still starts. Logs never contain the email or password.
+- Set `BOOTSTRAP_ADMIN_ENABLED=false` (or empty email / password) to skip it.
+
+### Security notifications
+
+- **New device**: every successful sign-in records the device (browser name + OS name + device type; versions ignored) in `known_devices`. A device not seen before (except on the very first sign-in) → `isNewDevice: true` in the sign-in response, a `NEW_DEVICE_LOGIN` activity entry, and a "New sign-in" email with time (user's time zone), device and IP, unless the user turned `notifications.loginAlerts` off or `NEW_DEVICE_ALERTS_ENABLED=false`. Devices expire after `KNOWN_DEVICE_RETENTION_DAYS` unused.
+- **Account locked**: when `LOGIN_MAX_FAILED_ATTEMPTS` failures lock the account, the user gets one email (attempts, IP, unlock time; never a password) and an `ACCOUNT_LOCKED` activity entry. Always sent (security notice) unless `ACCOUNT_LOCKED_EMAIL_ENABLED=false`.
+- Notices never break sign-in: failures are logged.
+
+### Default groups (default role assignment)
+
+`POST` / `PATCH /groups` with `isDefault: true` (list with `GET /groups?isDefault=true`): every **new** user — registration, accepted invite, admin-created — joins all active default groups and gets their roles. Assignments are recorded as `system` in the audit log. Making a group default needs the right to grant its permissions (no escalation). Existing users are not changed.
+
+### Admin activity search: `/api/v1/admin/activity`
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /admin/activity` | Everyone's activity: `userId`, `search` (email / name), `events` (comma-separated), `isSuccess`, `ipAddress`, `deviceType`, `browser`, `from` / `to`, `sortOrder`; each entry includes the user |
+| `GET /admin/activity/login-history` | Same filters, sign-in events only (LOGIN, LOGIN_FAILED, NEW_DEVICE_LOGIN, ACCOUNT_LOCKED, LOGOUT, LOGOUT_ALL) |
+| `GET /admin/activity/event-types` | Event values + labels for the filter dropdown |
+
+Needs `USER_READ`.
 
 ## 12. Deployment
 

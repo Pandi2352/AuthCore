@@ -7,6 +7,13 @@ export class LoginResponseDto {
   user!: UserResponseDto;
 
   @ApiProperty({
+    example: false,
+    description:
+      'Signed in from a device (browser + OS) not seen before; the user was emailed (if loginAlerts is on)',
+  })
+  isNewDevice!: boolean;
+
+  @ApiProperty({
     description: 'JWT access token. Send as `Authorization: Bearer <token>`.',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })

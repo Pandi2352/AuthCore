@@ -488,3 +488,49 @@ export function passwordSetByAdminEmail(params: {
     footer: NOT_YOU,
   });
 }
+
+export function newDeviceLoginEmail(params: {
+  appName: string;
+  firstName: string;
+  /** Already formatted in the user's time zone. */
+  when: string;
+  deviceName: string;
+  ipAddress: string;
+}): MailContent {
+  return noticeEmail({
+    ...params,
+    subject: `New sign-in to your ${params.appName} account`,
+    heading: 'New sign-in from a new device',
+    paragraphs: [
+      `Your account was just signed in to from a device we haven't seen before.`,
+      `When: ${params.when}`,
+      `Device: ${params.deviceName}`,
+      `IP address: ${params.ipAddress}`,
+      'If this was you, you can ignore this email.',
+    ],
+    footer:
+      "If this wasn't you, change your password now and sign out of all devices. You can turn off these alerts in your notification settings.",
+  });
+}
+
+export function accountLockedEmail(params: {
+  appName: string;
+  firstName: string;
+  /** Already formatted in the user's time zone. */
+  lockedUntil: string;
+  attempts: number;
+  ipAddress: string;
+}): MailContent {
+  return noticeEmail({
+    ...params,
+    subject: `Your ${params.appName} account is temporarily locked`,
+    heading: 'Account temporarily locked',
+    paragraphs: [
+      `We locked sign-in to your account after ${String(params.attempts)} failed attempts (last one from IP address ${params.ipAddress}).`,
+      `You can try again after ${params.lockedUntil}.`,
+      'If you forgot your password, use "Forgot password" to set a new one.',
+    ],
+    footer:
+      "If these attempts weren't you, someone may be trying to get into your account: choose a strong password you don't use anywhere else.",
+  });
+}

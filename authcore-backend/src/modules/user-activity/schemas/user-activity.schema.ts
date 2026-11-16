@@ -55,3 +55,7 @@ export class UserActivity extends BaseSchema {
 
 export const UserActivitySchema = SchemaFactory.createForClass(UserActivity);
 UserActivitySchema.index({ userId: 1, createdAt: -1 });
+// Admin search / login history across users.
+UserActivitySchema.index({ createdAt: -1 });
+UserActivitySchema.index({ event: 1, createdAt: -1 });
+UserActivitySchema.index({ ipAddress: 1, createdAt: -1 });

@@ -33,7 +33,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Health check endpoints *(`/health`, `/health/live`, `/health/ready` (terminus))*
 - [x] Swagger/OpenAPI documentation *(`/api/docs` when SWAGGER_ENABLED (never in production), `npm run openapi:export`)*
 - [x] API versioning *(URI versioning: `/api/v1/...`)*
-- [ ] File storage integration
+- [x] File storage integration *(`modules/files`: local folder driver behind a StorageDriver interface)*
 
 ## 2. Identity & User Management Module
 
@@ -99,7 +99,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Last active tracking *(set on login; updated on refresh later)*
 - [x] Session expiration
 - [x] Concurrent session management *(`MAX_SESSIONS_PER_USER`, oldest revoked)*
-- [ ] New device detection
+- [x] New device detection *(browser + OS + device type per user, `known_devices`; `GET`/`DELETE /users/me/devices`)*
 - [ ] Suspicious session detection
 
 ## 5. Email & Notification Module
@@ -111,9 +111,9 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Email verification email
 - [x] Password reset email *(code or link; `PASSWORD_RESET_METHOD`)*
 - [x] Password changed notification
-- [ ] New device login alert
+- [x] New device login alert *(email + `NEW_DEVICE_LOGIN` activity; `isNewDevice` in the sign-in response; honours `loginAlerts`)*
 - [ ] Suspicious login alert
-- [ ] Account locked notification
+- [x] Account locked notification *(email when failed sign-ins lock the account + `ACCOUNT_LOCKED` activity)*
 - [ ] MFA enabled/disabled notification
 - [ ] Organization invitation email
 - [ ] Email queue integration (BullMQ)
@@ -159,7 +159,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Assign roles to users *(through groups: User → Group → Role)*
 - [x] Remove roles from users *(remove the user from the group or the role from the group)*
 - [x] Multiple roles per user *(several groups / roles, merged without duplicates)*
-- [ ] Default role assignment
+- [x] Default role assignment *(groups with `isDefault`: new users from registration, invites and admin creation join them)*
 - [x] System roles *(seeded ACCESS_CONTROL_ADMIN; protected)*
 - [x] Custom roles *(categories)*
 - [ ] Role hierarchy
@@ -190,14 +190,14 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 - [x] Password hashing (Argon2/bcrypt) *(Argon2id via `@node-rs/argon2`, `PasswordService`)*
 - [x] Refresh token hashing
-- [ ] Helmet security headers
-- [ ] CORS configuration
+- [x] Helmet security headers *(`app.use(helmet())`)*
+- [x] CORS configuration *(`CORS_ORIGIN` allow-list)*
 - [x] CSRF protection *(refresh cookie: SameSite=Strict + Origin/Referer allowlist check)*
 - [ ] XSS protection
-- [ ] NoSQL injection protection
+- [x] NoSQL injection protection *(`$` / dotted keys rejected in bodies and queries)*
 - [ ] Input sanitization
-- [ ] Request validation
-- [ ] Request rate limiting
+- [x] Request validation *(global ValidationPipe: whitelist, forbid unknown fields)*
+- [x] Request rate limiting *(global ThrottlerGuard + per-route limits)*
 - [x] Login brute-force protection
 - [x] Account lockout *(temporary, per account and per unknown identifier)*
 - [x] OTP brute-force protection *(attempt limit + per-IP rate limit + HMAC-stored codes)*
@@ -214,23 +214,23 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 11. Audit Logs & Login History Module
 
-- [ ] Successful login logs
-- [ ] Failed login logs
-- [ ] Logout logs
+- [x] Successful login logs *(`LOGIN` activity)*
+- [x] Failed login logs *(`LOGIN_FAILED`, `ACCOUNT_LOCKED`)*
+- [x] Logout logs *(`LOGOUT`, `LOGOUT_ALL`)*
 - [x] Password change logs
 - [x] Password reset logs
 - [ ] Email verification logs
 - [ ] MFA activity logs
 - [x] Role modification logs *(`GET /api/v1/access-control/audit-logs`)*
 - [x] Permission modification logs
-- [ ] User activation/deactivation logs
+- [x] User activation/deactivation logs *(`STATUS_CHANGED`, `ACCOUNT_DEACTIVATED`, `ACCOUNT_RECOVERED`)*
 - [ ] Session revocation logs
 - [ ] API key activity logs
 - [ ] Organization activity logs
-- [ ] IP address tracking
-- [ ] Device tracking
-- [ ] Audit log search and filtering
-- [ ] Audit log retention policy
+- [x] IP address tracking *(every activity entry and session)*
+- [x] Device tracking *(device type, browser, OS on activity, sessions and known devices)*
+- [x] Audit log search and filtering *(`GET /admin/activity`: user, email / name, events, success, IP, device, browser, dates)*
+- [x] Audit log retention policy *(`USER_ACTIVITY_RETENTION_DAYS`, TTL index)*
 
 ## 12. Admin Management Module
 
@@ -247,7 +247,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Force password reset *(`POST /admin/users/:id/force-password-reset` (silent) + `/reset-password` (email))*
 - [ ] Manage organizations
 - [ ] View audit logs
-- [ ] View login history
+- [x] View login history *(`GET /admin/activity/login-history`)*
 - [ ] Security monitoring dashboard
 
 ## 13. Multi-Factor Authentication (MFA) Module
@@ -342,7 +342,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [ ] OTP expiry and retry configuration
 - [ ] Email configuration
 - [ ] OAuth provider configuration
-- [ ] CORS configuration
+- [x] CORS configuration *(`CORS_ORIGIN` allow-list)*
 - [ ] Environment configuration validation
 - [ ] Tenant-specific security policies
 

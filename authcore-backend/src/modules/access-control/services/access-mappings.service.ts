@@ -10,6 +10,7 @@ import { UserRole } from '@modules/users/enums/user-role.enum';
 import { UserStatus } from '@modules/users/enums/user-status.enum';
 import { UsersService } from '@modules/users/users.service';
 
+import { SYSTEM_ACTOR } from '../constants/access-control.constants';
 import type {
   AccessTreeGroupDto,
   AssignResultDto,
@@ -65,6 +66,17 @@ interface Managed {
  *   their own group membership;
  * - the system role's permissions are fixed.
  */
+/** Who default-group assignments are recorded as. */
+const SYSTEM_ACTOR_CONTEXT: Actor = {
+  auth: {
+    userId: SYSTEM_ACTOR,
+    sessionId: '',
+    tokenId: '',
+    role: UserRole.Admin,
+  },
+  client: { ipAddress: 'system', userAgent: 'system' },
+};
+
 @Injectable()
 export class AccessMappingsService {
   private readonly logger = new Logger(AccessMappingsService.name);
@@ -106,6 +118,49 @@ export class AccessMappingsService {
       actor,
       dto.expiresAt ?? null,
     );
+  }
+
+  /**
+   * Adds a new user to every active default group (system action: no
+   * escalation check, audited as "system"). Never throws: a failure is logged
+   * and the account is still created. Returns the joined group ids.
+   */
+  async assignDefaultGroups(userId: string, source: string): Promise<string[]> {
+    try {
+      const groups = await this.groupModel
+        .find(
+          { isDefault: true, isDeleted: false, status: RecordStatus.Active },
+          { _id: 1 },
+        )
+        .lean();
+      const joined: string[] = [];
+      for (const group of groups) {
+        const result = await this.assign(
+          MappingType.GroupUser,
+          [{ groupId: group._id, userId, roleId: null, permissionId: null }],
+          (link) => link.userId ?? '',
+          SYSTEM_ACTOR_CONTEXT,
+        );
+        if (result.assignedCount > 0) {
+          joined.push(group._id);
+        }
+      }
+      if (joined.length > 0) {
+        this.logger.log({
+          message: 'User added to default groups',
+          userId,
+          source,
+          groupIds: joined,
+        });
+      }
+      return joined;
+    } catch (error) {
+      this.logger.error(
+        { message: 'Default groups could not be assigned', userId, source },
+        error instanceof Error ? error.stack : undefined,
+      );
+      return [];
+    }
   }
 
   async removeGroupUsers(

@@ -210,6 +210,8 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 👤 My account: profile, preferences, email change, deactivate / delete, recovery | ✅ Done |
 | 🛠️ User administration + invites | ✅ Done |
 | 📁 Common file uploads (local folder storage) + profile pictures | ✅ Done |
+| 👑 First administrator from `.env` (bootstrap admin) | ✅ Done |
+| 🔔 New-device sign-in alerts, account-locked email, default groups, admin activity search / login history | ✅ Done |
 | 🧩 User schema (custom user variables), personal details, recent activity, admin set-password, password generator | ✅ Done |
 
 ---

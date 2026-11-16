@@ -28,6 +28,7 @@ import {
 import { DatabaseModule } from '@database/database.module';
 import { AccountModule } from '@modules/account/account.module';
 import { AuthModule } from '@modules/auth/auth.module';
+import { BootstrapModule } from '@modules/bootstrap/bootstrap.module';
 import { FilesModule } from '@modules/files/files.module';
 import { HealthModule } from '@modules/health/health.module';
 import { MailModule } from '@modules/mail/mail.module';
@@ -75,6 +76,7 @@ import { AppService } from './app.service';
     UserActivityModule,
     UserSchemaModule,
     FilesModule,
+    BootstrapModule,
     AuthModule,
     AccountModule,
     UserAdminModule,

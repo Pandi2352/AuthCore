@@ -5,6 +5,7 @@ import { ErrorCode } from '@common/constants/error-codes.constants';
 import { AppException } from '@common/exceptions/app.exception';
 import { ApiFieldError } from '@common/interfaces/api-response.interface';
 import { registrationConfig } from '@config/configuration';
+import { AccessMappingsService } from '@modules/access-control/services/access-mappings.service';
 import { EmailVerificationService } from '@modules/email-verification/email-verification.service';
 import { VerificationMethod } from '@modules/email-verification/enums/verification-method.enum';
 import { MailContent } from '@modules/mail/interfaces/mail-message.interface';
@@ -44,6 +45,7 @@ export class RegistrationService {
     private readonly passwordValidationService: PasswordValidationService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly mailService: MailService,
+    private readonly mappingsService: AccessMappingsService,
     @Inject(registrationConfig.KEY)
     private readonly registration: ConfigType<typeof registrationConfig>,
   ) {}
@@ -76,6 +78,7 @@ export class RegistrationService {
       userId: user.id,
       status: user.status,
     });
+    await this.mappingsService.assignDefaultGroups(user.id, 'REGISTRATION');
 
     let isVerificationEmailSent = false;
     if (user.status === UserStatus.PendingVerification) {
