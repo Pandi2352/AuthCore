@@ -1,10 +1,12 @@
 import { createHash } from 'node:crypto';
 
-import { Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 
+import { ErrorCode } from '@common/constants/error-codes.constants';
+import { AppException } from '@common/exceptions/app.exception';
 import { authConfig } from '@config/configuration';
 
 import { LoginAttempt } from '../schemas/login-attempt.schema';
@@ -136,6 +138,21 @@ export class LoginSecurityService {
           ? lockedUntil
           : null,
     };
+  }
+
+  /** 429 for a locked key, with Retry-After until the lock ends. */
+  lockedException(lockedUntil: Date): AppException {
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((lockedUntil.getTime() - Date.now()) / 1000),
+    );
+    return new AppException(
+      HttpStatus.TOO_MANY_REQUESTS,
+      ErrorCode.AuthTooManyFailedAttempts,
+      'Too many failed sign-in attempts. Try again later.',
+      [],
+      { 'Retry-After': String(retryAfterSeconds) },
+    );
   }
 
   async clear(key: string): Promise<void> {

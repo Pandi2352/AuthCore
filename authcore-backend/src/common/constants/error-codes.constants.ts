@@ -46,6 +46,13 @@ export enum ErrorCode {
   AuthAccessTokenInvalid = 'AUTH_ACCESS_TOKEN_INVALID',
   AuthAccessTokenExpired = 'AUTH_ACCESS_TOKEN_EXPIRED',
   AuthSessionRevoked = 'AUTH_SESSION_REVOKED',
+
+  // Auth: password reset / change
+  AuthInvalidResetCode = 'AUTH_INVALID_RESET_CODE',
+  AuthResetAttemptsExceeded = 'AUTH_RESET_ATTEMPTS_EXCEEDED',
+  AuthInvalidResetToken = 'AUTH_INVALID_RESET_TOKEN',
+  AuthInvalidCurrentPassword = 'AUTH_INVALID_CURRENT_PASSWORD',
+  AuthPasswordReused = 'AUTH_PASSWORD_REUSED',
 }
 
 /** Default code and safe client message for each HTTP status. */

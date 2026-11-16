@@ -3,7 +3,6 @@ import type { ConfigType } from '@nestjs/config';
 
 import { ErrorCode } from '@common/constants/error-codes.constants';
 import { AppException } from '@common/exceptions/app.exception';
-import { ValidationException } from '@common/exceptions/validation.exception';
 import { ApiFieldError } from '@common/interfaces/api-response.interface';
 import { registrationConfig } from '@config/configuration';
 import { EmailVerificationService } from '@modules/email-verification/email-verification.service';
@@ -20,11 +19,11 @@ import { UserStatus } from '@modules/users/enums/user-status.enum';
 import { UsersService } from '@modules/users/users.service';
 import { PasswordService } from '@shared/password.service';
 
-import { PASSWORD_PERSONAL_INFO_MIN_LENGTH } from './constants/auth.constants';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { VerifyEmailResponseDto } from './dto/verify-email-response.dto';
 import { RegistrationNextStep } from './enums/registration-next-step.enum';
+import { PasswordPolicyService } from './services/password-policy.service';
 
 /**
  * Registration flows, chosen by configuration:
@@ -42,6 +41,7 @@ export class RegistrationService {
   constructor(
     private readonly usersService: UsersService,
     private readonly passwordService: PasswordService,
+    private readonly passwordPolicyService: PasswordPolicyService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly mailService: MailService,
     @Inject(registrationConfig.KEY)
@@ -54,7 +54,7 @@ export class RegistrationService {
 
   /** Cheap checks first, the expensive password hash last. */
   async register(dto: RegisterDto): Promise<RegisterResponseDto> {
-    this.assertPasswordIsNotPersonal(dto);
+    this.passwordPolicyService.assertNotPersonal(dto.password, dto);
     await this.assertIdentityAvailable(dto.email, dto.username);
 
     const passwordHash = await this.passwordService.hash(dto.password);
@@ -311,29 +311,6 @@ export class RegistrationService {
       ErrorCode.AuthInvalidVerificationCode,
       'The verification code is invalid or has expired',
     );
-  }
-
-  /** Rejects passwords that contain the user's email name, username or names. */
-  private assertPasswordIsNotPersonal(dto: RegisterDto): void {
-    const password = dto.password.toLowerCase();
-    const personalParts = [
-      dto.email.split('@')[0],
-      dto.username,
-      dto.firstName,
-      dto.lastName,
-    ]
-      .filter((part): part is string => typeof part === 'string')
-      .map((part) => part.toLowerCase())
-      .filter((part) => part.length >= PASSWORD_PERSONAL_INFO_MIN_LENGTH);
-
-    if (personalParts.some((part) => password.includes(part))) {
-      throw new ValidationException([
-        {
-          field: 'password',
-          message: 'password must not contain your email, username or name',
-        },
-      ]);
-    }
   }
 
   /** 409 if the email or username is already registered. */

@@ -6,12 +6,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { authConfig } from '@config/configuration';
 import { EmailVerificationModule } from '@modules/email-verification/email-verification.module';
+import { PasswordResetModule } from '@modules/password-reset/password-reset.module';
 import { SessionsModule } from '@modules/sessions/sessions.module';
 import { UsersModule } from '@modules/users/users.module';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { PasswordController } from './password.controller';
 import { RegistrationService } from './registration.service';
 import {
   LoginAttempt,
@@ -20,6 +22,8 @@ import {
 import { AccessTokenService } from './services/access-token.service';
 import { AccountEligibilityService } from './services/account-eligibility.service';
 import { LoginSecurityService } from './services/login-security.service';
+import { PasswordManagementService } from './services/password-management.service';
+import { PasswordPolicyService } from './services/password-policy.service';
 import { RefreshTokenCookieService } from './services/refresh-token-cookie.service';
 import { SessionManagementService } from './services/session-management.service';
 import { SessionManagementController } from './session-management.controller';
@@ -32,6 +36,7 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
     UsersModule,
     EmailVerificationModule,
     SessionsModule,
+    PasswordResetModule,
     MongooseModule.forFeature([
       { name: LoginAttempt.name, schema: LoginAttemptSchema },
     ]),
@@ -55,7 +60,11 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
       }),
     }),
   ],
-  controllers: [AuthController, SessionManagementController],
+  controllers: [
+    AuthController,
+    PasswordController,
+    SessionManagementController,
+  ],
   providers: [
     RegistrationService,
     AuthService,
@@ -64,6 +73,8 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
     LoginSecurityService,
     RefreshTokenCookieService,
     SessionManagementService,
+    PasswordPolicyService,
+    PasswordManagementService,
     // Every route requires an access token unless marked @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],

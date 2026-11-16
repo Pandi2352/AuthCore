@@ -104,14 +104,36 @@ export const envValidationSchema = Joi.object({
       then: Joi.required(),
       otherwise: Joi.optional(),
     }),
-  // HMAC key for stored OTP / link-token hashes. Random, 32+ characters.
-  VERIFICATION_TOKEN_SECRET: Joi.string()
-    .min(32)
-    .when('REGISTRATION_EMAIL_VERIFICATION', {
-      is: 'none',
-      then: Joi.optional(),
-      otherwise: Joi.required(),
+  // HMAC key for stored OTP / link-token hashes (email verification and
+  // password reset). Random, 32+ characters.
+  VERIFICATION_TOKEN_SECRET: Joi.string().min(32).required(),
+
+  // Password reset (optional)
+  // otp = 6-digit code by email; link = reset link by email
+  PASSWORD_RESET_METHOD: Joi.string().valid('otp', 'link').default('otp'),
+  PASSWORD_RESET_TTL_MINUTES: Joi.number().integer().min(5).max(60).default(15),
+  PASSWORD_RESET_MAX_ATTEMPTS: Joi.number().integer().min(3).max(10).default(5),
+  PASSWORD_RESET_RESEND_COOLDOWN_SECONDS: Joi.number()
+    .integer()
+    .min(30)
+    .max(3600)
+    .default(60),
+  // Validity of the reset token returned after a successful code / link check.
+  PASSWORD_RESET_AUTH_TTL_MINUTES: Joi.number()
+    .integer()
+    .min(1)
+    .max(30)
+    .default(10),
+  // Frontend page for reset links (required when PASSWORD_RESET_METHOD=link).
+  PASSWORD_RESET_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .when('PASSWORD_RESET_METHOD', {
+      is: 'link',
+      then: Joi.required(),
+      otherwise: Joi.optional(),
     }),
+  // New passwords may not repeat the current or the last N passwords (0 = only the current).
+  PASSWORD_HISTORY_SIZE: Joi.number().integer().min(0).max(24).default(5),
 
   // Login (optional)
   // Which identifiers can sign in: "email", "username" or "email,username".

@@ -142,3 +142,75 @@ export function accountRejectedEmail(params: {
     }),
   };
 }
+
+export function passwordResetCodeEmail(params: {
+  appName: string;
+  firstName: string;
+  code: string;
+  ttlMinutes: number;
+}): MailContent {
+  const { appName, firstName, code, ttlMinutes } = params;
+  const intro = `Use this code to reset your ${appName} password. It expires in ${ttlMinutes} minutes.`;
+  const footer =
+    "If you didn't ask to reset your password, ignore this email: your password stays the same. Never share this code with anyone.";
+  return {
+    subject: `${code} is your ${appName} password reset code`,
+    text: `${greeting(firstName)}\n\n${intro}\n\n${code}\n\n${footer}\n`,
+    html: renderHtml({
+      appName,
+      heading: 'Reset your password',
+      paragraphs: [greeting(firstName), intro],
+      highlightHtml: `<p style="margin:8px 0 24px;font-size:32px;letter-spacing:8px;font-weight:bold">${escapeHtml(code)}</p>`,
+      footer,
+    }),
+  };
+}
+
+export function passwordResetLinkEmail(params: {
+  appName: string;
+  firstName: string;
+  link: string;
+  ttlMinutes: number;
+}): MailContent {
+  const { appName, firstName, link, ttlMinutes } = params;
+  const intro = `Reset your ${appName} password with the button below. The link expires in ${ttlMinutes} minutes and works once.`;
+  const footer =
+    "If you didn't ask to reset your password, ignore this email: your password stays the same.";
+  const safeLink = escapeHtml(link);
+  return {
+    subject: `Reset your ${appName} password`,
+    text: `${greeting(firstName)}\n\n${intro}\n\n${link}\n\n${footer}\n`,
+    html: renderHtml({
+      appName,
+      heading: 'Reset your password',
+      paragraphs: [greeting(firstName), intro],
+      highlightHtml:
+        `<p style="margin:8px 0 16px"><a href="${safeLink}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px">Reset password</a></p>` +
+        `<p style="margin:0 0 16px;font-size:13px;color:#6b7280;word-break:break-all">${safeLink}</p>`,
+      footer,
+    }),
+  };
+}
+
+export function passwordChangedEmail(params: {
+  appName: string;
+  firstName: string;
+  isReset: boolean;
+}): MailContent {
+  const { appName, firstName, isReset } = params;
+  const body = isReset
+    ? `Your ${appName} password was reset. For your security, you have been signed out on all devices.`
+    : `Your ${appName} password was changed. For your security, you have been signed out on your other devices.`;
+  const footer =
+    "If you didn't do this, reset your password right away and contact support.";
+  return {
+    subject: `Your ${appName} password was ${isReset ? 'reset' : 'changed'}`,
+    text: `${greeting(firstName)}\n\n${body}\n\n${footer}\n`,
+    html: renderHtml({
+      appName,
+      heading: isReset ? 'Password reset' : 'Password changed',
+      paragraphs: [greeting(firstName), body],
+      footer,
+    }),
+  };
+}

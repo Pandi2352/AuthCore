@@ -132,6 +132,20 @@ export const authConfig = registerAs('auth', () => ({
   },
 }));
 
+export const passwordResetConfig = registerAs('passwordReset', () => ({
+  method:
+    env('PASSWORD_RESET_METHOD') === 'link'
+      ? ('link' as const)
+      : ('otp' as const),
+  ttlMinutes: Number(env('PASSWORD_RESET_TTL_MINUTES')),
+  maxAttempts: Number(env('PASSWORD_RESET_MAX_ATTEMPTS')),
+  resendCooldownSeconds: Number(env('PASSWORD_RESET_RESEND_COOLDOWN_SECONDS')),
+  authorizationTtlMinutes: Number(env('PASSWORD_RESET_AUTH_TTL_MINUTES')),
+  resetUrl: env('PASSWORD_RESET_URL'),
+  historySize: Number(env('PASSWORD_HISTORY_SIZE')),
+  tokenSecret: env('VERIFICATION_TOKEN_SECRET'),
+}));
+
 export const mailConfig = registerAs('mail', () => ({
   transport:
     env('MAIL_TRANSPORT') === 'smtp' ? ('smtp' as const) : ('outbox' as const),
@@ -187,6 +201,7 @@ export const configModuleOptions: ConfigModuleOptions = {
     securityConfig,
     registrationConfig,
     authConfig,
+    passwordResetConfig,
     mailConfig,
     lifecycleConfig,
     performanceConfig,

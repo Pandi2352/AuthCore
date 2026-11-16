@@ -9,6 +9,10 @@ export const API_TAGS = {
     name: 'Auth',
     description: 'Registration and sign-in',
   },
+  Password: {
+    name: 'Password',
+    description: 'Forgot / reset password and change password',
+  },
   Sessions: {
     name: 'Sessions',
     description: 'My signed-in devices: list and sign out',

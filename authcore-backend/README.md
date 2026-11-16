@@ -165,7 +165,7 @@ Config groups: `appConfig`, `databaseConfig`, `securityConfig`, `lifecycleConfig
 | `EMAIL_VERIFICATION_MAX_ATTEMPTS` | `5` | 3–10 |
 | `EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS` | `60` | 30–3600 |
 | `EMAIL_VERIFICATION_URL` | — | Frontend page; **required** when `link` |
-| `VERIFICATION_TOKEN_SECRET` | — | 32+ random chars; **required** unless `none` |
+| `VERIFICATION_TOKEN_SECRET` | — | **Required**; 32+ random chars (HMAC key for verification and password-reset codes) |
 
 ### Login, tokens and sessions
 
@@ -187,6 +187,18 @@ Config groups: `appConfig`, `databaseConfig`, `securityConfig`, `lifecycleConfig
 | `REFRESH_COOKIE_SAMESITE` | `strict` | `strict`, `lax`, `none` (needs Secure) |
 | `REFRESH_COOKIE_SECURE` | `true` | Must be `true` in production |
 | `REFRESH_COOKIE_DOMAIN` | unset | Set to share the cookie across subdomains |
+
+### Password reset and change
+
+| Variable | Default | Rule |
+| --- | --- | --- |
+| `PASSWORD_RESET_METHOD` | `otp` | `otp` (6-digit code by email) or `link` |
+| `PASSWORD_RESET_URL` | — | Frontend page; **required** when `link` (`?token=` is appended) |
+| `PASSWORD_RESET_TTL_MINUTES` | `15` | 5–60; code / link validity |
+| `PASSWORD_RESET_MAX_ATTEMPTS` | `5` | 3–10 wrong codes, then a new code is needed |
+| `PASSWORD_RESET_RESEND_COOLDOWN_SECONDS` | `60` | 30–3600; minimum time between reset emails per account |
+| `PASSWORD_RESET_AUTH_TTL_MINUTES` | `10` | 1–30; validity of the `resetToken` from verify |
+| `PASSWORD_HISTORY_SIZE` | `5` | 0–24; the current and last N passwords can't be reused |
 
 ### Mail
 
@@ -772,6 +784,44 @@ Each session: `id`, `deviceName` (e.g. "Safari 18 on iOS 18.1"), `deviceType`, `
 - Not paginated: the list is bounded by `MAX_SESSIONS_PER_USER` (≤ 100).
 
 Admin-side session management (any user's sessions) comes with the Admin module.
+
+### Password: forgot, reset and change
+
+```
+forgot-password ──email──▶ code / link ──▶ verify-reset-token ──▶ resetToken ──▶ reset-password
+change-password (signed in)
+```
+
+| Endpoint | Auth | Body | `data` |
+| --- | --- | --- | --- |
+| `POST /auth/forgot-password` | public | `{ email }` | `null` (always the same response) |
+| `POST /auth/verify-reset-token` | public | OTP: `{ email, code }` · link: `{ token }` | `{ resetToken, expiresIn }` |
+| `POST /auth/reset-password` | public | `{ resetToken, newPassword, confirmPassword }` | `null` |
+| `PATCH /auth/change-password` | Bearer | `{ currentPassword, newPassword, confirmPassword }` | `{ revokedSessionCount, isCurrentSessionKept }` |
+
+**Forgot password**
+- Same 200 response, and same timing, whether or not the email is registered: the lookup and the email run in the background.
+- No email for suspended, banned, rejected or deactivated accounts, or within `PASSWORD_RESET_RESEND_COOLDOWN_SECONDS` of the previous one.
+- One pending reset per account: a new request replaces the previous code / link.
+
+**Codes and tokens**
+- 6-digit code (or 256-bit link token), valid `PASSWORD_RESET_TTL_MINUTES`. Only an HMAC is stored (`password_resets` collection, TTL index cleans up).
+- `PASSWORD_RESET_MAX_ATTEMPTS` wrong codes delete the reset (`AUTH_RESET_ATTEMPTS_EXCEEDED`).
+- A correct code is exchanged atomically for a single-use `resetToken` (`PASSWORD_RESET_AUTH_TTL_MINUTES`); the code stops working.
+
+**New password rules** (reset and change)
+- Strength: the same policy as registration (8–128 chars, lower, upper, number, symbol).
+- `confirmPassword` must equal `newPassword`.
+- Must not contain the email name, username, first or last name.
+- Must not be the current password or one of the last `PASSWORD_HISTORY_SIZE` (`AUTH_PASSWORD_REUSED`). Previous hashes are kept in `passwordHistory` (never returned).
+- A rejected password doesn't consume the `resetToken`, so the user can try again.
+
+**After a reset:** all sessions signed out, sign-in lockout cleared, "password was reset" email.
+
+**After a change:** this device stays signed in, all other devices signed out, any pending reset cancelled, "password was changed" email. A wrong `currentPassword` returns `AUTH_INVALID_CURRENT_PASSWORD` and counts toward the sign-in lockout (shared with login, so a stolen access token can't be used to guess it).
+
+**Rate limits per IP:** forgot 3/min, verify 10/min, reset 5/min, change 5/min.
+
 
 ## 12. Deployment
 

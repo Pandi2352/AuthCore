@@ -104,8 +104,8 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [ ] Email templates
 - [ ] Welcome email
 - [x] Email verification email
-- [ ] Password reset email
-- [ ] Password changed notification
+- [x] Password reset email *(code or link; `PASSWORD_RESET_METHOD`)*
+- [x] Password changed notification
 - [ ] New device login alert
 - [ ] Suspicious login alert
 - [ ] Account locked notification
@@ -130,20 +130,20 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 7. Password Management Module
 
-- [ ] Forgot password
-- [ ] Password reset token generation
-- [ ] Password reset verification
-- [ ] Reset password
-- [ ] Change password
-- [ ] Current password verification
-- [ ] Password history
-- [ ] Password reuse prevention
+- [x] Forgot password *(`POST /api/v1/auth/forgot-password`, no email enumeration)*
+- [x] Password reset token generation
+- [x] Password reset verification *(`POST /api/v1/auth/verify-reset-token`)*
+- [x] Reset password *(`POST /api/v1/auth/reset-password`)*
+- [x] Change password *(`PATCH /api/v1/auth/change-password`, other devices signed out)*
+- [x] Current password verification
+- [x] Password history *(`PASSWORD_HISTORY_SIZE`, default 5)*
+- [x] Password reuse prevention
 - [x] Password strength validation *(registration policy; reused for change/reset)*
 - [ ] Password policy management
 - [ ] Password expiration policy (optional)
 - [ ] Breached password checking (optional)
-- [ ] Revoke existing sessions after password reset
-- [ ] Notify user after password change
+- [x] Revoke existing sessions after password reset
+- [x] Notify user after password change
 
 ## 8. Role-Based Access Control (RBAC) Module
 
@@ -196,7 +196,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Login brute-force protection
 - [x] Account lockout *(temporary, per account and per unknown identifier)*
 - [x] OTP brute-force protection *(attempt limit + per-IP rate limit + HMAC-stored codes)*
-- [ ] Password reset abuse protection
+- [x] Password reset abuse protection *(IP throttles, per-account cooldown, max attempts)*
 - [ ] CAPTCHA integration
 - [ ] IP-based restrictions
 - [ ] Suspicious login detection
@@ -212,8 +212,8 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [ ] Successful login logs
 - [ ] Failed login logs
 - [ ] Logout logs
-- [ ] Password change logs
-- [ ] Password reset logs
+- [x] Password change logs
+- [x] Password reset logs
 - [ ] Email verification logs
 - [ ] MFA activity logs
 - [ ] Role modification logs

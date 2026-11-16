@@ -46,6 +46,10 @@ export class User extends BaseSchema {
   @Prop({ type: Date, default: null })
   emailVerifiedAt!: Date | null;
 
+  /** Hashes of previous passwords (most recent last), to prevent reuse. Never selected by default. */
+  @Prop({ type: [String], default: [], select: false })
+  passwordHistory!: string[];
+
   /** Set on registration and every password change; used to invalidate old tokens. */
   @Prop({ type: Date, required: true })
   passwordChangedAt!: Date;

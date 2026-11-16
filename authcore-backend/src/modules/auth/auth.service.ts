@@ -254,7 +254,7 @@ export class AuthService {
         lockedUntil,
         ipAddress: client.ipAddress,
       });
-      throw this.tooManyAttempts(lockedUntil);
+      throw this.loginSecurityService.lockedException(lockedUntil);
     }
   }
 
@@ -421,19 +421,5 @@ export class AuthService {
       await this.passwordService.hash(password),
     );
     this.logger.log({ message: 'Password hash upgraded', userId });
-  }
-
-  private tooManyAttempts(lockedUntil: Date): AppException {
-    const retryAfterSeconds = Math.max(
-      1,
-      Math.ceil((lockedUntil.getTime() - Date.now()) / 1000),
-    );
-    return new AppException(
-      HttpStatus.TOO_MANY_REQUESTS,
-      ErrorCode.AuthTooManyFailedAttempts,
-      'Too many failed sign-in attempts. Try again later.',
-      [],
-      { 'Retry-After': String(retryAfterSeconds) },
-    );
   }
 }

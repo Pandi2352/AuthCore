@@ -204,7 +204,7 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 🛡️ Auth guard (secure by default) + GET /auth/me | ✅ Done |
 | 🚪 Logout + logout from all devices | ✅ Done |
 | 📱 Session management: list / view / revoke my devices | ✅ Done |
-| 🔐 Forgot / reset / change password (next) | ⏳ Not started |
+| 🔐 Forgot / reset / change password | ✅ Done |
 
 ---
 

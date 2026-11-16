@@ -75,6 +75,55 @@ export class UsersService {
       : null;
   }
 
+  /**
+   * Current and previous password hashes, for password checks only (never
+   * returned by an API or logged). null if the user doesn't exist.
+   */
+  async findPasswordHashes(id: string): Promise<{
+    user: UserResponseDto;
+    passwordHash: string;
+    history: string[];
+  } | null> {
+    const user = await this.userModel
+      .findOne({ _id: id, deletedAt: null })
+      .select('+passwordHash +passwordHistory')
+      .lean();
+    return user
+      ? {
+          user: toUserResponse(user),
+          passwordHash: user.passwordHash,
+          history: user.passwordHistory,
+        }
+      : null;
+  }
+
+  /**
+   * Sets a new password hash. The previous hash moves into the history (the
+   * most recent `historySize` are kept). Conditional on `expectedHash`: if
+   * the password changed in the meantime, nothing happens and false is
+   * returned.
+   */
+  async changePasswordHash(
+    id: string,
+    expectedHash: string,
+    newHash: string,
+    historySize: number,
+  ): Promise<boolean> {
+    const result = await this.userModel.updateOne(
+      { _id: id, passwordHash: expectedHash, deletedAt: null },
+      {
+        $set: { passwordHash: newHash, passwordChangedAt: new Date() },
+        $push: {
+          passwordHistory: {
+            $each: [expectedHash],
+            $slice: -Math.max(historySize, 1),
+          },
+        },
+      },
+    );
+    return result.modifiedCount > 0;
+  }
+
   async recordLogin(id: string): Promise<void> {
     await this.userModel.updateOne(
       { _id: id },
