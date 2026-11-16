@@ -3,12 +3,13 @@ import {
   access,
   constants,
   mkdir,
+  readdir,
   rename,
   rm,
   stat,
   writeFile,
 } from 'node:fs/promises';
-import { dirname, isAbsolute, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
@@ -16,10 +17,18 @@ import { ConfigService } from '@nestjs/config';
 
 import { generateUuid } from '@common/utils/uuid.util';
 
-import type { StorageDriver } from '../interfaces/storage-driver.interface';
+import type {
+  StorageDriver,
+  StoredObject,
+} from '../interfaces/storage-driver.interface';
 
-/** Keys the API generates: purpose/yyyy/mm/<uuid>.<ext> (no "..", no absolute paths). */
-const SAFE_KEY = /^[a-z0-9-]+(\/[a-z0-9-]+)*\/[a-z0-9-]+\.[a-z0-9]+$/;
+/**
+ * Keys the API generates: purpose/yyyy/mm/<uuid>.<ext> (no "..", no absolute
+ * paths), plus temp leftovers of interrupted writes: <key>.<uuid>.tmp.
+ */
+const SAFE_KEY =
+  /^[a-z0-9-]+(\/[a-z0-9-]+)*\/[a-z0-9-]+\.[a-z0-9]+(\.[0-9a-f-]{36}\.tmp)?$/;
+const TEMP_SUFFIX = /\.[0-9a-f-]{36}\.tmp$/;
 
 /**
  * Files in a local folder (STORAGE_LOCAL_DIR, default ./uploads inside the
@@ -63,6 +72,26 @@ export class LocalStorageService implements StorageDriver, OnModuleInit {
 
   async delete(key: string): Promise<void> {
     await rm(this.pathOf(key), { force: true });
+  }
+
+  async *list(): AsyncIterable<StoredObject> {
+    const entries = await readdir(this.root, {
+      recursive: true,
+      withFileTypes: true,
+    });
+    for (const entry of entries) {
+      if (!entry.isFile()) {
+        continue;
+      }
+      const absolute = join(entry.parentPath, entry.name);
+      const key = relative(this.root, absolute).split(sep).join('/');
+      if (!SAFE_KEY.test(key)) {
+        // Not ours (e.g. a README someone put there): never touched.
+        continue;
+      }
+      const info = await stat(absolute);
+      yield { key, modifiedAt: info.mtime, isTemp: TEMP_SUFFIX.test(key) };
+    }
   }
 
   async isHealthy(): Promise<boolean> {

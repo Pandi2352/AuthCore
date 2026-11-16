@@ -119,6 +119,21 @@ export class UserActivityService {
     );
   }
 
+  /** An entry of this event for the user since the given time exists. */
+  async hasSince(
+    userId: string,
+    event: ActivityEvent,
+    since: Date,
+  ): Promise<boolean> {
+    return (
+      (await this.activityModel.exists({
+        userId,
+        event,
+        createdAt: { $gte: since },
+      })) !== null
+    );
+  }
+
   /** Every entry still kept for the user, oldest first (data export). */
   async exportForUser(
     userId: string,

@@ -13,16 +13,25 @@ import { LoginAttempt } from '../schemas/login-attempt.schema';
 
 const MINUTE_MS = 60_000;
 
+export type LockScope = 'ip' | 'account';
+
 export interface FailedAttemptResult {
   /** Set when this failure triggered a lock. */
   lockedUntil: Date | null;
+  /** ip: only this IP is locked out of the account; account: every IP is. */
+  scope: LockScope | null;
 }
 
 /**
- * Brute-force / credential-stuffing protection (per account, on top of the
- * per-IP rate limit):
- * - LOGIN_MAX_FAILED_ATTEMPTS failures within LOGIN_FAILED_ATTEMPTS_WINDOW_MINUTES
- *   lock sign-in for LOGIN_LOCKOUT_MINUTES. The lock is always temporary.
+ * Brute-force / credential-stuffing protection (on top of the per-IP rate limit):
+ * - Sign-in failures count per account + IP: LOGIN_MAX_FAILED_ATTEMPTS within
+ *   LOGIN_FAILED_ATTEMPTS_WINDOW_MINUTES lock **that IP** out of the account
+ *   for LOGIN_LOCKOUT_MINUTES. Someone who only knows a user's email can no
+ *   longer lock the user out: the user's own devices still sign in.
+ * - They also count per account across all IPs: LOGIN_MAX_FAILED_ATTEMPTS_PER_ACCOUNT
+ *   locks the whole account (distributed attacks).
+ * - Callers without an IP (current-password checks) use the account counter
+ *   with LOGIN_MAX_FAILED_ATTEMPTS. Locks are always temporary.
  * - Unknown identifiers are counted and locked the same way, so a lock reveals
  *   nothing about whether an account exists.
  * - A successful sign-in clears the counter.
@@ -45,16 +54,84 @@ export class LoginSecurityService {
     return `identifier:${hash}`;
   }
 
-  /** The lock end time if sign-in is currently locked for this key. */
-  async getActiveLock(key: string): Promise<Date | null> {
+  /** Counter key of one IP for an account key (IP stored hashed). */
+  ipKeyFor(key: string, ipAddress: string): string {
+    const hash = createHash('sha256')
+      .update(ipAddress)
+      .digest('hex')
+      .slice(0, 32);
+    return `${key}|ip:${hash}`;
+  }
+
+  /**
+   * The lock end time if sign-in is locked for this key (and, with an IP, for
+   * that IP on this key). The later one wins.
+   */
+  async getActiveLock(key: string, ipAddress?: string): Promise<Date | null> {
+    const keys = ipAddress ? [key, this.ipKeyFor(key, ipAddress)] : [key];
     const attempt = await this.attemptModel
-      .findOne({ key, lockedUntil: { $gt: new Date() } }, { lockedUntil: 1 })
+      .findOne(
+        { key: { $in: keys }, lockedUntil: { $gt: new Date() } },
+        { lockedUntil: 1 },
+      )
+      .sort({ lockedUntil: -1 })
       .lean();
     return attempt?.lockedUntil ?? null;
   }
 
-  /** Counts a failure; locks when the limit is reached. Atomic per key. */
-  async recordFailure(key: string): Promise<FailedAttemptResult> {
+  /**
+   * Admin view: the latest active lock on the account or any of its IPs, and
+   * how many IPs are currently locked out of it.
+   */
+  async lockSummary(
+    key: string,
+  ): Promise<{ lockedUntil: Date | null; lockedIpCount: number }> {
+    const locks = await this.attemptModel
+      .find(
+        {
+          key: { $regex: `^${escapeRegExp(key)}(\\|ip:.*)?$` },
+          lockedUntil: { $gt: new Date() },
+        },
+        { key: 1, lockedUntil: 1 },
+      )
+      .sort({ lockedUntil: -1 })
+      .lean();
+    return {
+      lockedUntil: locks[0]?.lockedUntil ?? null,
+      lockedIpCount: locks.filter((l) => l.key.includes('|ip:')).length,
+    };
+  }
+
+  /**
+   * Counts a failure. With an IP: on the account + IP counter (limit
+   * LOGIN_MAX_FAILED_ATTEMPTS) and the account counter (limit
+   * LOGIN_MAX_FAILED_ATTEMPTS_PER_ACCOUNT). Without: the account counter with
+   * LOGIN_MAX_FAILED_ATTEMPTS.
+   */
+  async recordFailure(
+    key: string,
+    ipAddress?: string,
+  ): Promise<FailedAttemptResult> {
+    if (!ipAddress) {
+      const lockedUntil = await this.count(key, this.auth.maxFailedAttempts);
+      return { lockedUntil, scope: lockedUntil ? 'account' : null };
+    }
+    const ipLock = await this.count(
+      this.ipKeyFor(key, ipAddress),
+      this.auth.maxFailedAttempts,
+    );
+    const accountLock = await this.count(
+      key,
+      this.auth.maxFailedAttemptsPerAccount,
+    );
+    if (accountLock) {
+      return { lockedUntil: accountLock, scope: 'account' };
+    }
+    return { lockedUntil: ipLock, scope: ipLock ? 'ip' : null };
+  }
+
+  /** Atomic per key; returns the lock end when this failure locked the key. */
+  private async count(key: string, maxFailures: number): Promise<Date | null> {
     const now = new Date();
     const windowMs = this.auth.failedAttemptsWindowMinutes * MINUTE_MS;
     const lockUntil = new Date(
@@ -101,7 +178,7 @@ export class LoginSecurityService {
           {
             $set: {
               isLockedNow: {
-                $gte: ['$failedCount', this.auth.maxFailedAttempts],
+                $gte: ['$failedCount', maxFailures],
               },
             },
           },
@@ -132,12 +209,9 @@ export class LoginSecurityService {
       .lean();
 
     const lockedUntil = updated?.lockedUntil ?? null;
-    return {
-      lockedUntil:
-        lockedUntil !== null && lockedUntil.getTime() === lockUntil.getTime()
-          ? lockedUntil
-          : null,
-    };
+    return lockedUntil !== null && lockedUntil.getTime() === lockUntil.getTime()
+      ? lockedUntil
+      : null;
   }
 
   /** 429 for a locked key, with Retry-After until the lock ends. */
@@ -155,7 +229,19 @@ export class LoginSecurityService {
     );
   }
 
+  /** Clears the account counter and every IP counter / lock of it (unlock, password reset). */
   async clear(key: string): Promise<void> {
-    await this.attemptModel.deleteOne({ key });
+    await this.attemptModel.deleteMany({
+      key: { $regex: `^${escapeRegExp(key)}(\\|ip:.*)?$` },
+    });
   }
+
+  /** After a successful sign-in: that IP's counter only (the account-wide one keeps counting). */
+  async clearForIp(key: string, ipAddress: string): Promise<void> {
+    await this.attemptModel.deleteOne({ key: this.ipKeyFor(key, ipAddress) });
+  }
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

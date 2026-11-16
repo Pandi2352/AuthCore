@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Header,
+  HttpCode,
   HttpStatus,
   Param,
   Post,
@@ -33,20 +34,24 @@ import {
 } from '@common/decorators/api-response.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
+import { RequirePermissions } from '@common/decorators/require-permissions.decorator';
 import { ResponseMessage } from '@common/decorators/response-message.decorator';
 import type { Paginated } from '@common/interfaces/api-response.interface';
 import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import { ParseIdPipe } from '@common/pipes/parse-id.pipe';
+import { FILE_PERMISSIONS } from '@modules/access-control/constants/access-control.constants';
 
 import { PUBLIC_CACHE_SECONDS } from './constants/file.constants';
 import {
   FileDeletedDto,
   FileListQueryDto,
   FileResponseDto,
+  OrphanCleanupResultDto,
   UPLOAD_BODY_SCHEMA,
   UploadFileDto,
 } from './dto/file.dto';
 import { FileUploadInterceptor } from './interceptors/file-upload.interceptor';
+import { FileOrphanCleanupService } from './services/file-orphan-cleanup.service';
 import {
   type FileContent,
   FilesService,
@@ -61,7 +66,10 @@ const UPLOAD_THROTTLE = { limit: 20, ttl: 60_000 } as const;
 @ApiStandardErrors()
 @Controller('files')
 export class FilesController {
-  constructor(private readonly filesService: FilesService) {}
+  constructor(
+    private readonly filesService: FilesService,
+    private readonly orphanCleanupService: FileOrphanCleanupService,
+  ) {}
 
   @Post()
   @ApiBearerAuth('access-token')
@@ -97,6 +105,24 @@ export class FilesController {
       auth.userId,
       auth.userId,
     );
+  }
+
+  @Post('maintenance/orphan-cleanup')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @RequirePermissions(FILE_PERMISSIONS.Delete)
+  @ResponseMessage('Orphan cleanup finished')
+  @ApiOperation({
+    summary: 'Run the orphan file cleanup now',
+    description:
+      'Needs FILE_DELETE. Deletes stored bytes no file record points to and stale temp files (older than ' +
+      'FILES_ORPHAN_GRACE_MINUTES); reports records whose bytes are missing. Also runs every ' +
+      'FILES_ORPHAN_CLEANUP_INTERVAL_HOURS.',
+  })
+  @ApiWrappedResponse(OrphanCleanupResultDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  cleanupOrphans(): Promise<OrphanCleanupResultDto> {
+    return this.orphanCleanupService.run();
   }
 
   @Get()

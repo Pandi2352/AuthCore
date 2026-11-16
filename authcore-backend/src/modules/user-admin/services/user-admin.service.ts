@@ -163,21 +163,20 @@ export class UserAdminService {
 
   async get(id: string): Promise<AdminUserDetailsDto> {
     const user = await this.findOrThrow(id, true);
-    const [sessions, links, keys, lockedUntil, lastActivity] =
-      await Promise.all([
-        this.sessionsService.listActiveForUser(id),
-        this.mappingsService.list({
-          type: MappingType.GroupUser,
-          userId: id,
-          page: 1,
-          limit: 100,
-        }),
-        this.resolver.resolve(id),
-        this.loginSecurityService.getActiveLock(
-          this.loginSecurityService.keyFor(id, ''),
-        ),
-        this.activityService.lastActivityAt(id),
-      ]);
+    const [sessions, links, keys, lock, lastActivity] = await Promise.all([
+      this.sessionsService.listActiveForUser(id),
+      this.mappingsService.list({
+        type: MappingType.GroupUser,
+        userId: id,
+        page: 1,
+        limit: 100,
+      }),
+      this.resolver.resolve(id),
+      this.loginSecurityService.lockSummary(
+        this.loginSecurityService.keyFor(id, ''),
+      ),
+      this.activityService.lastActivityAt(id),
+    ]);
     const values = await this.attributeValuesService.filterForOutput(
       await this.usersService.getAttributes(id),
       { isAdmin: true, include: [] },
@@ -191,8 +190,9 @@ export class UserAdminService {
       activeSessionCount: sessions.length,
       groups: links.items.flatMap((m) => (m.group ? [m.group] : [])),
       permissionKeys: keys.permissions.map((p) => p.permissionKey),
-      isLocked: lockedUntil !== null,
-      lockedUntil,
+      isLocked: lock.lockedUntil !== null,
+      lockedUntil: lock.lockedUntil,
+      lockedIpCount: lock.lockedIpCount,
       lastActivityAt,
       attributes: values.attributes,
       missingRequired: values.missingRequired,

@@ -13,6 +13,7 @@ import { IS_PUBLIC_KEY } from '@common/decorators/public.decorator';
 import { PERMISSIONS_KEY } from '@common/decorators/require-permissions.decorator';
 import { ROLES_KEY } from '@common/decorators/roles.decorator';
 import { AppException } from '@common/exceptions/app.exception';
+import { PROJECT } from '@config/project';
 import { AccessResolverService } from '@modules/access-control/services/access-resolver.service';
 import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import { SessionsService } from '@modules/sessions/sessions.service';
@@ -32,7 +33,7 @@ function unauthorized(
   error: string,
 ): AppException {
   return new AppException(HttpStatus.UNAUTHORIZED, code, message, [], {
-    'WWW-Authenticate': `Bearer realm="authcore", error="${error}"`,
+    'WWW-Authenticate': `Bearer realm="${PROJECT.slug}", error="${error}"`,
   });
 }
 

@@ -10,6 +10,7 @@ export const HI_MESSAGES: MailMessages = {
     message: (message) => `संदेश: ${message}`,
     notYou: 'अगर यह आपने नहीं किया, तो तुरंत सहायता टीम से संपर्क करें।',
     expiresIn: (minutes) => `यह ${String(minutes)} मिनट में समाप्त हो जाएगा।`,
+    needHelp: (email) => `मदद चाहिए? ${email} पर लिखें।`,
     contactSupport: 'कोई सवाल? सहायता टीम से संपर्क करें।',
   },
   verificationCode: {
@@ -175,6 +176,8 @@ export const HI_MESSAGES: MailMessages = {
     heading: 'खाता अस्थायी रूप से लॉक',
     body: (attempts, ip) =>
       `${String(attempts)} असफल प्रयासों के बाद हमने आपके खाते का साइन-इन लॉक कर दिया है (आखिरी प्रयास IP पता ${ip} से)।`,
+    bodyIp: (attempts, ip) =>
+      `${String(attempts)} असफल प्रयासों के बाद हमने IP पता ${ip} से आपके खाते में साइन-इन रोक दिया है। आपके अपने डिवाइस से साइन इन करना जारी रहेगा।`,
     retry: (until) => `आप ${until} के बाद फिर से कोशिश कर सकते हैं।`,
     forgot:
       'अगर आप पासवर्ड भूल गए हैं, तो नया पासवर्ड सेट करने के लिए "पासवर्ड भूल गए" का उपयोग करें।',

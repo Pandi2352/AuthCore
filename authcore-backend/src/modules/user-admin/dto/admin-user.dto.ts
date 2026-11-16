@@ -350,10 +350,17 @@ export class AdminUserDetailsDto extends AdminUserResponseDto {
   permissionKeys!: string[];
   @ApiProperty({
     example: false,
-    description: 'Sign-in locked after failed attempts',
+    description:
+      'Sign-in locked after failed attempts: the whole account, or one or more IP addresses (lockedIpCount)',
   })
   isLocked!: boolean;
   @ApiProperty({ type: Date, nullable: true }) lockedUntil!: Date | null;
+  @ApiProperty({
+    example: 1,
+    description:
+      'IP addresses currently locked out of this account (others can still sign in)',
+  })
+  lockedIpCount!: number;
   @ApiProperty({
     type: Object,
     description:

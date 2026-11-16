@@ -212,6 +212,9 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 📁 Common file uploads (local folder storage) + profile pictures | ✅ Done |
 | 👑 First administrator from `.env` (bootstrap admin) | ✅ Done |
 | 📈 Metrics, JWT key rotation, data export, localized emails (en / ta / hi), backup guide | ✅ Done |
+| 🧪 End-to-end tests in the repo (16 suites) + GitHub Actions CI | ✅ Done |
+| 🏷️ `project.config.json` + `npm run project:init` for new projects | ✅ Done |
+| 🛡️ Per-IP lockouts, orphan file cleanup, invite language | ✅ Done |
 | 🔔 New-device sign-in alerts, account-locked email, default groups, admin activity search / login history | ✅ Done |
 | 🧩 User schema (custom user variables), personal details, recent activity, admin set-password, password generator | ✅ Done |
 

@@ -26,6 +26,7 @@ import {
   securityConfig,
   swaggerConfig,
 } from '@config/configuration';
+import { PROJECT } from '@config/project';
 
 import { AppModule } from './app.module';
 
@@ -132,7 +133,7 @@ async function bootstrap() {
 
   await app.listen(port);
   logger.log(
-    `AuthCore API listening on port ${port} (${nodeEnv}), prefix /${apiPrefix}/v${DEFAULT_API_VERSION}, ` +
+    `${PROJECT.name} API listening on port ${port} (${nodeEnv}), prefix /${apiPrefix}/v${DEFAULT_API_VERSION}, ` +
       `log level ${logging.level}, format ${logging.format}` +
       (logging.isFileEnabled
         ? `, files ${logFilePattern(logging.directory)}`

@@ -28,7 +28,8 @@ const USER_DATA: readonly {
   },
   {
     collection: 'login_attempts',
-    filter: (userId) => ({ key: `user:${userId}` }),
+    // The account counter and its per-IP counters (user:<id>|ip:<hash>).
+    filter: (userId) => ({ key: { $regex: `^user:${userId}(\\|ip:.*)?$` } }),
   },
 ];
 

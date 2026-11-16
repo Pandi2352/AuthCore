@@ -107,6 +107,10 @@ export const authConfig = registerAs('auth', () => ({
         value === 'email' || value === 'username',
     ),
   maxFailedAttempts: Number(env('LOGIN_MAX_FAILED_ATTEMPTS')),
+  /** Failures from all IPs together before the whole account locks. */
+  maxFailedAttemptsPerAccount: Number(
+    env('LOGIN_MAX_FAILED_ATTEMPTS_PER_ACCOUNT'),
+  ),
   failedAttemptsWindowMinutes: Number(
     env('LOGIN_FAILED_ATTEMPTS_WINDOW_MINUTES'),
   ),
@@ -204,6 +208,11 @@ export const storageConfig = registerAs('storage', () => ({
   maxFileSizeBytes: Number(env('UPLOAD_MAX_FILE_SIZE_MB')) * 1024 * 1024,
   avatarMaxSizeBytes: Number(env('UPLOAD_AVATAR_MAX_SIZE_MB')) * 1024 * 1024,
   maxFilesPerUser: Number(env('UPLOAD_MAX_FILES_PER_USER')),
+  /** 0 = off. */
+  orphanCleanupIntervalHours: Number(
+    env('FILES_ORPHAN_CLEANUP_INTERVAL_HOURS'),
+  ),
+  orphanGraceMinutes: Number(env('FILES_ORPHAN_GRACE_MINUTES')),
   image: {
     avatarSize: Number(env('IMAGE_AVATAR_SIZE')),
     maxDimension: Number(env('IMAGE_MAX_DIMENSION')),
@@ -270,6 +279,8 @@ export const configModuleOptions: ConfigModuleOptions = {
   cache: true,
   // First file wins; real environment variables always override files.
   envFilePath: [`.env.${nodeEnv}`, '.env'],
+  // IGNORE_ENV_FILE=true: environment variables only (tests, containers with injected config).
+  ignoreEnvFile: process.env.IGNORE_ENV_FILE === 'true',
   load: [
     appConfig,
     databaseConfig,

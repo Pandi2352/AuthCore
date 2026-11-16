@@ -76,6 +76,20 @@ export class FileResponseDto {
   @ApiProperty() createdAt!: Date;
 }
 
+export class OrphanCleanupResultDto {
+  @ApiProperty({ description: 'Another instance is running it right now' })
+  isLocked!: boolean;
+  @ApiProperty({ description: 'Files looked at' }) scannedCount!: number;
+  @ApiProperty({ description: 'Bytes without a record, deleted' })
+  orphanCount!: number;
+  @ApiProperty({ description: 'Leftovers of interrupted writes, deleted' })
+  tempCount!: number;
+  @ApiProperty({
+    description: 'Records whose bytes are missing (reported only)',
+  })
+  missingBytesCount!: number;
+}
+
 export class FileDeletedDto {
   @ApiProperty() id!: string;
 }

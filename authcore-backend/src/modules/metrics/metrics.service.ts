@@ -12,8 +12,9 @@ import {
 import { ErrorCode } from '@common/constants/error-codes.constants';
 import { AppException } from '@common/exceptions/app.exception';
 import { appConfig, metricsConfig } from '@config/configuration';
+import { PROJECT_KEY } from '@config/project';
 
-const PREFIX = 'authcore_';
+const PREFIX = `${PROJECT_KEY}_`;
 
 /**
  * Prometheus metrics: Node.js process metrics (CPU, memory, event-loop lag,

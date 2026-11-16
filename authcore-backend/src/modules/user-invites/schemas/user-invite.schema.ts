@@ -27,6 +27,10 @@ export class UserInvite extends BaseSchema {
   @Prop({ type: String, default: null, maxlength: 500 })
   message!: string | null;
 
+  /** Invitation email language; becomes the new user's preferences.language. */
+  @Prop({ type: String, default: null, maxlength: 10 })
+  language!: string | null;
+
   @Prop({ type: String, required: true, index: true })
   tokenHash!: string;
 

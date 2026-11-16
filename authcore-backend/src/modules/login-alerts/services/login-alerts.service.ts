@@ -107,15 +107,29 @@ export class LoginAlertsService {
     }
   }
 
-  /** The account was just locked: record it and email the user (security notice, always sent). */
+  /**
+   * A lock was just set: record it and email the user (security notice). At
+   * most one email per lockout period, so attacks from many IPs can't flood
+   * the inbox.
+   */
   async onAccountLocked(
     userId: string,
     lockedUntil: Date,
     client: ClientInfo,
+    scope: 'ip' | 'account',
   ): Promise<void> {
     try {
       const attempts = this.configService.getOrThrow<number>(
-        'auth.maxFailedAttempts',
+        scope === 'ip'
+          ? 'auth.maxFailedAttempts'
+          : 'auth.maxFailedAttemptsPerAccount',
+      );
+      const lockoutMs =
+        this.configService.getOrThrow<number>('auth.lockoutMinutes') * 60_000;
+      const isAlreadyNotified = await this.activityService.hasSince(
+        userId,
+        ActivityEvent.AccountLocked,
+        new Date(Date.now() - lockoutMs),
       );
       await this.activityService.record({
         userId,
@@ -123,11 +137,12 @@ export class LoginAlertsService {
         client,
         verificationType: VerificationType.Password,
         isSuccess: false,
-        details: { lockedUntil: lockedUntil.toISOString(), attempts },
+        details: { lockedUntil: lockedUntil.toISOString(), attempts, scope },
       });
       const user = await this.usersService.findById(userId);
       if (
         !user ||
+        isAlreadyNotified ||
         !this.configService.getOrThrow<boolean>(
           'account.isAccountLockedEmailEnabled',
         )
@@ -141,6 +156,7 @@ export class LoginAlertsService {
           lockedUntil,
           ...mailLocaleOf(user),
           attempts,
+          scope,
           ipAddress: client.ipAddress,
         }),
       );

@@ -101,6 +101,10 @@ Suggested alerts:
 
 Labels never contain user ids, emails or IPs. For a single user's history use `GET /api/v1/admin/activity`.
 
+### Orphan files
+
+Bytes without a record (a crash between writing a file and saving its record, a failed delete) and stale temp files are removed every `FILES_ORPHAN_CLEANUP_INTERVAL_HOURS` (one instance at a time). Run it on demand with `POST /api/v1/files/maintenance/orphan-cleanup` (FILE_DELETE). The result also counts records whose bytes are missing (`missingBytesCount`): after restoring a database from a newer backup than the files, restore the files too.
+
 ## 5. Rotating secrets
 
 ### `JWT_ACCESS_SECRET` (access tokens): no one is signed out

@@ -7,6 +7,7 @@ import {
 
 import { DEFAULT_API_VERSION } from '@common/constants/api.constants';
 import { API_TAGS } from '@common/constants/api-tags.constants';
+import { PROJECT } from '@config/project';
 
 export interface SwaggerSetupOptions {
   path: string;
@@ -14,14 +15,14 @@ export interface SwaggerSetupOptions {
 }
 
 export const SWAGGER_INFO = {
-  title: 'AuthCore API',
+  title: `${PROJECT.name} API`,
   description:
-    'AuthCore: reusable authentication and authorization service.\n\n' +
+    `${PROJECT.name}${PROJECT.description ? `: ${PROJECT.description}` : ''}.\n\n` +
     'All responses use the standard envelope. Success: `success`, `message`, ' +
     '`data`, `meta` (lists only), `timestamp`, `path`. Error: `success`, ' +
     '`message`, `code`, `errors`, `statusCode`, `timestamp`, `path`. ' +
     'All dates are ISO 8601 UTC.',
-  siteTitle: 'AuthCore API Docs',
+  siteTitle: `${PROJECT.name} API Docs`,
 };
 
 /**

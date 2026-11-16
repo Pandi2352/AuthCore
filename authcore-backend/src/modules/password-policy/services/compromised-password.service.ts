@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 
 import { Injectable, Logger } from '@nestjs/common';
 
+import { PROJECT } from '@config/project';
+
 const RANGE_API = 'https://api.pwnedpasswords.com/range/';
 const TIMEOUT_MS = 3000;
 
@@ -30,7 +32,7 @@ export class CompromisedPasswordService {
       const response = await fetch(RANGE_API + prefix, {
         headers: {
           'Add-Padding': 'true',
-          'User-Agent': 'authcore-password-policy',
+          'User-Agent': `${PROJECT.slug}-password-policy`,
         },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });

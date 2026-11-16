@@ -5,6 +5,7 @@
 
 !src/
 !package.json
+!project.config.json
 !package-lock.json
 !tsconfig.json
 !tsconfig.build.json

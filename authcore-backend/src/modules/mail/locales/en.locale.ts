@@ -14,6 +14,7 @@ export interface MailMessages {
     notYou: string;
     expiresIn: (minutes: number) => string;
     contactSupport: string;
+    needHelp: (email: string) => string;
   };
   verificationCode: {
     subject: (code: string, app: string) => string;
@@ -144,6 +145,8 @@ export interface MailMessages {
     subject: (app: string) => string;
     heading: string;
     body: (attempts: number, ip: string) => string;
+    /** Only one IP address was locked out (the user's own devices still work). */
+    bodyIp: (attempts: number, ip: string) => string;
     retry: (until: string) => string;
     forgot: string;
     footer: string;
@@ -160,6 +163,7 @@ export const EN_MESSAGES: MailMessages = {
     notYou: "If you didn't do this, contact support right away.",
     expiresIn: (minutes) => `It expires in ${String(minutes)} minutes.`,
     contactSupport: 'Questions? Contact support.',
+    needHelp: (email) => `Need help? Write to ${email}.`,
   },
   verificationCode: {
     subject: (code, app) => `${code} is your ${app} verification code`,
@@ -327,6 +331,8 @@ export const EN_MESSAGES: MailMessages = {
     heading: 'Account temporarily locked',
     body: (attempts, ip) =>
       `We locked sign-in to your account after ${String(attempts)} failed attempts (last one from IP address ${ip}).`,
+    bodyIp: (attempts, ip) =>
+      `We blocked sign-in to your account from IP address ${ip} after ${String(attempts)} failed attempts. Signing in from your own devices still works.`,
     retry: (until) => `You can try again after ${until}.`,
     forgot:
       'If you forgot your password, use "Forgot password" to set a new one.',

@@ -1,4 +1,5 @@
 import { escapeHtml } from '@common/utils/html.util';
+import { PROJECT } from '@config/project';
 
 import { MailContent } from '../interfaces/mail-message.interface';
 import type { MailMessages } from '../locales/en.locale';
@@ -25,6 +26,16 @@ interface Layout {
   /** Already-escaped HTML block inserted after the paragraphs. */
   highlightHtml?: string;
   footer?: string;
+  /** "Need help? …" line (project support email), localized. */
+  helpLine?: string;
+}
+
+const BRAND = PROJECT.branding;
+
+function brandHeader(appName: string): string {
+  return BRAND.logoUrl
+    ? `<p style="margin:0 0 24px"><img src="${escapeHtml(BRAND.logoUrl)}" alt="${escapeHtml(appName)}" style="max-height:40px;border:0"></p>`
+    : `<p style="margin:0 0 24px;font-weight:bold;color:${BRAND.primaryColor}">${escapeHtml(appName)}</p>`;
 }
 
 function renderHtml(layout: Layout): string {
@@ -38,11 +49,14 @@ function renderHtml(layout: Layout): string {
     `<!doctype html><html lang="${escapeHtml(layout.language)}"><head><meta charset="utf-8"></head>` +
     '<body style="margin:0;padding:24px;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827">' +
     '<div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:8px;padding:32px">' +
-    `<p style="margin:0 0 24px;font-weight:bold;color:#4f46e5">${escapeHtml(layout.appName)}</p>` +
+    brandHeader(layout.appName) +
     `<h1 style="margin:0 0 16px;font-size:20px">${escapeHtml(layout.heading)}</h1>` +
     paragraphs +
     (layout.highlightHtml ?? '') +
     footer +
+    (layout.helpLine
+      ? `<p style="margin:8px 0 0;color:#6b7280;font-size:13px">${escapeHtml(layout.helpLine)}</p>`
+      : '') +
     '</div></body></html>'
   );
 }
@@ -54,7 +68,7 @@ function codeBlock(code: string): string {
 function buttonBlock(link: string, label: string): string {
   const safeLink = escapeHtml(link);
   return (
-    `<p style="margin:8px 0 16px"><a href="${safeLink}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px">${escapeHtml(label)}</a></p>` +
+    `<p style="margin:8px 0 16px"><a href="${safeLink}" style="display:inline-block;background:${BRAND.primaryColor};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px">${escapeHtml(label)}</a></p>` +
     `<p style="margin:0 0 16px;font-size:13px;color:#6b7280;word-break:break-all">${safeLink}</p>`
   );
 }
@@ -77,10 +91,14 @@ function build(params: {
 }): MailContent {
   const paragraphs = [params.greeting, ...params.paragraphs];
   const extraText = params.code ?? params.button?.link;
+  const helpLine = BRAND.supportEmail
+    ? messagesFor(params.locale.locale).common.needHelp(BRAND.supportEmail)
+    : undefined;
   const text =
     paragraphs.join('\n\n') +
     (extraText ? `\n\n${extraText}` : '') +
     (params.footer ? `\n\n${params.footer}` : '') +
+    (helpLine ? `\n\n${helpLine}` : '') +
     '\n';
   return {
     subject: params.subject,
@@ -97,6 +115,7 @@ function build(params: {
           }
         : {}),
       ...(params.footer ? { footer: params.footer } : {}),
+      ...(helpLine ? { helpLine } : {}),
     }),
   };
 }
@@ -479,7 +498,13 @@ export function newDeviceLoginEmail(
 }
 
 export function accountLockedEmail(
-  params: Base & { lockedUntil: Date; attempts: number; ipAddress: string },
+  params: Base & {
+    lockedUntil: Date;
+    attempts: number;
+    ipAddress: string;
+    /** ip: only that IP address is locked out; account: every sign-in. */
+    scope?: 'ip' | 'account';
+  },
 ): MailContent {
   const { m, greeting } = setup(params);
   const t = m.accountLocked;
@@ -490,7 +515,9 @@ export function accountLockedEmail(
     heading: t.heading,
     greeting,
     paragraphs: [
-      t.body(params.attempts, params.ipAddress),
+      params.scope === 'ip'
+        ? t.bodyIp(params.attempts, params.ipAddress)
+        : t.body(params.attempts, params.ipAddress),
       t.retry(formatMailDate(params.lockedUntil, m, params.timeZone)),
       t.forgot,
     ],

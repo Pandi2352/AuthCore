@@ -80,6 +80,20 @@ export class InvitePersonDto {
   @IsString()
   @IsOptional()
   lastName?: string;
+
+  @ApiPropertyOptional({
+    example: 'ta',
+    description:
+      'Language of the invitation email (en, ta, hi; others fall back to English). Default MAIL_DEFAULT_LANGUAGE. ' +
+      "Saved as the new user's preferences.language when they accept.",
+  })
+  @Matches(/^[a-z]{2,3}(-[A-Z]{2})?$/, {
+    message: 'language must look like "en" or "en-IN"',
+  })
+  @Transform(trimOrUndefined)
+  @IsString()
+  @IsOptional()
+  language?: string;
 }
 
 class InviteOptionsDto {
@@ -244,6 +258,8 @@ export class InviteResponseDto {
   status!: InviteStatus;
   @ApiProperty({ type: [String] }) groupIds!: string[];
   @ApiProperty({ type: String, nullable: true }) message!: string | null;
+  @ApiProperty({ type: String, nullable: true, example: 'ta' }) language!:
+    string | null;
   @ApiProperty() expiresAt!: Date;
   @ApiProperty({ type: InviterDto, nullable: true })
   invitedBy!: InviterDto | null;

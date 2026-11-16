@@ -72,7 +72,8 @@ info [Bootstrap] AuthCore API listening on port 3000 (development), prefix /api/
 2. Write DTOs for every request; document routes with the Swagger decorators.
 3. Run `npm run lint` and `npm run format` while working.
 4. **Run `npm run verify` before every commit.** It must pass.
-5. Test manually through Swagger or Postman (import `/api/docs/openapi.json`).
+5. Run the end-to-end tests: `npm run test:e2e:build` (separate port and database, see [test/e2e/README.md](test/e2e/README.md)). CI runs both on every push.
+6. Test manually through Swagger or Postman (import `/api/docs/openapi.json`).
 
 ### Debugging
 
@@ -172,7 +173,11 @@ Config groups: `appConfig`, `databaseConfig`, `securityConfig`, `lifecycleConfig
 | Variable | Default | Rule |
 | --- | --- | --- |
 | `LOGIN_IDENTIFIERS` | `email,username` | `email`, `username` or `email,username` |
-| `LOGIN_MAX_FAILED_ATTEMPTS` | `5` | 3–20 |
+| `LOGIN_MAX_FAILED_ATTEMPTS` | `5` | 3–20 failures per account **+ IP** → that IP is locked out of the account |
+| `LOGIN_MAX_FAILED_ATTEMPTS_PER_ACCOUNT` | `50` | Failures from all IPs together → the whole account locks |
+| `FILES_ORPHAN_CLEANUP_INTERVAL_HOURS` · `FILES_ORPHAN_GRACE_MINUTES` | `24` · `60` | Orphan file cleanup (0 = off); files younger than the grace period are never touched |
+| `PROJECT_CONFIG_PATH` | `./project.config.json` | Project identity file |
+| `IGNORE_ENV_FILE` | `false` | `true`: read environment variables only, never `.env` files (tests, containers) |
 | `LOGIN_FAILED_ATTEMPTS_WINDOW_MINUTES` | `15` | 1–1440 |
 | `LOGIN_LOCKOUT_MINUTES` | `15` | 1–1440 (always temporary) |
 | `MAX_SESSIONS_PER_USER` | `10` | 1–100; oldest session revoked above it |
@@ -329,6 +334,9 @@ Password rules themselves (length, complexity, history, expiry) are not env vars
 | `users:pending` | List registrations waiting for approval (after `build`) |
 | `users:approve -- <email>` | Approve a registration |
 | `users:reject -- <email> [reason]` | Reject a registration |
+| `test:e2e [-- suites]` | End-to-end tests against `dist/` (port 3999, database `authcore_e2e`, never your `.env`) |
+| `test:e2e:build` | `build` + all end-to-end suites |
+| `project:init -- --name "…" --slug …` | Turn a copy of this backend into a new project (see "Project identity") |
 
 ## 5. Architecture and folder structure
 
@@ -728,7 +736,7 @@ Use the access token as `Authorization: Bearer <accessToken>`. Claims: `sub` (us
 | `403 AUTH_EMAIL_NOT_VERIFIED` | Email not verified (verify / resend, then sign in) |
 | `403 AUTH_ACCOUNT_PENDING_APPROVAL` | Waiting for an administrator |
 | `403 AUTH_ACCOUNT_SUSPENDED` / `AUTH_ACCOUNT_INACTIVE` / `AUTH_ACCOUNT_DISABLED` | Account can't sign in |
-| `429 AUTH_TOO_MANY_FAILED_ATTEMPTS` | 5 failures in 15 min → locked 15 min (`Retry-After`); same for unknown emails |
+| `429 AUTH_TOO_MANY_FAILED_ATTEMPTS` | 5 failures from one IP in 15 min → that IP is locked out of the account for 15 min (`Retry-After`); 50 failures from all IPs → the whole account locks. Same for unknown emails |
 | `429 TOO_MANY_REQUESTS` | More than 10 requests / minute from one IP |
 
 403 codes are only returned after a correct password, so account statuses can't be probed.
@@ -794,7 +802,7 @@ On each protected request the guard checks:
 | `401 AUTH_SESSION_REVOKED` | Session signed out / revoked, or user deleted: sign in again |
 | `403 AUTH_ACCOUNT_*` / `AUTH_EMAIL_NOT_VERIFIED` | Account can no longer sign in |
 
-All 401s include `WWW-Authenticate: Bearer realm="authcore", error="..."` (RFC 6750). In Swagger, protected routes show a lock; use **Authorize** with the access token.
+All 401s include `WWW-Authenticate: Bearer realm="<slug>", error="..."` (slug from project.config.json) (RFC 6750). In Swagger, protected routes show a lock; use **Authorize** with the access token.
 
 ### `GET /api/v1/auth/me`
 
@@ -1069,12 +1077,35 @@ Safety:
 - **Images are re-encoded** with sharp (libvips): fully decoded (damaged / disguised files → 422 `FILE_UNREADABLE`), auto-rotated from EXIF, then **all metadata removed** (EXIF, GPS location, camera, XMP, IPTC). Avatars are cropped to an `IMAGE_AVATAR_SIZE` square; image documents shrink to fit `IMAGE_MAX_DIMENSION`. Images above `IMAGE_MAX_INPUT_PIXELS` are refused before decoding. The format stays the same (GIF animation kept); PDFs are stored unchanged. `size` / `sha256` describe the stored bytes, `originalSize` the upload.
 - **Virus scanning** with ClamAV over the clamd protocol (INSTREAM, 64 KB chunks; no extra package). The original upload is scanned before anything is stored: malware → 422 `FILE_INFECTED` (logged with the signature, nothing kept). Scanner unreachable → 503 `FILE_SCAN_UNAVAILABLE` (`VIRUS_SCAN_FAIL_CLOSED=true`) or accepted as `SCAN_FAILED`. Every file records `scanStatus` (CLEAN / NOT_SCANNED / SCAN_FAILED); `/health/ready` pings ClamAV when enabled. Start one with `docker run -d --name clamav -p 3310:3310 clamav/clamav` (first start downloads signatures, ~1–2 min).
 
+### Project identity: `project.config.json`
+
+The name, slug and branding of this project, next to `package.json` (validated at startup; schema in `project.config.schema.json`):
+
+| Field | Used for |
+| --- | --- |
+| `name` | Emails (`APP_NAME` default), Swagger title, startup log |
+| `slug` | Log service name (`<slug>-backend`), metrics prefix (`<slug>_`), refresh cookie (`<slug>_refresh`), JWT issuer / audience, `WWW-Authenticate` realm, export file name, reserved username |
+| `description` | Swagger description |
+| `defaultLanguage` | `MAIL_DEFAULT_LANGUAGE` default |
+| `branding` | Email color, logo, company, support email ("Need help? …" line in every email), website |
+
+Environment variables still win (`APP_NAME`, `JWT_ISSUER`, …). **Copying this backend for another project:**
+
+```bash
+npm run project:init -- --name "Shop X" --slug shop-x --support-email help@shopx.com --reset-secrets
+```
+
+It updates `project.config.json`, the package name, and the project values in `.env.example` / `.env` (database name, issuer, cookie, sender; new secrets with `--reset-secrets`), then lists what is left (SMTP, admin, frontend URLs). `--dry-run` shows the changes first. Set the identity **before the first deploy**: changing the slug later renames the cookie and JWT issuer (everyone signs in again).
+
 ### Operations: metrics, key rotation, backups
 
 - **Metrics**: `GET /api/v1/metrics` (Prometheus) — HTTP latency per route pattern, account events, emails sent / failed, process metrics. No personal data in labels.
 - **JWT key rotation**: tokens carry `kid`; set the new `JWT_ACCESS_SECRET` and keep the old one in `JWT_ACCESS_PREVIOUS_SECRETS` for one token lifetime — nobody is signed out.
 - **Email languages**: every email is sent in the user's `preferences.language` (English, Tamil, Hindi; others fall back to English) with dates in their time zone. Add a language: copy `modules/mail/locales/en.locale.ts`, translate, register it in `mail-locales.ts`.
 - **Activity**: a user signing out one of their own devices is recorded as `SESSION_REVOKED`.
+- **Orphan file cleanup** every `FILES_ORPHAN_CLEANUP_INTERVAL_HOURS` (or `POST /files/maintenance/orphan-cleanup`, FILE_DELETE): deletes stored bytes no record points to and stale temp files; reports records whose bytes are missing.
+- **Lockouts per IP**: an attacker who knows a user's email locks out only their own IP; the account-wide lock needs `LOGIN_MAX_FAILED_ATTEMPTS_PER_ACCOUNT` failures. Admin user info shows `lockedIpCount`; unlock clears all. The locked email is sent at most once per lockout period.
+- **Invite language**: `language` per invite (single and bulk) → invitation email in that language, saved as the new user's language.
 - Backups / restore, alerts and secret rotation step by step: [docs/operations.md](../docs/operations.md).
 
 ### First administrator (bootstrap)

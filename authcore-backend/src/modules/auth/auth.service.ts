@@ -132,7 +132,7 @@ export class AuthService {
       throw await this.recordFailedLogin(attemptKey, userId, method, client);
     }
 
-    await this.loginSecurityService.clear(attemptKey);
+    await this.loginSecurityService.clearForIp(attemptKey, client.ipAddress);
     const { user, passwordHash } = credentials;
     try {
       this.assertCanSignIn(user);
@@ -325,8 +325,10 @@ export class AuthService {
     userId: string | null,
     client: ClientInfo,
   ): Promise<void> {
-    const lockedUntil =
-      await this.loginSecurityService.getActiveLock(attemptKey);
+    const lockedUntil = await this.loginSecurityService.getActiveLock(
+      attemptKey,
+      client.ipAddress,
+    );
     if (lockedUntil) {
       this.logger.warn({
         message: 'Login refused: locked after too many failed attempts',
@@ -345,8 +347,11 @@ export class AuthService {
     method: string,
     client: ClientInfo,
   ): Promise<AppException> {
-    const { lockedUntil } =
-      await this.loginSecurityService.recordFailure(attemptKey);
+    const { lockedUntil, scope } =
+      await this.loginSecurityService.recordFailure(
+        attemptKey,
+        client.ipAddress,
+      );
     if (userId) {
       await this.activityService.record({
         userId,
@@ -369,6 +374,7 @@ export class AuthService {
         message: 'Login locked after too many failed attempts',
         userId,
         lockedUntil,
+        scope,
         ipAddress: client.ipAddress,
       });
       if (userId) {
@@ -376,6 +382,7 @@ export class AuthService {
           userId,
           lockedUntil,
           client,
+          scope ?? 'account',
         );
       }
     }

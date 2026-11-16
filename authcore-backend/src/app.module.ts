@@ -25,6 +25,7 @@ import {
   performanceConfig,
   securityConfig,
 } from '@config/configuration';
+import { PROJECT } from '@config/project';
 import { DatabaseModule } from '@database/database.module';
 import { AccountModule } from '@modules/account/account.module';
 import { AuthModule } from '@modules/auth/auth.module';
@@ -53,7 +54,7 @@ import { AppService } from './app.service';
         app: ConfigType<typeof appConfig>,
       ) =>
         createWinstonOptions({
-          serviceName: 'authcore-backend',
+          serviceName: `${PROJECT.slug}-backend`,
           environment: app.nodeEnv,
           level: logging.level,
           format: logging.format,

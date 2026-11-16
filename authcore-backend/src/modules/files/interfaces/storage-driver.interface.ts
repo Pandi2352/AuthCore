@@ -1,5 +1,12 @@
 import type { Readable } from 'node:stream';
 
+export interface StoredObject {
+  key: string;
+  modifiedAt: Date;
+  /** Leftover of an interrupted write (`<key>.<uuid>.tmp`). */
+  isTemp: boolean;
+}
+
 /**
  * Where file bytes live. The API only talks to this interface, so the local
  * folder can be swapped for S3 / Azure Blob / GCS by adding a driver
@@ -11,8 +18,10 @@ export interface StorageDriver {
   put(key: string, data: Buffer): Promise<void>;
   /** Streams the bytes; throws if missing. */
   read(key: string): Promise<Readable>;
-  /** Removes the bytes; missing files are not an error. */
+  /** Removes the bytes (also temp leftovers); missing files are not an error. */
   delete(key: string): Promise<void>;
+  /** Every stored object (orphan cleanup). */
+  list(): AsyncIterable<StoredObject>;
   /** Readiness check: storage reachable and writable. */
   isHealthy(): Promise<boolean>;
 }

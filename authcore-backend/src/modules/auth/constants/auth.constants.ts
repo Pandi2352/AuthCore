@@ -1,3 +1,4 @@
+import { PROJECT, PROJECT_KEY } from '@config/project';
 /**
  * Longest password accepted anywhere (caps the work an attacker can force on
  * the hasher). The configurable password policy decides the actual rules.
@@ -18,6 +19,8 @@ export const RESERVED_USERNAMES: ReadonlySet<string> = new Set([
   'help',
   'api',
   'authcore',
+  PROJECT.slug,
+  PROJECT_KEY,
   'null',
   'undefined',
 ]);

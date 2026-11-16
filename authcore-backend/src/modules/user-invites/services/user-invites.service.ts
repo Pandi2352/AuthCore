@@ -464,6 +464,13 @@ export class UserInvitesService {
       { _id: invite._id },
       { $set: { acceptedUserId: user.id } },
     );
+    if (invite.language) {
+      // The invite's language becomes the user's (emails, etc.).
+      await this.usersService.updatePreferences(
+        user.id,
+        Object.assign({}, user.preferences, { language: invite.language }),
+      );
+    }
     await this.mappingsService.assignDefaultGroups(user.id, 'INVITE');
     const groupsJoined = await this.joinGroups(invite, user.id, client);
     this.logger.log({
@@ -493,6 +500,7 @@ export class UserInvitesService {
       lastName: person.lastName ?? null,
       groupIds,
       message,
+      language: person.language ?? null,
       tokenHash: this.hash(token),
       status: InviteStatus.Pending,
       expiresAt: this.expiry(now),
@@ -606,7 +614,7 @@ export class UserInvitesService {
         template: 'user-invite',
         ...userInviteEmail({
           appName: this.registration.appName,
-          locale: this.mail.defaultLanguage,
+          locale: invite.language ?? this.mail.defaultLanguage,
           firstName: invite.firstName,
           inviterName: inviter
             ? `${inviter.firstName} ${inviter.lastName ?? ''}`.trim()
@@ -641,6 +649,7 @@ export class UserInvitesService {
       status: effectiveStatus(i),
       groupIds: i.groupIds,
       message: i.message,
+      language: i.language,
       expiresAt: i.expiresAt,
       invitedBy: names.has(i.invitedBy)
         ? { id: i.invitedBy, name: names.get(i.invitedBy) ?? '' }

@@ -38,6 +38,7 @@ import { ResponseMessage } from '@common/decorators/response-message.decorator';
 import type { Paginated } from '@common/interfaces/api-response.interface';
 import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
+import { PROJECT } from '@config/project';
 import { RefreshTokenCookieService } from '@modules/auth/services/refresh-token-cookie.service';
 import {
   AVATAR_BODY_SCHEMA,
@@ -305,7 +306,7 @@ export class AccountController {
       dto.currentPassword,
       client,
     );
-    const fileName = `authcore-data-${new Date().toISOString().slice(0, 10)}.json`;
+    const fileName = `${PROJECT.slug}-data-${new Date().toISOString().slice(0, 10)}.json`;
     response.set({
       'Content-Disposition': `attachment; filename="${fileName}"`,
       'Cache-Control': 'no-store',

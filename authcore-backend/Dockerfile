@@ -53,6 +53,8 @@ WORKDIR /app
 COPY package.json ./
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+# Project identity (name, slug, branding): see project.config.json
+COPY project.config.json ./
 # Uploaded files (STORAGE_DRIVER=local): mount a volume here in production.
 RUN mkdir -p /app/logs /app/uploads && chown node:node /app/logs /app/uploads
 

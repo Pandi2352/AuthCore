@@ -1,0 +1,14 @@
+{
+  "$schema": "./project.config.schema.json",
+  "name": "AuthCore",
+  "slug": "authcore",
+  "description": "Reusable authentication and authorization service",
+  "defaultLanguage": "en",
+  "branding": {
+    "primaryColor": "#4f46e5",
+    "logoUrl": null,
+    "companyName": null,
+    "supportEmail": null,
+    "websiteUrl": null
+  }
+}

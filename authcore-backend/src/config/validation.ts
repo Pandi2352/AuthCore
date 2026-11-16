@@ -2,6 +2,8 @@ import * as Joi from 'joi';
 
 import { Environment } from '@common/enums/environment.enum';
 
+import { PROJECT, PROJECT_KEY } from './project';
+
 const originSchema = Joi.string().uri({ scheme: ['http', 'https'] });
 
 /**
@@ -78,7 +80,7 @@ export const envValidationSchema = Joi.object({
   ARGON2_PARALLELISM: Joi.number().integer().min(1).max(16).default(1),
 
   // Registration flow (optional; defaults = email OTP, no approval)
-  APP_NAME: Joi.string().max(50).default('AuthCore'),
+  APP_NAME: Joi.string().max(50).default(PROJECT.name),
   REGISTRATION_EMAIL_VERIFICATION: Joi.string()
     .valid('none', 'otp', 'link')
     .default('otp'),
@@ -232,6 +234,18 @@ export const envValidationSchema = Joi.object({
     .default('http://localhost:3000/api/v1/files/public'),
   UPLOAD_MAX_FILE_SIZE_MB: Joi.number().min(1).max(100).default(10),
   UPLOAD_AVATAR_MAX_SIZE_MB: Joi.number().min(0.1).max(20).default(2),
+  // Orphan cleanup: stored bytes without a record (crashes, failed deletes). 0 = off
+  FILES_ORPHAN_CLEANUP_INTERVAL_HOURS: Joi.number()
+    .integer()
+    .min(0)
+    .max(720)
+    .default(24),
+  // Never touch files younger than this (uploads in progress)
+  FILES_ORPHAN_GRACE_MINUTES: Joi.number()
+    .integer()
+    .min(1)
+    .max(10080)
+    .default(60),
   UPLOAD_MAX_FILES_PER_USER: Joi.number()
     .integer()
     .min(1)
@@ -284,7 +298,14 @@ export const envValidationSchema = Joi.object({
   LOGIN_IDENTIFIERS: Joi.string()
     .pattern(/^(email|username)(,(email|username))?$/)
     .default('email,username'),
+  // Failures per account + IP address: that IP is locked out of the account (others are not)
   LOGIN_MAX_FAILED_ATTEMPTS: Joi.number().integer().min(3).max(20).default(5),
+  // Failures from all IPs together: the whole account locks (distributed attacks)
+  LOGIN_MAX_FAILED_ATTEMPTS_PER_ACCOUNT: Joi.number()
+    .integer()
+    .min(Joi.ref('LOGIN_MAX_FAILED_ATTEMPTS'))
+    .max(1000)
+    .default(50),
   LOGIN_FAILED_ATTEMPTS_WINDOW_MINUTES: Joi.number()
     .integer()
     .min(1)
@@ -320,8 +341,8 @@ export const envValidationSchema = Joi.object({
           }),
     ),
   JWT_ACCESS_TTL_SECONDS: Joi.number().integer().min(60).max(3600).default(900),
-  JWT_ISSUER: Joi.string().max(100).default('authcore'),
-  JWT_AUDIENCE: Joi.string().max(100).default('authcore-api'),
+  JWT_ISSUER: Joi.string().max(100).default(PROJECT.slug),
+  JWT_AUDIENCE: Joi.string().max(100).default(`${PROJECT.slug}-api`),
 
   // Refresh token / session
   REFRESH_TOKEN_TTL_DAYS: Joi.number().integer().min(1).max(90).default(7),
@@ -343,7 +364,7 @@ export const envValidationSchema = Joi.object({
     .default('cookie'),
   REFRESH_COOKIE_NAME: Joi.string()
     .pattern(/^[A-Za-z0-9_-]{1,64}$/)
-    .default('authcore_refresh'),
+    .default(`${PROJECT_KEY}_refresh`),
   REFRESH_COOKIE_SAMESITE: Joi.string()
     .valid('strict', 'lax', 'none')
     .default('strict'),
@@ -383,13 +404,13 @@ export const envValidationSchema = Joi.object({
   MAIL_DEFAULT_LANGUAGE: Joi.string()
     .trim()
     .pattern(/^[a-z]{2,3}(-[A-Za-z]{2})?$/)
-    .default('en'),
+    .default(PROJECT.defaultLanguage),
   MAIL_FROM: Joi.string()
     .max(254)
     .when('MAIL_TRANSPORT', {
       is: 'smtp',
       then: Joi.required(),
-      otherwise: Joi.string().default('AuthCore <no-reply@localhost>'),
+      otherwise: Joi.string().default(`${PROJECT.name} <no-reply@localhost>`),
     }),
   SMTP_HOST: Joi.string().hostname().when('MAIL_TRANSPORT', {
     is: 'smtp',

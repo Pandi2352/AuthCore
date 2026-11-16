@@ -11,6 +11,7 @@ import { VIRUS_SCANNER } from './interfaces/virus-scanner.interface';
 import { StoredFile, StoredFileSchema } from './schemas/stored-file.schema';
 import { AvatarService } from './services/avatar.service';
 import { ClamavScannerService } from './services/clamav-scanner.service';
+import { FileOrphanCleanupService } from './services/file-orphan-cleanup.service';
 import { FilesService } from './services/files.service';
 import { ImageProcessingService } from './services/image-processing.service';
 import { LocalStorageService } from './services/local-storage.service';
@@ -39,6 +40,7 @@ import { LocalStorageService } from './services/local-storage.service';
     FilesService,
     AvatarService,
     FileUploadInterceptor,
+    FileOrphanCleanupService,
   ],
   exports: [FilesService, AvatarService, FileUploadInterceptor],
 })
