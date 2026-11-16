@@ -47,6 +47,7 @@ import {
 } from '../dto/group.dto';
 import { DeletedResponseDto } from '../dto/role.dto';
 import type { Actor } from '../interfaces/actor.interface';
+import { GroupCodePipe } from '../pipes/group-code.pipe';
 import { GroupsService } from '../services/groups.service';
 
 const ERRORS_READ = [
@@ -172,7 +173,7 @@ export class GroupsController {
   @ApiWrappedResponse(GroupResponseDto)
   @ApiErrorResponses(...ERRORS_READ, HttpStatus.NOT_FOUND)
   getByCode(
-    @Param('groupCode') groupCode: string,
+    @Param('groupCode', GroupCodePipe) groupCode: string,
     @Query() query: GroupCategoryQueryDto,
   ): Promise<GroupResponseDto> {
     return this.groupsService.getByCode(groupCode, query.category);

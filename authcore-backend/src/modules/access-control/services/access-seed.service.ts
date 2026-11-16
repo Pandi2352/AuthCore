@@ -11,7 +11,7 @@ import { generateUuid } from '@common/utils/uuid.util';
 import {
   SYSTEM_ACTOR,
   SYSTEM_PERMISSIONS,
-  SYSTEM_ROLE,
+  SYSTEM_ROLES,
 } from '../constants/access-control.constants';
 import { MappingType, RecordStatus } from '../enums/access-control.enum';
 import { AccessMapping } from '../schemas/access-mapping.schema';
@@ -20,8 +20,9 @@ import { Role } from '../schemas/role.schema';
 import { AccessResolverService } from './access-resolver.service';
 
 /**
- * Makes sure the system permissions that protect the access-control APIs,
- * and the ACCESS_CONTROL_ADMIN role holding all of them, exist. Idempotent
+ * Makes sure the system permissions that protect the access-control and
+ * password-policy APIs, and the system roles holding them
+ * (ACCESS_CONTROL_ADMIN, PASSWORD_POLICY_ADMIN), exist. Idempotent
  * and safe when several instances start at once. Failures are logged; they
  * don't stop the application (ADMIN users can still manage everything).
  */
@@ -40,9 +41,9 @@ export class AccessSeedService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     try {
-      const permissionIds: string[] = [];
+      const permissionIdByKey = new Map<string, string>();
       for (const permission of SYSTEM_PERMISSIONS) {
-        const doc = await this.upsert(
+        const id = await this.upsert(
           this.permissionModel,
           { permissionKey: permission.permissionKey },
           {
@@ -51,35 +52,24 @@ export class AccessSeedService implements OnApplicationBootstrap {
             metadata: permission.metadata,
           },
         );
-        permissionIds.push(doc);
+        permissionIdByKey.set(permission.permissionKey, id);
       }
-      const roleId = await this.upsert(
-        this.roleModel,
-        { roleKey: SYSTEM_ROLE.roleKey },
-        {
-          roleName: SYSTEM_ROLE.roleName,
-          category: SYSTEM_ROLE.category,
-          description: SYSTEM_ROLE.description,
-        },
-      );
-      for (const permissionId of permissionIds) {
-        await this.mappingModel
-          .updateOne(
-            { type: MappingType.RolePermission, roleId, permissionId },
-            {
-              $setOnInsert: {
-                _id: generateUuid(),
-                type: MappingType.RolePermission,
-                roleId,
-                permissionId,
-                groupId: null,
-                userId: null,
-                assignedBy: SYSTEM_ACTOR,
-              },
-            },
-            { upsert: true },
-          )
-          .catch(ignoreDuplicate);
+      for (const systemRole of SYSTEM_ROLES) {
+        const roleId = await this.upsert(
+          this.roleModel,
+          { roleKey: systemRole.roleKey },
+          {
+            roleName: systemRole.roleName,
+            category: systemRole.category,
+            description: systemRole.description,
+          },
+        );
+        for (const key of systemRole.permissionKeys) {
+          const permissionId = permissionIdByKey.get(key);
+          if (permissionId) {
+            await this.linkPermission(roleId, permissionId);
+          }
+        }
       }
       this.resolver.invalidate();
     } catch (error) {
@@ -88,6 +78,29 @@ export class AccessSeedService implements OnApplicationBootstrap {
         error instanceof Error ? error.stack : undefined,
       );
     }
+  }
+
+  private async linkPermission(
+    roleId: string,
+    permissionId: string,
+  ): Promise<void> {
+    await this.mappingModel
+      .updateOne(
+        { type: MappingType.RolePermission, roleId, permissionId },
+        {
+          $setOnInsert: {
+            _id: generateUuid(),
+            type: MappingType.RolePermission,
+            roleId,
+            permissionId,
+            groupId: null,
+            userId: null,
+            assignedBy: SYSTEM_ACTOR,
+          },
+        },
+        { upsert: true },
+      )
+      .catch(ignoreDuplicate);
   }
 
   /** Creates the system record if missing (keeps it active, system-flagged); returns its id. */

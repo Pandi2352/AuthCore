@@ -13,7 +13,7 @@ Verified by an end-to-end test against MongoDB (143 checks, including a restart 
 | Topic | Decision |
 | --- | --- |
 | Who can manage | Each endpoint needs a permission (`ROLE_CREATE`, `GROUP_UPDATE`, `ACCESS_MAPPING_ASSIGN`, ...). ADMIN users (CLI `users:role`) pass every check, so nobody can lock themselves out |
-| System data | 16 system permissions + the `ACCESS_CONTROL_ADMIN` role, seeded on startup; cannot be edited or deleted |
+| System data | 18 system permissions + the `ACCESS_CONTROL_ADMIN` and `PASSWORD_POLICY_ADMIN` roles, seeded on startup; cannot be edited or deleted |
 | Group inheritance | Off by default; `ACCESS_INHERIT_PARENT_GROUPS=true` gives sub-group members the parent groups' roles |
 | Delete with dependencies | Blocked (`409 RESOURCE_IN_USE` with counts); soft delete; keys / names reusable afterwards |
 | Categories, actions | Code-level lists (`access-control.constants.ts`), served by dropdown endpoints |

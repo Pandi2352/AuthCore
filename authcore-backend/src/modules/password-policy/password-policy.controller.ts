@@ -22,13 +22,13 @@ import {
 import { ClientInfoParam } from '@common/decorators/client-info.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
+import { RequirePermissions } from '@common/decorators/require-permissions.decorator';
 import { ResponseMessage } from '@common/decorators/response-message.decorator';
-import { Roles } from '@common/decorators/roles.decorator';
 import { PaginationQueryDto } from '@common/dto/pagination-query.dto';
 import type { Paginated } from '@common/interfaces/api-response.interface';
 import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
-import { UserRole } from '@modules/users/enums/user-role.enum';
+import { PASSWORD_POLICY_PERMISSIONS as PP } from '@modules/access-control/constants/access-control.constants';
 
 import {
   POLICY_UPDATE_THROTTLE,
@@ -56,7 +56,8 @@ import { PasswordValidationService } from './services/password-validation.servic
 import { PolicyAuditService } from './services/policy-audit.service';
 
 const ADMIN_ONLY =
-  'Requires `Authorization: Bearer <accessToken>` of an **ADMIN** (403 FORBIDDEN otherwise).';
+  'Requires a signed-in user with PASSWORD_POLICY_READ (reading) or PASSWORD_POLICY_MANAGE (changing / running), ' +
+  'e.g. through the system role PASSWORD_POLICY_ADMIN, or the ADMIN role (403 FORBIDDEN otherwise).';
 
 /**
  * Password policy: admins configure it; sign-up / reset / change forms read
@@ -74,7 +75,7 @@ export class PasswordPolicyController {
   ) {}
 
   @Get()
-  @Roles(UserRole.Admin)
+  @RequirePermissions(PP.Read)
   @ApiBearerAuth('access-token')
   @Header('Cache-Control', 'no-store')
   @ResponseMessage('Password policy retrieved successfully')
@@ -89,7 +90,7 @@ export class PasswordPolicyController {
   }
 
   @Put()
-  @Roles(UserRole.Admin)
+  @RequirePermissions(PP.Manage)
   @ApiBearerAuth('access-token')
   @Throttle({ default: POLICY_UPDATE_THROTTLE })
   @Header('Cache-Control', 'no-store')
@@ -119,7 +120,7 @@ export class PasswordPolicyController {
   }
 
   @Get('history')
-  @Roles(UserRole.Admin)
+  @RequirePermissions(PP.Read)
   @ApiBearerAuth('access-token')
   @Header('Cache-Control', 'no-store')
   @ResponseMessage('Password policy history')
@@ -180,7 +181,7 @@ export class PasswordPolicyController {
   }
 
   @Get('schedulers')
-  @Roles(UserRole.Admin)
+  @RequirePermissions(PP.Read)
   @ApiBearerAuth('access-token')
   @Header('Cache-Control', 'no-store')
   @ResponseMessage('Scheduler configuration retrieved successfully')
@@ -195,7 +196,7 @@ export class PasswordPolicyController {
   }
 
   @Put('schedulers')
-  @Roles(UserRole.Admin)
+  @RequirePermissions(PP.Manage)
   @ApiBearerAuth('access-token')
   @Throttle({ default: POLICY_UPDATE_THROTTLE })
   @Header('Cache-Control', 'no-store')
@@ -222,7 +223,7 @@ export class PasswordPolicyController {
   }
 
   @Post('schedulers/password-expiry-notification/run')
-  @Roles(UserRole.Admin)
+  @RequirePermissions(PP.Manage)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: POLICY_UPDATE_THROTTLE })

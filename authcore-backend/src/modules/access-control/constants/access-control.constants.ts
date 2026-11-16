@@ -194,26 +194,68 @@ const SYSTEM_PERMISSION_DETAILS: Record<
   ],
 };
 
-export const SYSTEM_PERMISSIONS = Object.entries(SYSTEM_PERMISSION_DETAILS).map(
-  ([permissionKey, [permissionName, description, resource, action]]) => ({
-    permissionKey,
-    permissionName,
-    description,
-    metadata: [
-      { key: 'module', value: 'access-control', action },
-      { key: 'resource', value: resource, action },
-    ],
-  }),
-);
+/** Permissions protecting the password-policy APIs. */
+export const PASSWORD_POLICY_PERMISSIONS = {
+  Read: 'PASSWORD_POLICY_READ',
+  Manage: 'PASSWORD_POLICY_MANAGE',
+} as const;
 
-/** Seeded role holding every access-control permission. */
-export const SYSTEM_ROLE = {
-  roleKey: 'ACCESS_CONTROL_ADMIN',
-  roleName: 'Access Control Administrator',
-  category: SYSTEM_ROLE_CATEGORY,
-  description:
-    'Manages roles, permissions, groups and access mappings. System role: cannot be edited or deleted.',
+const PASSWORD_POLICY_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
+  PASSWORD_POLICY_READ: [
+    'View password policy',
+    'View the password policy, its change history and the reminder scheduler',
+    'password-policy',
+    'READ',
+  ],
+  PASSWORD_POLICY_MANAGE: [
+    'Manage password policy',
+    'Change the password policy and the reminder scheduler, run the reminder job',
+    'password-policy',
+    'MANAGE',
+  ],
 };
+
+function toSystemPermissions(
+  module: string,
+  details: typeof SYSTEM_PERMISSION_DETAILS,
+) {
+  return Object.entries(details).map(
+    ([permissionKey, [permissionName, description, resource, action]]) => ({
+      permissionKey,
+      permissionName,
+      description,
+      metadata: [
+        { key: 'module', value: module, action },
+        { key: 'resource', value: resource, action },
+      ],
+    }),
+  );
+}
+
+export const SYSTEM_PERMISSIONS = [
+  ...toSystemPermissions('access-control', SYSTEM_PERMISSION_DETAILS),
+  ...toSystemPermissions('password-policy', PASSWORD_POLICY_PERMISSION_DETAILS),
+];
+
+/** Seeded roles: protected, each holding the listed system permissions. */
+export const SYSTEM_ROLES = [
+  {
+    roleKey: 'ACCESS_CONTROL_ADMIN',
+    roleName: 'Access Control Administrator',
+    category: SYSTEM_ROLE_CATEGORY,
+    description:
+      'Manages roles, permissions, groups and access mappings. System role: cannot be edited or deleted.',
+    permissionKeys: Object.keys(SYSTEM_PERMISSION_DETAILS),
+  },
+  {
+    roleKey: 'PASSWORD_POLICY_ADMIN',
+    roleName: 'Password Policy Administrator',
+    category: SYSTEM_ROLE_CATEGORY,
+    description:
+      'Manages the password policy, expiry and reminder scheduler. System role: cannot be edited or deleted.',
+    permissionKeys: Object.keys(PASSWORD_POLICY_PERMISSION_DETAILS),
+  },
+];
 
 /** Actor id recorded for seeded data. */
 export const SYSTEM_ACTOR = 'system';

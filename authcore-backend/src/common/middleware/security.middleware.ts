@@ -16,6 +16,13 @@ export const ALLOWED_HTTP_METHODS = [
 ] as const;
 
 const ALLOWED_METHODS = new Set<string>(ALLOWED_HTTP_METHODS);
+const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/** A request body is present (Content-Length > 0 or chunked). */
+function hasBody(request: Request): boolean {
+  const length = Number(request.headers['content-length'] ?? 0);
+  return length > 0 || request.headers['transfer-encoding'] !== undefined;
+}
 const MAX_DEPTH = 20;
 
 /**
@@ -41,7 +48,8 @@ export function findUnsafeKey(value: unknown, depth = 0): string | null {
 /**
  * Runs before every route:
  * 1. Rejects HTTP methods the API doesn't use (405).
- * 2. Rejects bodies / queries with MongoDB operator keys ($ne, $gt, ...) or
+ * 2. Rejects request bodies that are not JSON (415).
+ * 3. Rejects bodies / queries with MongoDB operator keys ($ne, $gt, ...) or
  *    dotted keys, as defense in depth against NoSQL injection (400).
  */
 @Injectable()
@@ -51,6 +59,20 @@ export class SecurityMiddleware implements NestMiddleware {
       throw new AppException(
         HttpStatus.METHOD_NOT_ALLOWED,
         ErrorCode.MethodNotAllowed,
+      );
+    }
+
+    // The API only accepts JSON bodies: anything else would be silently ignored
+    // by the JSON parser and fail with a misleading validation error.
+    if (
+      BODY_METHODS.has(request.method) &&
+      hasBody(request) &&
+      request.is('application/json') === false
+    ) {
+      throw new AppException(
+        HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+        ErrorCode.UnsupportedMediaType,
+        'Send the request body as JSON (Content-Type: application/json)',
       );
     }
 

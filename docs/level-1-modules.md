@@ -13,13 +13,13 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 1. Common Infrastructure Module
 
-- [ ] Global exception filter
-- [ ] Global validation pipe
-- [ ] Common response format
-- [ ] Common error response format
-- [ ] Custom exception classes
+- [x] Global exception filter *(`AllExceptionsFilter` (APP_FILTER): HTTP, validation, Mongo, body-parser, throttler, timeout errors → one envelope)*
+- [x] Global validation pipe *(APP_PIPE: whitelist, forbid unknown fields, transform; every body / query is a DTO, every route param has a pipe)*
+- [x] Common response format *(`ResponseInterceptor`: `{ success, message, data, meta?, timestamp, path }`)*
+- [x] Common error response format *(`{ success:false, message, code, errors[], statusCode, timestamp, path }` incl. 404 / 413 / 415 / 429)*
+- [x] Custom exception classes *(`AppException`, `ValidationException`; no built-in Nest exceptions thrown in services)*
 - [x] Authentication guards *(global `JwtAuthGuard`, secure by default)*
-- [ ] Authorization guards
+- [x] Authorization guards *(`@RequirePermissions()` (groups → roles → permissions) and `@Roles()` in the global guard; ADMIN passes)*
 - [x] Custom decorators *(`@Public()`, `@CurrentUser()`, `@ClientInfoParam()`, `@ResponseMessage()`, ...)*
 - [ ] Interceptors
 - [ ] Middleware

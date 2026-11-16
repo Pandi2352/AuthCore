@@ -845,12 +845,12 @@ One policy for the whole service, stored in MongoDB and changed through the API 
 | --- | --- | --- |
 | `GET /password-policies/requirements` | public | Rules for sign-up / reset / change forms (numbers + a ready-to-show list) |
 | `POST /password-policies/validate` | public | `{ password, email?, username?, firstName?, lastName? }` → `{ isValid, violations[] }` |
-| `GET /password-policies` | ADMIN | Current policy (`isDefault: true` while nothing is saved) |
-| `PUT /password-policies` | ADMIN | Save the complete policy (`version` +1, audited) |
-| `GET /password-policies/history` | ADMIN | Change history: who, when, IP, changed fields, old / new values (paginated) |
-| `GET /password-policies/schedulers` | ADMIN | Reminder job schedule + last / next run and status |
-| `PUT /password-policies/schedulers` | ADMIN | `{ passwordExpiryNotification: { enabled, frequency, executionTime, timezone, dayOfWeek?, dayOfMonth? } }` |
-| `POST /password-policies/schedulers/password-expiry-notification/run` | ADMIN | Run the reminder job now |
+| `GET /password-policies` | PASSWORD_POLICY_READ | Current policy (`isDefault: true` while nothing is saved) |
+| `PUT /password-policies` | PASSWORD_POLICY_MANAGE | Save the complete policy (`version` +1, audited) |
+| `GET /password-policies/history` | PASSWORD_POLICY_READ | Change history: who, when, IP, changed fields, old / new values (paginated) |
+| `GET /password-policies/schedulers` | PASSWORD_POLICY_READ | Reminder job schedule + last / next run and status |
+| `PUT /password-policies/schedulers` | PASSWORD_POLICY_MANAGE | `{ passwordExpiryNotification: { enabled, frequency, executionTime, timezone, dayOfWeek?, dayOfMonth? } }` |
+| `POST /password-policies/schedulers/password-expiry-notification/run` | PASSWORD_POLICY_MANAGE | Run the reminder job now |
 
 **Policy groups** (`PUT` body): `policyName`; `characterLength { minimum, maximum }` (8–128); `complexity { minimumDigitCount, minimumSpecialCharacterCount, requireUpperAndLowerCase, minimumUppercaseCount, minimumLowercaseCount }`; `passwordHistory { preventReuse, historyCount }` (0–24); `additionalRules { blockCommonPasswords, blockCompromisedPasswords, preventPersonalInfoInPassword, allowWhitespace, maximumRepeatedCharacters, minimumPasswordAgeHours }`; `passwordValidity { enabled, validityDays, notificationDaysBeforeExpiry[], gracePeriodDays, forceChangeOnExpiry }`.
 
@@ -869,7 +869,7 @@ One policy for the whole service, stored in MongoDB and changed through the API 
 - Every instance polls (`SCHEDULER_POLL_SECONDS`); a due job is claimed with an atomic database lock, so it runs once across replicas. Changes apply without a restart.
 - No duplicate emails (unique record per user, password and threshold); failed sends are retried on later runs (3 attempts); a failed run is retried after 15 minutes. Run results are stored (`lastExecutionStatus`, `lastExecutionSummary`).
 
-**Roles (minimal, until the RBAC module):** users have `role: USER | ADMIN` (shown in `/auth/me`). `@Roles(UserRole.Admin)` on a route → `403 FORBIDDEN` for others. Grant admin from the command line (takes effect on the user's next request):
+**Who may manage it:** reading needs `PASSWORD_POLICY_READ`, changing / running the job needs `PASSWORD_POLICY_MANAGE` (system role `PASSWORD_POLICY_ADMIN` has both; assign it to a group). Users with `role: ADMIN` (super admin) pass every check. Grant or remove ADMIN from the command line (takes effect on the user's next request):
 
 ```bash
 npm run build
@@ -881,7 +881,7 @@ npm run users:role -- jane@example.com USER
 
 **Model:** User → Group → Role → Permission. A user's permissions are the union over all their groups' roles (active, non-deleted only, no duplicates). With `ACCESS_INHERIT_PARENT_GROUPS=true`, members of a sub-group also get the roles of its parent groups (off by default).
 
-**Who may call what:** every endpoint needs a permission, checked by the global guard with `@RequirePermissions('ROLE_CREATE')`. Users with `role: ADMIN` (from `npm run users:role -- <email> ADMIN`) pass every check, so the service can't be locked out. On startup AuthCore seeds 16 system permissions (`ROLE_*`, `PERMISSION_*`, `GROUP_*`, `ACCESS_MAPPING_READ / ASSIGN / REVOKE`, `ACCESS_AUDIT_READ`) and the system role `ACCESS_CONTROL_ADMIN` that holds them all. System entities can't be edited or deleted.
+**Who may call what:** every endpoint needs a permission, checked by the global guard with `@RequirePermissions('ROLE_CREATE')`. Users with `role: ADMIN` (from `npm run users:role -- <email> ADMIN`) pass every check, so the service can't be locked out. On startup AuthCore seeds 18 system permissions (`ROLE_*`, `PERMISSION_*`, `GROUP_*`, `ACCESS_MAPPING_READ / ASSIGN / REVOKE`, `ACCESS_AUDIT_READ`, `PASSWORD_POLICY_READ / MANAGE`) and two system roles: `ACCESS_CONTROL_ADMIN` (the 16 access-control permissions) and `PASSWORD_POLICY_ADMIN` (the 2 password-policy ones). System entities can't be edited or deleted.
 
 | Area | Endpoints |
 | --- | --- |
