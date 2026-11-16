@@ -8,6 +8,7 @@ import { AppException } from '@common/exceptions/app.exception';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { generateUuid } from '@common/utils/uuid.util';
 import type { MailContent } from '@modules/mail/interfaces/mail-message.interface';
+import { mailLocaleOf } from '@modules/mail/locales/mail-locales';
 import { MailService } from '@modules/mail/mail.service';
 import {
   accountLockedEmail,
@@ -83,7 +84,8 @@ export class LoginAlertsService {
           newDeviceLoginEmail({
             appName: this.appName(),
             firstName: user.firstName,
-            when: formatDate(new Date(), user.preferences.timezone),
+            at: new Date(),
+            ...mailLocaleOf(user),
             deviceName: device.deviceName,
             ipAddress: client.ipAddress,
           }),
@@ -136,7 +138,8 @@ export class LoginAlertsService {
         accountLockedEmail({
           appName: this.appName(),
           firstName: user.firstName,
-          lockedUntil: formatDate(lockedUntil, user.preferences.timezone),
+          lockedUntil,
+          ...mailLocaleOf(user),
           attempts,
           ipAddress: client.ipAddress,
         }),
@@ -252,20 +255,5 @@ export class LoginAlertsService {
         error instanceof Error ? error.stack : undefined,
       );
     }
-  }
-}
-
-/** e.g. "16 Nov 2026, 15:42 GMT+5:30" in the user's time zone. */
-function formatDate(date: Date, timeZone: string): string {
-  try {
-    return (
-      new Intl.DateTimeFormat('en-GB', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-        timeZone,
-      }).format(date) + ` (${timeZone})`
-    );
-  } catch {
-    return `${date.toISOString()} (UTC)`;
   }
 }

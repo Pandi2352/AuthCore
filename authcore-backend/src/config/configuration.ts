@@ -114,6 +114,11 @@ export const authConfig = registerAs('auth', () => ({
   maxSessionsPerUser: Number(env('MAX_SESSIONS_PER_USER')),
   jwt: {
     secret: env('JWT_ACCESS_SECRET'),
+    /** Old secrets still accepted for verification during a rotation (never used to sign). */
+    previousSecrets: env('JWT_ACCESS_PREVIOUS_SECRETS')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
     ttlSeconds: Number(env('JWT_ACCESS_TTL_SECONDS')),
     issuer: env('JWT_ISSUER'),
     audience: env('JWT_AUDIENCE'),
@@ -150,6 +155,8 @@ export const mailConfig = registerAs('mail', () => ({
     env('MAIL_TRANSPORT') === 'smtp' ? ('smtp' as const) : ('outbox' as const),
   outboxDirectory: env('MAIL_OUTBOX_DIR'),
   from: env('MAIL_FROM'),
+  /** Emails to people without an account / preferences yet (invites). */
+  defaultLanguage: env('MAIL_DEFAULT_LANGUAGE'),
   smtp: {
     host: env('SMTP_HOST'),
     port: Number(env('SMTP_PORT')),
@@ -172,6 +179,11 @@ export const accountConfig = registerAs('account', () => ({
   isAccountLockedEmailEnabled: env('ACCOUNT_LOCKED_EMAIL_ENABLED') === 'true',
   knownDeviceRetentionDays: Number(env('KNOWN_DEVICE_RETENTION_DAYS')),
   tokenSecret: env('VERIFICATION_TOKEN_SECRET'),
+}));
+
+export const metricsConfig = registerAs('metrics', () => ({
+  isEnabled: env('METRICS_ENABLED') === 'true',
+  token: env('METRICS_TOKEN'),
 }));
 
 /** First administrator, created at startup when the email doesn't exist yet. */
@@ -273,6 +285,7 @@ export const configModuleOptions: ConfigModuleOptions = {
     inviteConfig,
     storageConfig,
     bootstrapAdminConfig,
+    metricsConfig,
     performanceConfig,
     loggingConfig,
     swaggerConfig,

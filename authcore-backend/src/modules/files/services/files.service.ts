@@ -271,6 +271,15 @@ export class FilesService {
     return { id };
   }
 
+  /** All files of an owner, newest first (data export: metadata only). */
+  async listAllOf(ownerId: string): Promise<FileResponseDto[]> {
+    const files = await this.fileModel
+      .find({ ownerId })
+      .sort({ createdAt: -1 })
+      .lean();
+    return files.map((f) => this.toResponse(f));
+  }
+
   /** The owner's single file of a purpose (e.g. avatar), or null. */
   async findSingle(
     ownerId: string,

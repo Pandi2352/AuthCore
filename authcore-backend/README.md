@@ -236,6 +236,9 @@ Password rules themselves (length, complexity, history, expiry) are not env vars
 | `CLAMAV_HOST` · `CLAMAV_PORT` | `127.0.0.1` · `3310` | clamd TCP address |
 | `CLAMAV_TIMEOUT_MS` | `15000` | Per-scan timeout |
 | `VIRUS_SCAN_FAIL_CLOSED` | `true` | Scanner unreachable: `true` = reject uploads (503), `false` = accept them unscanned (`SCAN_FAILED`, logged) |
+| `JWT_ACCESS_PREVIOUS_SECRETS` | (empty) | Old JWT secrets still accepted during a key rotation (see docs/operations.md) |
+| `METRICS_ENABLED` · `METRICS_TOKEN` | `true` · (empty) | Prometheus endpoint `GET /api/v1/metrics` (Bearer token; without one: open in dev, off in production) |
+| `MAIL_DEFAULT_LANGUAGE` | `en` | Email language for people without an account (invites); users get theirs (`preferences.language`: en, ta, hi) |
 | `BOOTSTRAP_ADMIN_ENABLED` | `true` | Create the first administrator at startup (see "First administrator") |
 | `BOOTSTRAP_ADMIN_EMAIL` · `BOOTSTRAP_ADMIN_PASSWORD` | (empty) | Its sign-in; the password must meet the password policy (the sample `Test@123` is refused in production) |
 | `BOOTSTRAP_ADMIN_FIRST_NAME` · `BOOTSTRAP_ADMIN_LAST_NAME` | `System` · `Admin` | Its name |
@@ -960,6 +963,7 @@ npm run users:role -- jane@example.com USER
 | `PATCH /users/me` | firstName, lastName, username (registration rules; `null` removes lastName / username) |
 | `PATCH /users/me/attributes` | Personal details: `{ attributes: { gender, birthdate, phone_number, address: { … }, employee_id, … } }` validated against the user schema; `given_name` / `family_name` / `preferred_username` map to the built-in fields; groups merge; `null` clears |
 | `GET /users/me/avatar` · `POST /users/me/avatar` · `DELETE /users/me/avatar` | Profile picture: multipart `file` (JPEG / PNG / WebP ≤ `UPLOAD_AVATAR_MAX_SIZE_MB`); replaces the previous one; sets `picture` to its public URL |
+| `POST /users/me/export` | "Download my data": `{ currentPassword }` → JSON file (account, personal details, sessions, devices, groups / roles, files, activity; no secrets). 3 per hour, recorded as `DATA_EXPORTED` |
 | `GET /users/me/devices` · `DELETE /users/me/devices/:id` | Known devices (new-device alerts); forgetting one makes its next sign-in "new" again |
 | `GET /users/me/activity` | Recent activity: sign-ins (incl. failed), logouts, password / email / profile changes, with device, browser, IP and verification type; `?event=` filter |
 | `PATCH /users/me/preferences` | language, timezone (IANA), notifications.productUpdates / loginAlerts |
@@ -1064,6 +1068,14 @@ Safety:
 - multipart/form-data is accepted only on upload routes; every other route stays JSON-only.
 - **Images are re-encoded** with sharp (libvips): fully decoded (damaged / disguised files → 422 `FILE_UNREADABLE`), auto-rotated from EXIF, then **all metadata removed** (EXIF, GPS location, camera, XMP, IPTC). Avatars are cropped to an `IMAGE_AVATAR_SIZE` square; image documents shrink to fit `IMAGE_MAX_DIMENSION`. Images above `IMAGE_MAX_INPUT_PIXELS` are refused before decoding. The format stays the same (GIF animation kept); PDFs are stored unchanged. `size` / `sha256` describe the stored bytes, `originalSize` the upload.
 - **Virus scanning** with ClamAV over the clamd protocol (INSTREAM, 64 KB chunks; no extra package). The original upload is scanned before anything is stored: malware → 422 `FILE_INFECTED` (logged with the signature, nothing kept). Scanner unreachable → 503 `FILE_SCAN_UNAVAILABLE` (`VIRUS_SCAN_FAIL_CLOSED=true`) or accepted as `SCAN_FAILED`. Every file records `scanStatus` (CLEAN / NOT_SCANNED / SCAN_FAILED); `/health/ready` pings ClamAV when enabled. Start one with `docker run -d --name clamav -p 3310:3310 clamav/clamav` (first start downloads signatures, ~1–2 min).
+
+### Operations: metrics, key rotation, backups
+
+- **Metrics**: `GET /api/v1/metrics` (Prometheus) — HTTP latency per route pattern, account events, emails sent / failed, process metrics. No personal data in labels.
+- **JWT key rotation**: tokens carry `kid`; set the new `JWT_ACCESS_SECRET` and keep the old one in `JWT_ACCESS_PREVIOUS_SECRETS` for one token lifetime — nobody is signed out.
+- **Email languages**: every email is sent in the user's `preferences.language` (English, Tamil, Hindi; others fall back to English) with dates in their time zone. Add a language: copy `modules/mail/locales/en.locale.ts`, translate, register it in `mail-locales.ts`.
+- **Activity**: a user signing out one of their own devices is recorded as `SESSION_REVOKED`.
+- Backups / restore, alerts and secret rotation step by step: [docs/operations.md](../docs/operations.md).
 
 ### First administrator (bootstrap)
 

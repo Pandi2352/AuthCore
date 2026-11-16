@@ -4,6 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 
 import { registrationConfig } from '@config/configuration';
+import { mailLocaleOf } from '@modules/mail/locales/mail-locales';
 import { MailService } from '@modules/mail/mail.service';
 import { passwordExpiryReminderEmail } from '@modules/mail/templates/mail-templates';
 import type { UserResponseDto } from '@modules/users/dto/user-response.dto';
@@ -134,6 +135,7 @@ export class PasswordExpiryNotificationService {
         ...passwordExpiryReminderEmail({
           appName: this.registration.appName,
           firstName: user.firstName,
+          ...mailLocaleOf(user),
           daysLeft,
           expiresAt,
         }),

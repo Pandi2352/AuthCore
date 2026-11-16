@@ -7,6 +7,7 @@ import { createTransport, type Transporter } from 'nodemailer';
 
 import { generateUuid } from '@common/utils/uuid.util';
 import { mailConfig } from '@config/configuration';
+import { MetricsService } from '@modules/metrics/metrics.service';
 
 import { MailMessage } from './interfaces/mail-message.interface';
 
@@ -24,6 +25,7 @@ export class MailService implements OnModuleInit {
   private transporter!: Transporter;
 
   constructor(
+    private readonly metricsService: MetricsService,
     @Inject(mailConfig.KEY)
     private readonly mail: ConfigType<typeof mailConfig>,
   ) {}
@@ -62,13 +64,20 @@ export class MailService implements OnModuleInit {
 
   /** Sends one email. Throws if delivery fails; callers decide how to react. */
   async send(message: MailMessage): Promise<void> {
-    const info = (await this.transporter.sendMail({
-      from: this.mail.from,
-      to: message.to,
-      subject: message.subject,
-      text: message.text,
-      html: message.html,
-    })) as { message?: unknown };
+    let info: { message?: unknown };
+    try {
+      info = await this.transporter.sendMail({
+        from: this.mail.from,
+        to: message.to,
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+      });
+    } catch (error) {
+      this.metricsService.countEmail(message.template, 'failed');
+      throw error;
+    }
+    this.metricsService.countEmail(message.template, 'sent');
 
     if (this.mail.transport === 'outbox') {
       await this.writeToOutbox(message.template, info.message);

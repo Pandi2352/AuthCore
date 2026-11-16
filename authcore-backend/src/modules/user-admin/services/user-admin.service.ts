@@ -28,6 +28,7 @@ import type { FileResponseDto } from '@modules/files/dto/file.dto';
 import { AvatarService } from '@modules/files/services/avatar.service';
 import type { IncomingFile } from '@modules/files/services/files.service';
 import type { MailContent } from '@modules/mail/interfaces/mail-message.interface';
+import { mailLocaleOf } from '@modules/mail/locales/mail-locales';
 import { MailService } from '@modules/mail/mail.service';
 import {
   accountStatusChangedEmail,
@@ -283,6 +284,7 @@ export class UserAdminService {
         adminCreatedAccountEmail({
           appName: this.registration.appName,
           firstName: user.firstName,
+          ...mailLocaleOf(user),
           email: user.email,
           mustChangePassword: isPasswordChangeRequired,
         }),
@@ -336,6 +338,7 @@ export class UserAdminService {
         emailChangedNoticeEmail({
           appName: this.registration.appName,
           firstName: user.firstName,
+          ...mailLocaleOf(user),
           newEmail: dto.email ?? '',
         }),
       );
@@ -404,6 +407,7 @@ export class UserAdminService {
         accountStatusChangedEmail({
           appName: this.registration.appName,
           firstName: user.firstName,
+          ...mailLocaleOf(user),
           status: dto.status,
           reason: dto.reason ?? null,
         }),
@@ -526,6 +530,7 @@ export class UserAdminService {
         passwordSetByAdminEmail({
           appName: this.registration.appName,
           firstName: user.firstName,
+          ...mailLocaleOf(user),
           mustChangePassword: isChangeRequired,
         }),
       );

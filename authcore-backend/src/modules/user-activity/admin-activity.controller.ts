@@ -61,7 +61,7 @@ export class AdminActivityController {
     summary: 'Login history (all users)',
     description:
       'Needs USER_READ. Same filters, limited to sign-in events: LOGIN, LOGIN_FAILED, NEW_DEVICE_LOGIN, ACCOUNT_LOCKED, ' +
-      'LOGOUT, LOGOUT_ALL. E.g. failed sign-ins from one IP: ?isSuccess=false&ipAddress=…',
+      'LOGOUT, LOGOUT_ALL, SESSION_REVOKED. E.g. failed sign-ins from one IP: ?isSuccess=false&ipAddress=…',
   })
   @ApiPaginatedResponse(AdminActivityDto)
   @ApiErrorResponses(...ERRORS)

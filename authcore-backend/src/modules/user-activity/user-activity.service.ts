@@ -8,6 +8,7 @@ import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { normalizePagination, paginate } from '@common/utils/pagination.util';
 import { generateUuid } from '@common/utils/uuid.util';
 import { accountConfig } from '@config/configuration';
+import { MetricsService } from '@modules/metrics/metrics.service';
 import { parseDeviceInfo } from '@modules/sessions/utils/device-info.util';
 
 import type {
@@ -42,6 +43,7 @@ export class UserActivityService {
   private readonly logger = new Logger(UserActivityService.name);
 
   constructor(
+    private readonly metricsService: MetricsService,
     @InjectModel(UserActivity.name)
     private readonly activityModel: Model<UserActivity>,
     @Inject(accountConfig.KEY)
@@ -49,6 +51,7 @@ export class UserActivityService {
   ) {}
 
   async record(input: ActivityInput): Promise<void> {
+    this.metricsService.countUserEvent(input.event, input.isSuccess ?? true);
     try {
       const device = parseDeviceInfo(input.client.userAgent);
       await this.activityModel.create({
@@ -114,6 +117,30 @@ export class UserActivityService {
       limit,
       total,
     );
+  }
+
+  /** Every entry still kept for the user, oldest first (data export). */
+  async exportForUser(
+    userId: string,
+    max = 20_000,
+  ): Promise<Record<string, unknown>[]> {
+    const items = await this.activityModel
+      .find({ userId })
+      .sort({ createdAt: 1 })
+      .limit(max)
+      .lean();
+    return items.map((a) => ({
+      event: a.event,
+      verificationType: a.verificationType,
+      isSuccess: a.isSuccess,
+      occurredAt: a.createdAt,
+      ipAddress: a.ipAddress,
+      deviceType: a.deviceType,
+      os: a.os,
+      browser: a.browser,
+      actorId: a.actorId,
+      details: a.details,
+    }));
   }
 
   /** Time of the user's latest recorded activity, or null. */

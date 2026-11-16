@@ -4,6 +4,7 @@ import type { ConfigType } from '@nestjs/config';
 import { ErrorCode } from '@common/constants/error-codes.constants';
 import { AppException } from '@common/exceptions/app.exception';
 import { registrationConfig } from '@config/configuration';
+import { mailLocaleOf } from '@modules/mail/locales/mail-locales';
 import { MailService } from '@modules/mail/mail.service';
 import {
   accountApprovedEmail,
@@ -48,6 +49,7 @@ export class UserApprovalService {
       accountApprovedEmail({
         appName: this.registration.appName,
         firstName: approved.firstName,
+        ...mailLocaleOf(approved),
       }),
     );
     return approved;
@@ -76,6 +78,7 @@ export class UserApprovalService {
       accountRejectedEmail({
         appName: this.registration.appName,
         firstName: rejected.firstName,
+        ...mailLocaleOf(rejected),
         reason: reason ?? undefined,
       }),
     );

@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Res,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -59,6 +61,7 @@ import { UserResponseDto } from '@modules/users/dto/user-response.dto';
 import {
   ChangeEmailDto,
   CloseAccountDto,
+  CurrentPasswordDto,
   DeletionScheduledDto,
   EmailChangeStartedDto,
   EmailCodeDto,
@@ -277,6 +280,40 @@ export class AccountController {
     @ClientInfoParam() client: ClientInfo,
   ): Promise<UserResponseDto> {
     return this.accountService.confirmEmailChange(auth, dto.code, client);
+  }
+
+  @Post('export')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 3_600_000 } })
+  @ApiProduces('application/json')
+  @ApiOperation({
+    summary: 'Download my data',
+    description:
+      'Needs the current password. Returns a JSON file (attachment, not the usual envelope): account, personal ' +
+      'details, active sessions, known devices, groups / roles / permissions, uploaded files (with download URLs) and ' +
+      'the activity history still kept. No password / code hashes or tokens. 3 per hour; recorded as DATA_EXPORTED.',
+  })
+  @ApiErrorResponses(...AUTH_ERRORS)
+  async exportData(
+    @CurrentUser() auth: AuthContext,
+    @Body() dto: CurrentPasswordDto,
+    @ClientInfoParam() client: ClientInfo,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const data = await this.accountService.exportData(
+      auth,
+      dto.currentPassword,
+      client,
+    );
+    const fileName = `authcore-data-${new Date().toISOString().slice(0, 10)}.json`;
+    response.set({
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return new StreamableFile(Buffer.from(JSON.stringify(data, null, 2)), {
+      type: 'application/json; charset=utf-8',
+    });
   }
 
   @Post('deactivate')

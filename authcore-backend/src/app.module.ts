@@ -32,6 +32,8 @@ import { BootstrapModule } from '@modules/bootstrap/bootstrap.module';
 import { FilesModule } from '@modules/files/files.module';
 import { HealthModule } from '@modules/health/health.module';
 import { MailModule } from '@modules/mail/mail.module';
+import { MetricsModule } from '@modules/metrics/metrics.module';
+import { HttpMetricsMiddleware } from '@modules/metrics/middleware/http-metrics.middleware';
 import { UserActivityModule } from '@modules/user-activity/user-activity.module';
 import { UserAdminModule } from '@modules/user-admin/user-admin.module';
 import { UserInvitesModule } from '@modules/user-invites/user-invites.module';
@@ -77,6 +79,7 @@ import { AppService } from './app.service';
     UserSchemaModule,
     FilesModule,
     BootstrapModule,
+    MetricsModule,
     AuthModule,
     AccountModule,
     UserAdminModule,
@@ -105,6 +108,8 @@ import { AppService } from './app.service';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(SecurityMiddleware).forRoutes('*path');
+    consumer
+      .apply(HttpMetricsMiddleware, SecurityMiddleware)
+      .forRoutes('*path');
   }
 }

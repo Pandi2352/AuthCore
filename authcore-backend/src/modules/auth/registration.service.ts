@@ -9,6 +9,7 @@ import { AccessMappingsService } from '@modules/access-control/services/access-m
 import { EmailVerificationService } from '@modules/email-verification/email-verification.service';
 import { VerificationMethod } from '@modules/email-verification/enums/verification-method.enum';
 import { MailContent } from '@modules/mail/interfaces/mail-message.interface';
+import { mailLocaleOf } from '@modules/mail/locales/mail-locales';
 import { MailService } from '@modules/mail/mail.service';
 import {
   pendingApprovalEmail,
@@ -88,6 +89,7 @@ export class RegistrationService {
         pendingApprovalEmail({
           appName: this.registration.appName,
           firstName: user.firstName,
+          ...mailLocaleOf(user),
         }),
       );
     }
@@ -236,6 +238,7 @@ export class RegistrationService {
         pendingApprovalEmail({
           appName: this.registration.appName,
           firstName: user.firstName,
+          ...mailLocaleOf(user),
         }),
       );
     }
@@ -262,12 +265,14 @@ export class RegistrationService {
           ? verificationLinkEmail({
               appName,
               firstName: user.firstName,
+              ...mailLocaleOf(user),
               link: this.buildVerificationLink(secret),
               ttlMinutes,
             })
           : verificationCodeEmail({
               appName,
               firstName: user.firstName,
+              ...mailLocaleOf(user),
               code: secret,
               ttlMinutes,
             }),

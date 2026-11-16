@@ -164,6 +164,11 @@ export const envValidationSchema = Joi.object({
     .max(3650)
     .default(90),
 
+  // Prometheus metrics at /api/v1/metrics
+  METRICS_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
+  // Scrapers send "Authorization: Bearer <token>". Empty: open in development, disabled in production
+  METRICS_TOKEN: Joi.string().allow('').min(16).default(''),
+
   // First administrator (created at startup if this email doesn't exist; never overwritten)
   BOOTSTRAP_ADMIN_ENABLED: Joi.boolean()
     .truthy('true')
@@ -297,6 +302,23 @@ export const envValidationSchema = Joi.object({
       'any.invalid':
         '"JWT_ACCESS_SECRET" must be different from VERIFICATION_TOKEN_SECRET',
     }),
+  // Key rotation: put the old JWT_ACCESS_SECRET here (comma-separated) for one access-token
+  // lifetime after switching, so tokens issued before the switch keep working until they expire
+  JWT_ACCESS_PREVIOUS_SECRETS: Joi.string()
+    .allow('')
+    .default('')
+    .custom((value: string, helpers) =>
+      value
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .every((s) => s.length >= 32)
+        ? value
+        : helpers.message({
+            custom:
+              '"JWT_ACCESS_PREVIOUS_SECRETS" entries must be at least 32 characters',
+          }),
+    ),
   JWT_ACCESS_TTL_SECONDS: Joi.number().integer().min(60).max(3600).default(900),
   JWT_ISSUER: Joi.string().max(100).default('authcore'),
   JWT_AUDIENCE: Joi.string().max(100).default('authcore-api'),
@@ -357,6 +379,11 @@ export const envValidationSchema = Joi.object({
       }),
     }),
   MAIL_OUTBOX_DIR: Joi.string().default('mail-outbox'),
+  // Language of emails to people without an account yet (invites): en, ta, hi (others fall back to en)
+  MAIL_DEFAULT_LANGUAGE: Joi.string()
+    .trim()
+    .pattern(/^[a-z]{2,3}(-[A-Za-z]{2})?$/)
+    .default('en'),
   MAIL_FROM: Joi.string()
     .max(254)
     .when('MAIL_TRANSPORT', {

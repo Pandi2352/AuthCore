@@ -9,6 +9,7 @@ import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { accountConfig, registrationConfig } from '@config/configuration';
 import { PasswordManagementService } from '@modules/auth/services/password-management.service';
 import type { MailContent } from '@modules/mail/interfaces/mail-message.interface';
+import { mailLocaleOf } from '@modules/mail/locales/mail-locales';
 import { MailService } from '@modules/mail/mail.service';
 import {
   accountDeactivatedEmail,
@@ -42,6 +43,7 @@ import type {
 } from '../dto/account.dto';
 import { AccountCodePurpose } from '../enums/account-code-purpose.enum';
 import { AccountCodeService, type CodeCheck } from './account-code.service';
+import { DataExportService } from './data-export.service';
 
 const DAY_MS = 86_400_000;
 
@@ -62,6 +64,7 @@ export class AccountService {
     private readonly mailService: MailService,
     private readonly activityService: UserActivityService,
     private readonly attributeValuesService: UserAttributeValuesService,
+    private readonly dataExportService: DataExportService,
     @Inject(accountConfig.KEY)
     private readonly config: ConfigType<typeof accountConfig>,
     @Inject(registrationConfig.KEY)
@@ -201,6 +204,7 @@ export class AccountService {
       emailChangeCodeEmail({
         appName: this.registration.appName,
         firstName: account.user.firstName,
+        ...mailLocaleOf(account.user),
         code,
         ttlMinutes,
       }),
@@ -245,6 +249,7 @@ export class AccountService {
       emailChangedNoticeEmail({
         appName: this.registration.appName,
         firstName: user.firstName,
+        ...mailLocaleOf(user),
         newEmail,
       }),
     );
@@ -295,6 +300,7 @@ export class AccountService {
       accountDeactivatedEmail({
         appName: this.registration.appName,
         firstName: user.firstName,
+        ...mailLocaleOf(user),
       }),
     );
     await this.activityService.record({
@@ -344,6 +350,7 @@ export class AccountService {
       accountDeletionScheduledEmail({
         appName: this.registration.appName,
         firstName: user.firstName,
+        ...mailLocaleOf(user),
         deletionDate: at,
       }),
     );
@@ -414,6 +421,7 @@ export class AccountService {
       accountRecoveredEmail({
         appName: this.registration.appName,
         firstName: user.firstName,
+        ...mailLocaleOf(user),
       }),
     );
     await this.activityService.record({
@@ -458,6 +466,7 @@ export class AccountService {
       accountRecoveryCodeEmail({
         appName: this.registration.appName,
         firstName: user.firstName,
+        ...mailLocaleOf(user),
         code,
         ttlMinutes,
       }),
@@ -512,6 +521,24 @@ export class AccountService {
       client,
     );
     return account;
+  }
+
+  /** "Download my data": needs the current password; recorded in the activity log. */
+  async exportData(
+    auth: AuthContext,
+    currentPassword: string,
+    client: ClientInfo,
+  ): Promise<Record<string, unknown>> {
+    const account = await this.requirePassword(auth, currentPassword, client);
+    const data = await this.dataExportService.build(account.user);
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.DataExported,
+      client,
+      sessionId: auth.sessionId,
+    });
+    this.logger.log({ message: 'User data exported', userId: auth.userId });
+    return data;
   }
 
   /** The last active ADMIN can't close their own account (nobody could manage AuthCore). */

@@ -28,6 +28,7 @@ export const LOGIN_HISTORY_EVENTS: readonly ActivityEvent[] = [
   ActivityEvent.AccountLocked,
   ActivityEvent.Logout,
   ActivityEvent.LogoutAll,
+  ActivityEvent.SessionRevoked,
 ];
 
 const toBoolean = ({ value }: { value: unknown }): unknown =>

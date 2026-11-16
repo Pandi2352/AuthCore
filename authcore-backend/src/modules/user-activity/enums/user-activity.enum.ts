@@ -15,6 +15,10 @@ export enum ActivityEvent {
   AccountRecovered = 'ACCOUNT_RECOVERED',
   StatusChanged = 'STATUS_CHANGED',
   SessionsRevoked = 'SESSIONS_REVOKED',
+  /** The user signed out one of their own devices (sessions list). */
+  SessionRevoked = 'SESSION_REVOKED',
+  /** The user downloaded a copy of their data. */
+  DataExported = 'DATA_EXPORTED',
   /** Successful sign-in from a device (browser + OS) not seen before. */
   NewDeviceLogin = 'NEW_DEVICE_LOGIN',
   /** Too many failed sign-ins: the account is locked for a while. */

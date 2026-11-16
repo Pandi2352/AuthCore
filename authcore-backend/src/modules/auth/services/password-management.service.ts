@@ -7,6 +7,7 @@ import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { passwordResetConfig, registrationConfig } from '@config/configuration';
 import type { MailContent } from '@modules/mail/interfaces/mail-message.interface';
+import { mailLocaleOf } from '@modules/mail/locales/mail-locales';
 import { MailService } from '@modules/mail/mail.service';
 import {
   passwordChangedEmail,
@@ -208,6 +209,7 @@ export class PasswordManagementService {
       passwordChangedEmail({
         appName: this.registration.appName,
         firstName: account.user.firstName,
+        ...mailLocaleOf(account.user),
         isReset: true,
       }),
     );
@@ -288,6 +290,7 @@ export class PasswordManagementService {
       passwordChangedEmail({
         appName: this.registration.appName,
         firstName: account.user.firstName,
+        ...mailLocaleOf(account.user),
         isReset: false,
       }),
     );
@@ -336,12 +339,14 @@ export class PasswordManagementService {
           ? passwordResetLinkEmail({
               appName: this.registration.appName,
               firstName: user.firstName,
+              ...mailLocaleOf(user),
               link: this.buildResetLink(secret),
               ttlMinutes,
             })
           : passwordResetCodeEmail({
               appName: this.registration.appName,
               firstName: user.firstName,
+              ...mailLocaleOf(user),
               code: secret,
               ttlMinutes,
             }),
@@ -428,12 +433,14 @@ export class PasswordManagementService {
           ? passwordResetLinkEmail({
               appName: this.registration.appName,
               firstName: user.firstName,
+              ...mailLocaleOf(user),
               link: this.buildResetLink(secret),
               ttlMinutes,
             })
           : passwordResetCodeEmail({
               appName: this.registration.appName,
               firstName: user.firstName,
+              ...mailLocaleOf(user),
               code: secret,
               ttlMinutes,
             }),

@@ -16,7 +16,11 @@ import {
   containsPattern,
 } from '@common/utils/query.util';
 import { generateUuid } from '@common/utils/uuid.util';
-import { inviteConfig, registrationConfig } from '@config/configuration';
+import {
+  inviteConfig,
+  mailConfig,
+  registrationConfig,
+} from '@config/configuration';
 import {
   AuditAction,
   AuditEntity,
@@ -74,6 +78,8 @@ export class UserInvitesService {
     private readonly config: ConfigType<typeof inviteConfig>,
     @Inject(registrationConfig.KEY)
     private readonly registration: ConfigType<typeof registrationConfig>,
+    @Inject(mailConfig.KEY)
+    private readonly mail: ConfigType<typeof mailConfig>,
   ) {}
 
   async create(dto: CreateInviteDto, actor: Actor): Promise<InviteResponseDto> {
@@ -600,6 +606,7 @@ export class UserInvitesService {
         template: 'user-invite',
         ...userInviteEmail({
           appName: this.registration.appName,
+          locale: this.mail.defaultLanguage,
           firstName: invite.firstName,
           inviterName: inviter
             ? `${inviter.firstName} ${inviter.lastName ?? ''}`.trim()

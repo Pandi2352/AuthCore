@@ -106,7 +106,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 - [x] Email service integration *(`MailService`: SMTP + development outbox)*
 - [x] SMTP configuration
-- [ ] Email templates
+- [x] Email templates *(per-language catalogs: English, Tamil, Hindi; user's language and time zone)*
 - [x] Welcome email *(admin-created accounts (optional))*
 - [x] Email verification email
 - [x] Password reset email *(code or link; `PASSWORD_RESET_METHOD`)*
@@ -224,7 +224,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Role modification logs *(`GET /api/v1/access-control/audit-logs`)*
 - [x] Permission modification logs
 - [x] User activation/deactivation logs *(`STATUS_CHANGED`, `ACCOUNT_DEACTIVATED`, `ACCOUNT_RECOVERED`)*
-- [ ] Session revocation logs
+- [x] Session revocation logs *(`SESSION_REVOKED` for own devices, `SESSIONS_REVOKED` by admins, `LOGOUT_ALL`)*
 - [ ] API key activity logs
 - [ ] Organization activity logs
 - [x] IP address tracking *(every activity entry and session)*

@@ -6,6 +6,8 @@ import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import type { Session } from '@modules/sessions/schemas/session.schema';
 import { SessionsService } from '@modules/sessions/sessions.service';
+import { ActivityEvent } from '@modules/user-activity/enums/user-activity.enum';
+import { UserActivityService } from '@modules/user-activity/user-activity.service';
 
 import {
   RevokeSessionResponseDto,
@@ -21,7 +23,10 @@ import {
 export class SessionManagementService {
   private readonly logger = new Logger(SessionManagementService.name);
 
-  constructor(private readonly sessionsService: SessionsService) {}
+  constructor(
+    private readonly sessionsService: SessionsService,
+    private readonly activityService: UserActivityService,
+  ) {}
 
   async list(auth: AuthContext): Promise<SessionResponseDto[]> {
     const sessions = await this.sessionsService.listActiveForUser(auth.userId);
@@ -49,6 +54,10 @@ export class SessionManagementService {
     client: ClientInfo,
   ): Promise<RevokeSessionResponseDto> {
     const isCurrentSession = sessionId === auth.sessionId;
+    const target = await this.sessionsService.findActiveForUser(
+      sessionId,
+      auth.userId,
+    );
     const isRevoked = await this.sessionsService.revokeForUser(
       sessionId,
       auth.userId,
@@ -57,6 +66,18 @@ export class SessionManagementService {
     if (!isRevoked) {
       throw sessionNotFound();
     }
+    await this.activityService.record({
+      userId: auth.userId,
+      event: ActivityEvent.SessionRevoked,
+      client,
+      sessionId: auth.sessionId,
+      details: {
+        revokedSessionId: sessionId,
+        isCurrentSession,
+        deviceName: target?.deviceName ?? null,
+        deviceIpAddress: target?.ipAddress ?? null,
+      },
+    });
     this.logger.log({
       message: 'Session revoked by user',
       userId: auth.userId,
