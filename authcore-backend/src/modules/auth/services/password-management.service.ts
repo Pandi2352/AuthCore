@@ -216,21 +216,18 @@ export class PasswordManagementService {
       );
     }
 
-    const lockKey = this.loginSecurityService.keyFor(auth.userId, '');
-    const lockedUntil = await this.loginSecurityService.getActiveLock(lockKey);
-    if (lockedUntil) {
-      throw this.loginSecurityService.lockedException(lockedUntil);
-    }
-    const isCurrentCorrect = await this.passwordService.verify(
+    const lockKey = await this.verifyCurrentPassword(
+      auth,
       account.passwordHash,
       dto.currentPassword,
+      client,
     );
-    if (!isCurrentCorrect) {
-      await this.rejectCurrentPassword(lockKey, auth, client);
+    // An admin-required change is never blocked by the minimum password age.
+    if (!account.user.mustChangePassword) {
+      await this.passwordValidationService.assertMinimumAgeReached(
+        account.user.passwordChangedAt,
+      );
     }
-    await this.passwordValidationService.assertMinimumAgeReached(
-      account.user.passwordChangedAt,
-    );
 
     await this.assertNewPasswordAllowed(dto.newPassword, account);
     const newHash = await this.passwordService.hash(dto.newPassword);
@@ -356,6 +353,68 @@ export class PasswordManagementService {
       account.user,
       { passwordHash: account.passwordHash, history: account.history },
     );
+  }
+
+  /**
+   * Confirms a sensitive action with the user's current password. Wrong
+   * passwords count toward the sign-in lockout (429 once locked), so a stolen
+   * access token can't be used to guess it. Returns the lockout key.
+   */
+  async verifyCurrentPassword(
+    auth: AuthContext,
+    passwordHash: string,
+    password: string,
+    client: ClientInfo,
+  ): Promise<string> {
+    const lockKey = this.loginSecurityService.keyFor(auth.userId, '');
+    const lockedUntil = await this.loginSecurityService.getActiveLock(lockKey);
+    if (lockedUntil) {
+      throw this.loginSecurityService.lockedException(lockedUntil);
+    }
+    if (!(await this.passwordService.verify(passwordHash, password))) {
+      await this.rejectCurrentPassword(lockKey, auth, client);
+    }
+    return lockKey;
+  }
+
+  /**
+   * Admin "reset password": sends the user the normal password-reset email
+   * (code or link) right away. 400 when the account can't reset its password.
+   */
+  async sendResetByAdmin(
+    user: UserResponseDto,
+  ): Promise<{ expiresInMinutes: number }> {
+    if (!RESETTABLE_STATUSES.has(user.status)) {
+      throw new AppException(
+        HttpStatus.BAD_REQUEST,
+        ErrorCode.AccountActionNotAllowed,
+        `A ${user.status} account cannot reset its password`,
+      );
+    }
+    const { secret, ttlMinutes } = await this.passwordResetService.issue(
+      user.id,
+    );
+    const isLink =
+      this.passwordResetService.method === PasswordResetMethod.Link;
+    await this.send(
+      user,
+      isLink ? 'password-reset-link' : 'password-reset-code',
+      () =>
+        isLink
+          ? passwordResetLinkEmail({
+              appName: this.registration.appName,
+              firstName: user.firstName,
+              link: this.buildResetLink(secret),
+              ttlMinutes,
+            })
+          : passwordResetCodeEmail({
+              appName: this.registration.appName,
+              firstName: user.firstName,
+              code: secret,
+              ttlMinutes,
+            }),
+    );
+    return { expiresInMinutes: ttlMinutes };
   }
 
   private async rejectCurrentPassword(

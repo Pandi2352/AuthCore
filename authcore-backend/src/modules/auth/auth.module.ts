@@ -80,6 +80,12 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
     // Every route requires an access token unless marked @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
-  exports: [AccessTokenService],
+  exports: [
+    AccessTokenService,
+    LoginSecurityService,
+    PasswordManagementService,
+    RefreshTokenCookieService,
+    AccountEligibilityService,
+  ],
 })
 export class AuthModule {}

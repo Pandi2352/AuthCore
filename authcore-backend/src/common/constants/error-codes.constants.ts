@@ -55,6 +55,18 @@ export enum ErrorCode {
   AuthPasswordReused = 'AUTH_PASSWORD_REUSED',
   AuthPasswordChangedTooRecently = 'AUTH_PASSWORD_CHANGED_TOO_RECENTLY',
   AuthPasswordExpired = 'AUTH_PASSWORD_EXPIRED',
+  AuthAccountPendingDeletion = 'AUTH_ACCOUNT_PENDING_DELETION',
+
+  // Account self-service
+  AccountInvalidCode = 'ACCOUNT_INVALID_CODE',
+  AccountCodeAttemptsExceeded = 'ACCOUNT_CODE_ATTEMPTS_EXCEEDED',
+  AccountEmailInUse = 'ACCOUNT_EMAIL_IN_USE',
+  AccountActionNotAllowed = 'ACCOUNT_ACTION_NOT_ALLOWED',
+
+  // Invites
+  InviteInvalid = 'INVITE_INVALID',
+  InviteNotPending = 'INVITE_NOT_PENDING',
+  InviteResendTooSoon = 'INVITE_RESEND_TOO_SOON',
 
   // Password policy
   InvalidPasswordPolicy = 'INVALID_PASSWORD_POLICY',

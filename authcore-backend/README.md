@@ -214,6 +214,19 @@ Password rules themselves (length, complexity, history, expiry) are not env vars
 | --- | --- | --- |
 | `ACCESS_INHERIT_PARENT_GROUPS` | `false` | `true`: members of a sub-group also get the roles of its parent groups |
 
+### Account self-service and invites
+
+| Variable | Default | Rule |
+| --- | --- | --- |
+| `ACCOUNT_CODE_TTL_MINUTES` | `15` | 5–60; email-change / recovery code validity |
+| `ACCOUNT_CODE_MAX_ATTEMPTS` | `5` | 3–10 |
+| `ACCOUNT_CODE_RESEND_COOLDOWN_SECONDS` | `60` | 30–3600 |
+| `ACCOUNT_DELETION_GRACE_DAYS` | `14` | 0–90; "delete my account" → permanent purge (0 = next run) |
+| `ACCOUNT_PURGE_INTERVAL_MINUTES` | `60` | 1–1440 |
+| `INVITE_ACCEPT_URL` | `http://localhost:5173/accept-invite` | Frontend page for invite links |
+| `INVITE_TTL_DAYS` | `7` | 1–30 |
+| `INVITE_RESEND_COOLDOWN_SECONDS` | `60` | 30–3600 |
+
 ### Mail
 
 | Variable | Default | Rule |
@@ -881,7 +894,7 @@ npm run users:role -- jane@example.com USER
 
 **Model:** User → Group → Role → Permission. A user's permissions are the union over all their groups' roles (active, non-deleted only, no duplicates). With `ACCESS_INHERIT_PARENT_GROUPS=true`, members of a sub-group also get the roles of its parent groups (off by default).
 
-**Who may call what:** every endpoint needs a permission, checked by the global guard with `@RequirePermissions('ROLE_CREATE')`. Users with `role: ADMIN` (from `npm run users:role -- <email> ADMIN`) pass every check, so the service can't be locked out. On startup AuthCore seeds 18 system permissions (`ROLE_*`, `PERMISSION_*`, `GROUP_*`, `ACCESS_MAPPING_READ / ASSIGN / REVOKE`, `ACCESS_AUDIT_READ`, `PASSWORD_POLICY_READ / MANAGE`) and two system roles: `ACCESS_CONTROL_ADMIN` (the 16 access-control permissions) and `PASSWORD_POLICY_ADMIN` (the 2 password-policy ones). System entities can't be edited or deleted.
+**Who may call what:** every endpoint needs a permission, checked by the global guard with `@RequirePermissions('ROLE_CREATE')`. Users with `role: ADMIN` (from `npm run users:role -- <email> ADMIN`) pass every check, so the service can't be locked out. On startup AuthCore seeds 24 system permissions (`ROLE_*`, `PERMISSION_*`, `GROUP_*`, `ACCESS_MAPPING_READ / ASSIGN / REVOKE`, `ACCESS_AUDIT_READ`, `PASSWORD_POLICY_READ / MANAGE`, `USER_READ / CREATE / UPDATE / DELETE / PASSWORD_MANAGE / INVITE`) and three system roles: `ACCESS_CONTROL_ADMIN`, `PASSWORD_POLICY_ADMIN` and `USER_ADMIN`. System entities can't be edited or deleted.
 
 | Area | Endpoints |
 | --- | --- |
@@ -916,6 +929,62 @@ npm run users:role -- jane@example.com USER
 - `GET / PATCH / DELETE /roles/key/:roleKey`: the same as by id, addressed by role key.
 - `PATCH /roles/bulk`: up to 100 role updates; all validated first, nothing applied if any fails (`400 BULK_OPERATION_FAILED` with `roles.<index>.<field>`).
 - `POST /roles/setup`: create or update (matched by roleKey) a role and assign its groups and permissions in one call; `replaceAssignments` makes the lists complete. Validated before anything is written.
+
+### My account: `/api/v1/users/me` and `/api/v1/account/recovery`
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /users/me` | Profile, status, preferences |
+| `PATCH /users/me` | firstName, lastName, username (registration rules; `null` removes lastName / username) |
+| `PATCH /users/me/preferences` | language, timezone (IANA), notifications.productUpdates / loginAlerts |
+| `POST /users/me/email/change` | `{ newEmail, currentPassword }` → 6-digit code to the **new** address (nothing changes yet) |
+| `POST /users/me/email/confirm` | `{ code }` → email changed (verified); the old address gets a notice |
+| `POST /users/me/deactivate` | `{ currentPassword, reason? }` → INACTIVE, signed out everywhere |
+| `DELETE /users/me` | `{ currentPassword, reason? }` → deactivated now, permanently deleted after `ACCOUNT_DELETION_GRACE_DAYS` |
+| `POST /account/recovery/request` | public `{ email }`: same answer for every email; code only for accounts the user closed themselves |
+| `POST /account/recovery/confirm` | public `{ email, code }` → ACTIVE again, scheduled deletion cancelled |
+
+- Sensitive actions need the current password; wrong ones count toward the sign-in lockout.
+- Codes: HMAC-stored, `ACCOUNT_CODE_TTL_MINUTES`, `ACCOUNT_CODE_MAX_ATTEMPTS` wrong tries, `ACCOUNT_CODE_RESEND_COOLDOWN_SECONDS` between emails (429 with Retry-After).
+- Sign-in of a closed account: `403 AUTH_ACCOUNT_INACTIVE` (mentions recovery) or `403 AUTH_ACCOUNT_PENDING_DELETION`. Accounts an admin suspended / banned / deactivated cannot self-recover.
+- The last active ADMIN cannot deactivate or delete themselves.
+- **Permanent deletion** (scheduled purge every `ACCOUNT_PURGE_INTERVAL_MINUTES`, one instance at a time via a lock) removes the user, sessions, group memberships, reset / verification / account codes, expiry reminders and sign-in attempts. Audit logs are kept.
+
+### User administration: `/api/v1/admin/users`
+
+Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWORD_MANAGE` (system role `USER_ADMIN` has all; ADMIN passes everything).
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /admin/users` | List: search (email, username, names), status, role, source, isEmailVerified, isPendingDeletion, `deleted=EXCLUDE\|ONLY\|INCLUDE`, dates, sort |
+| `GET /admin/users/:id` | User info: profile, status history, active sessions, groups, effective permissions, sign-in lock |
+| `POST /admin/users` | Create: ACTIVE, initial password (policy; never emailed), verified email and "must change password" by default, optional groups and welcome email |
+| `PATCH /admin/users/:id` | Names, username, email (old address notified) |
+| `PATCH /admin/users/:id/status` | ACTIVE / INACTIVE / SUSPENDED / BANNED + reason (emailed unless `notifyUser: false`); non-ACTIVE signs out everywhere |
+| `PATCH /admin/users/:id/role` | ADMIN / USER: **ADMIN callers only** |
+| `POST /admin/users/:id/reset-password` | Sends the normal password-reset email |
+| `POST /admin/users/:id/force-password-reset` | Silent: must change at next sign-in (only change-password, /me, logout work until then); signs out unless `signOutAllSessions: false` |
+| `POST /admin/users/:id/unlock` | Clears the failed-sign-in lock |
+| `GET /admin/users/:id/sessions` · `POST /admin/users/:id/sessions/revoke` | Active sessions; sign out everywhere |
+| `DELETE /admin/users/:id` · `POST /admin/users/:id/restore` | Soft delete (cannot sign in, hidden) / restore |
+| `DELETE /admin/users/:id/permanent` | Erase a soft-deleted user or an account pending deletion (409 otherwise) |
+| `POST /admin/users/deletion-purge/run` | Run the scheduled purge now |
+
+Guard rails: admins can't act on their own account here (use `/users/me`); only ADMIN users manage ADMIN accounts; the last active ADMIN can't be suspended, demoted or deleted. Every action is in the audit log (`GET /access-control/audit-logs?entityType=USER`).
+
+### User invites: `/api/v1/user-invites`
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /user-invites` | `{ email, firstName?, lastName?, groupIds?, message? }` → email with `INVITE_ACCEPT_URL?token=…`, valid `INVITE_TTL_DAYS` |
+| `POST /user-invites/bulk` | Up to 100 people; registered / already invited / repeated emails skipped with a reason |
+| `GET /user-invites` · `GET /user-invites/:id` | List (status PENDING / ACCEPTED / REVOKED / EXPIRED, invitedBy, search, dates, sort) / details |
+| `POST /user-invites/:id/resend` | New link (old one stops working), new expiry; `INVITE_RESEND_COOLDOWN_SECONDS` |
+| `POST /user-invites/:id/revoke` · `DELETE /user-invites/:id` | Revoke a pending invite / delete (accepted invites are kept) |
+| `POST /user-invites/public/info` | Public `{ token }`: email, inviter, expiry, status for the accept page |
+| `POST /user-invites/accept` | Public `{ token, password, confirmPassword, firstName?, lastName?, username? }` → ACTIVE, verified account in the invite's groups |
+
+Needs `USER_INVITE` (send / resend / revoke / delete) and `USER_READ` (list / details). Tokens are HMAC-stored and travel in request bodies only (never in URLs or logs). Groups on an invite follow the no-escalation rule; accepting works once (atomic).
 
 ## 12. Deployment
 

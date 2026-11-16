@@ -30,6 +30,13 @@ export class AccountEligibilityService {
       message: 'Verify your email address before signing in',
     };
 
+    if (user.deletionScheduledAt) {
+      return {
+        code: ErrorCode.AuthAccountPendingDeletion,
+        message: `This account is scheduled for deletion on ${user.deletionScheduledAt.toISOString().slice(0, 10)}. Use account recovery to keep it.`,
+      };
+    }
+
     switch (user.status) {
       case UserStatus.Active:
         return this.registration.emailVerification !== 'none' &&
@@ -52,7 +59,7 @@ export class AccountEligibilityService {
         return {
           code: ErrorCode.AuthAccountInactive,
           message:
-            'Your account is deactivated. Contact support to reactivate it.',
+            'Your account is deactivated. If you deactivated it yourself, reactivate it with account recovery; otherwise contact support.',
         };
       case UserStatus.Rejected:
       case UserStatus.Banned:

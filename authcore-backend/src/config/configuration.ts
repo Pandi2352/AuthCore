@@ -159,6 +159,24 @@ export const mailConfig = registerAs('mail', () => ({
   },
 }));
 
+export const accountConfig = registerAs('account', () => ({
+  codeTtlMinutes: Number(env('ACCOUNT_CODE_TTL_MINUTES')),
+  codeMaxAttempts: Number(env('ACCOUNT_CODE_MAX_ATTEMPTS')),
+  codeResendCooldownSeconds: Number(
+    env('ACCOUNT_CODE_RESEND_COOLDOWN_SECONDS'),
+  ),
+  deletionGraceDays: Number(env('ACCOUNT_DELETION_GRACE_DAYS')),
+  purgeIntervalMinutes: Number(env('ACCOUNT_PURGE_INTERVAL_MINUTES')),
+  tokenSecret: env('VERIFICATION_TOKEN_SECRET'),
+}));
+
+export const inviteConfig = registerAs('invite', () => ({
+  acceptUrl: env('INVITE_ACCEPT_URL'),
+  ttlDays: Number(env('INVITE_TTL_DAYS')),
+  resendCooldownSeconds: Number(env('INVITE_RESEND_COOLDOWN_SECONDS')),
+  tokenSecret: env('VERIFICATION_TOKEN_SECRET'),
+}));
+
 export const accessControlConfig = registerAs('accessControl', () => ({
   inheritParentGroups: env('ACCESS_INHERIT_PARENT_GROUPS') === 'true',
 }));
@@ -214,6 +232,8 @@ export const configModuleOptions: ConfigModuleOptions = {
     lifecycleConfig,
     schedulerConfig,
     accessControlConfig,
+    accountConfig,
+    inviteConfig,
     performanceConfig,
     loggingConfig,
     swaggerConfig,

@@ -21,41 +21,41 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Authentication guards *(global `JwtAuthGuard`, secure by default)*
 - [x] Authorization guards *(`@RequirePermissions()` (groups → roles → permissions) and `@Roles()` in the global guard; ADMIN passes)*
 - [x] Custom decorators *(`@Public()`, `@CurrentUser()`, `@ClientInfoParam()`, `@ResponseMessage()`, ...)*
-- [ ] Interceptors
-- [ ] Middleware
-- [ ] Request ID generation
-- [ ] Structured logging (Pino/Winston)
-- [ ] Configuration module
-- [ ] MongoDB connection module
+- [x] Interceptors *(request context, timeout, response envelope)*
+- [x] Middleware *(request ID, access log, shutdown, security (methods, 415, NoSQL keys), body-parser errors)*
+- [x] Request ID generation *(`X-Request-Id` (incoming value reused when safe), in every log line and response)*
+- [x] Structured logging (Pino/Winston) *(Winston: JSON / pretty, levels, redaction of secrets)*
+- [x] Configuration module *(`@nestjs/config` + Joi validation, typed namespaces; app refuses to start on bad config)*
+- [x] MongoDB connection module *(pool size, timeouts, retry, query timeout plugin, readiness check)*
 - [ ] Redis connection module
-- [ ] Database indexes
-- [ ] TTL indexes
-- [ ] Health check endpoints
-- [ ] Swagger/OpenAPI documentation
-- [ ] API versioning
+- [x] Database indexes *(declared on schemas; `npm run db:indexes` / `db:indexes:apply` for production)*
+- [x] TTL indexes *(verification codes, password resets, login attempts, reminder records)*
+- [x] Health check endpoints *(`/health`, `/health/live`, `/health/ready` (terminus))*
+- [x] Swagger/OpenAPI documentation *(`/api/docs` when SWAGGER_ENABLED (never in production), `npm run openapi:export`)*
+- [x] API versioning *(URI versioning: `/api/v1/...`)*
 - [ ] File storage integration
 
 ## 2. Identity & User Management Module
 
 - [x] User registration *(`POST /api/v1/auth/register`)*
-- [ ] User login identity (email/username/mobile)
-- [ ] User profile management
+- [x] User login identity (email/username/mobile) *(email or username (LOGIN_IDENTIFIERS); mobile needs an SMS provider (later))*
+- [x] User profile management *(`GET`/`PATCH /api/v1/users/me`)*
 - [x] Get current user profile *(`GET /api/v1/auth/me`)*
-- [ ] Update user profile
-- [ ] Change email address
+- [x] Update user profile *(names, username (same rules as registration))*
+- [x] Change email address *(`POST /users/me/email/change` + `/confirm`: code to the new address, old address notified)*
 - [ ] Change mobile number
 - [x] Email verification status
 - [ ] Mobile number verification
 - [x] Account activation *(email verification and/or admin approval → `ACTIVE`; CLI approve/reject)*
-- [ ] Account deactivation
-- [ ] Account suspension
-- [ ] Account banning
-- [ ] Account soft deletion
-- [ ] Account permanent deletion
-- [ ] Account recovery
+- [x] Account deactivation *(`POST /users/me/deactivate` (self) or admin status INACTIVE)*
+- [x] Account suspension *(`PATCH /admin/users/:id/status` SUSPENDED)*
+- [x] Account banning *(status BANNED)*
+- [x] Account soft deletion *(`DELETE /users/me` (scheduled, recoverable) and `DELETE /admin/users/:id` (restorable))*
+- [x] Account permanent deletion *(scheduled purge after ACCOUNT_DELETION_GRACE_DAYS; `DELETE /admin/users/:id/permanent`)*
+- [x] Account recovery *(`POST /account/recovery/request` + `/confirm` (self-closed accounts only))*
 - [ ] User avatar management
-- [ ] User preferences
-- [ ] User status management
+- [x] User preferences *(`PATCH /users/me/preferences`: language, timezone, notifications)*
+- [x] User status management *(status reason / by / at; eligibility rules on sign-in, refresh and every request)*
 
 ## 3. Authentication Module
 
@@ -102,7 +102,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Email service integration *(`MailService`: SMTP + development outbox)*
 - [x] SMTP configuration
 - [ ] Email templates
-- [ ] Welcome email
+- [x] Welcome email *(admin-created accounts (optional))*
 - [x] Email verification email
 - [x] Password reset email *(code or link; `PASSWORD_RESET_METHOD`)*
 - [x] Password changed notification
@@ -229,17 +229,17 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 
 ## 12. Admin Management Module
 
-- [ ] Admin login
-- [ ] Admin user listing
-- [ ] Search and filter users
-- [ ] View user details
-- [ ] Activate/deactivate users
-- [ ] Suspend/ban users
-- [ ] Unlock user accounts
-- [ ] Assign/remove user roles
-- [ ] Manage permissions
-- [ ] Revoke user sessions
-- [ ] Force password reset
+- [x] Admin login *(same sign-in; admin rights by ADMIN role or USER_* permissions)*
+- [x] Admin user listing *(`GET /api/v1/admin/users`)*
+- [x] Search and filter users *(search, status, role, source, verified, pending deletion, deleted, dates, sort)*
+- [x] View user details *(`GET /admin/users/:id`: sessions, groups, permissions, lock)*
+- [x] Activate/deactivate users *(`PATCH /admin/users/:id/status`)*
+- [x] Suspend/ban users *(same endpoint, reason emailed)*
+- [x] Unlock user accounts *(`POST /admin/users/:id/unlock`)*
+- [x] Assign/remove user roles *(`PATCH /admin/users/:id/role` (ADMIN / USER); RBAC roles via groups)*
+- [x] Manage permissions *(access-control module)*
+- [x] Revoke user sessions *(`POST /admin/users/:id/sessions/revoke`)*
+- [x] Force password reset *(`POST /admin/users/:id/force-password-reset` (silent) + `/reset-password` (email))*
 - [ ] Manage organizations
 - [ ] View audit logs
 - [ ] View login history

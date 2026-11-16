@@ -4,7 +4,12 @@ import type { HydratedDocument } from 'mongoose';
 import { BaseSchema, baseSchemaOptions } from '@database/schemas/base.schema';
 
 import { UserRole } from '../enums/user-role.enum';
+import { UserSource } from '../enums/user-source.enum';
 import { UserStatus } from '../enums/user-status.enum';
+import {
+  DEFAULT_USER_PREFERENCES,
+  type UserPreferences,
+} from '../interfaces/user-preferences.interface';
 
 @Schema({ ...baseSchemaOptions, collection: 'users' })
 export class User extends BaseSchema {
@@ -79,9 +84,50 @@ export class User extends BaseSchema {
   @Prop({ type: Date, default: null })
   lastLoginAt!: Date | null;
 
+  /** Language, timezone and notification choices (see UserPreferences). */
+  @Prop({
+    type: Object,
+    default: () => structuredClone(DEFAULT_USER_PREFERENCES),
+  })
+  preferences!: UserPreferences;
+
+  /** Set by an admin ("force password reset") or on admin-created accounts. */
+  @Prop({ required: true, default: false })
+  mustChangePassword!: boolean;
+
+  /** Why the status last changed (e.g. suspension reason), who changed it and when. */
+  @Prop({ type: String, default: null, maxlength: 500 })
+  statusReason!: string | null;
+
+  /** User id of the admin, the user's own id (self-deactivation) or "system". */
+  @Prop({ type: String, default: null })
+  statusChangedBy!: string | null;
+
+  @Prop({ type: Date, default: null })
+  statusChangedAt!: Date | null;
+
+  /** The user asked to delete the account: purged after this date unless recovered. */
+  @Prop({ type: Date, default: null, index: true })
+  deletionScheduledAt!: Date | null;
+
+  /** How the account was created. */
+  @Prop({
+    type: String,
+    enum: Object.values(UserSource),
+    default: UserSource.Registration,
+  })
+  source!: UserSource;
+
+  /** Admin / inviter user id for ADMIN and INVITE accounts. */
+  @Prop({ type: String, default: null })
+  createdBy!: string | null;
+
   /** Soft delete. A deleted user is treated as not existing (e.g. can't sign in). */
   @Prop({ type: Date, default: null, index: true })
   deletedAt!: Date | null;
+
+  @Prop({ type: String, default: null })
+  deletedBy!: string | null;
 }
 
 export type UserDocument = HydratedDocument<User>;

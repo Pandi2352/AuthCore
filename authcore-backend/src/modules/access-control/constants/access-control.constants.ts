@@ -232,9 +232,54 @@ function toSystemPermissions(
   );
 }
 
+/** Permissions protecting user administration and invites. */
+export const USER_PERMISSIONS = {
+  Read: 'USER_READ',
+  Create: 'USER_CREATE',
+  Update: 'USER_UPDATE',
+  Delete: 'USER_DELETE',
+  PasswordManage: 'USER_PASSWORD_MANAGE',
+  Invite: 'USER_INVITE',
+} as const;
+
+const USER_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
+  USER_READ: [
+    'View users',
+    'List and view users, their sessions, groups and invites',
+    'user',
+    'READ',
+  ],
+  USER_CREATE: ['Create users', 'Create user accounts', 'user', 'CREATE'],
+  USER_UPDATE: [
+    'Edit users',
+    'Edit users, change their status, unlock them, sign out their sessions',
+    'user',
+    'UPDATE',
+  ],
+  USER_DELETE: [
+    'Delete users',
+    'Delete, restore and permanently delete users',
+    'user',
+    'DELETE',
+  ],
+  USER_PASSWORD_MANAGE: [
+    'Manage user passwords',
+    'Send password resets and force password changes',
+    'user',
+    'MANAGE',
+  ],
+  USER_INVITE: [
+    'Invite users',
+    'Send, resend, revoke and delete invites',
+    'user-invite',
+    'CREATE',
+  ],
+};
+
 export const SYSTEM_PERMISSIONS = [
   ...toSystemPermissions('access-control', SYSTEM_PERMISSION_DETAILS),
   ...toSystemPermissions('password-policy', PASSWORD_POLICY_PERMISSION_DETAILS),
+  ...toSystemPermissions('users', USER_PERMISSION_DETAILS),
 ];
 
 /** Seeded roles: protected, each holding the listed system permissions. */
@@ -254,6 +299,14 @@ export const SYSTEM_ROLES = [
     description:
       'Manages the password policy, expiry and reminder scheduler. System role: cannot be edited or deleted.',
     permissionKeys: Object.keys(PASSWORD_POLICY_PERMISSION_DETAILS),
+  },
+  {
+    roleKey: 'USER_ADMIN',
+    roleName: 'User Administrator',
+    category: SYSTEM_ROLE_CATEGORY,
+    description:
+      'Manages user accounts and invites. System role: cannot be edited or deleted.',
+    permissionKeys: Object.keys(USER_PERMISSION_DETAILS),
   },
 ];
 

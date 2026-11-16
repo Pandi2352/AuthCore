@@ -2,16 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 
-import { UserResponseDto } from './dto/user-response.dto';
+import { AdminUserResponseDto, UserResponseDto } from './dto/user-response.dto';
 import { UserRole } from './enums/user-role.enum';
+import { UserSource } from './enums/user-source.enum';
 import { UserStatus } from './enums/user-status.enum';
 import { CreateUserInput } from './interfaces/create-user-input.interface';
 import {
   LoginLookup,
   UserCredentials,
 } from './interfaces/user-credentials.interface';
-import { toUserResponse } from './mappers/user.mapper';
+import type { UserPreferences } from './interfaces/user-preferences.interface';
+import { toAdminUserResponse, toUserResponse } from './mappers/user.mapper';
 import { User } from './schemas/user.schema';
+
+/** Profile fields a user / admin can change (null clears an optional field). */
+export interface ProfileChanges {
+  firstName?: string;
+  lastName?: string | null;
+  username?: string | null;
+  email?: string;
+}
 
 /** Max users returned by listPendingApproval(). */
 const PENDING_LIST_LIMIT = 100;
@@ -32,6 +42,7 @@ export class UsersService {
    * checks (two requests at once) fails on the unique index → 409.
    */
   async create(input: CreateUserInput): Promise<UserResponseDto> {
+    const isVerified = input.isEmailVerified ?? false;
     const user = await this.userModel.create({
       email: input.email,
       username: input.username,
@@ -40,8 +51,263 @@ export class UsersService {
       passwordHash: input.passwordHash,
       status: input.status,
       passwordChangedAt: new Date(),
+      isEmailVerified: isVerified,
+      emailVerifiedAt: isVerified ? new Date() : null,
+      mustChangePassword: input.mustChangePassword ?? false,
+      source: input.source ?? UserSource.Registration,
+      createdBy: input.createdBy ?? null,
     });
     return toUserResponse(user);
+  }
+
+  /** Including soft-deleted users (admin use). */
+  async findAdminById(id: string): Promise<AdminUserResponseDto | null> {
+    const user = await this.userModel.findById(id).lean();
+    return user ? toAdminUserResponse(user) : null;
+  }
+
+  async isUsernameTakenByOther(
+    username: string,
+    excludeId: string,
+  ): Promise<boolean> {
+    return (
+      (await this.userModel.exists({ username, _id: { $ne: excludeId } })) !==
+      null
+    );
+  }
+
+  async isEmailTakenByOther(
+    email: string,
+    excludeId: string,
+  ): Promise<boolean> {
+    return (
+      (await this.userModel.exists({ email, _id: { $ne: excludeId } })) !== null
+    );
+  }
+
+  /** Profile fields; null values remove optional fields (lastName / username). */
+  async updateProfile(
+    id: string,
+    changes: ProfileChanges,
+  ): Promise<UserResponseDto | null> {
+    const set: Record<string, unknown> = {};
+    const unset: Record<string, ''> = {};
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === undefined) {
+        continue;
+      }
+      if (value === null) {
+        unset[key] = '';
+      } else {
+        set[key] = value;
+      }
+    }
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { _id: id },
+        {
+          ...(Object.keys(set).length ? { $set: set } : {}),
+          ...(Object.keys(unset).length ? { $unset: unset } : {}),
+        },
+        { new: true },
+      )
+      .lean();
+    return user ? toUserResponse(user) : null;
+  }
+
+  async updatePreferences(
+    id: string,
+    preferences: UserPreferences,
+  ): Promise<UserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: null },
+        { $set: { preferences } },
+        { new: true },
+      )
+      .lean();
+    return user ? toUserResponse(user) : null;
+  }
+
+  /** Sets a confirmed new email (verified). Conditional on the old one. */
+  async changeEmail(
+    id: string,
+    fromEmail: string,
+    toEmail: string,
+  ): Promise<UserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { _id: id, email: fromEmail, deletedAt: null },
+        {
+          $set: {
+            email: toEmail,
+            isEmailVerified: true,
+            emailVerifiedAt: new Date(),
+          },
+        },
+        { new: true },
+      )
+      .lean();
+    return user ? toUserResponse(user) : null;
+  }
+
+  /**
+   * Status change with reason / who / when. With `fromStatuses`, only applies
+   * when the current status is one of them. null when nothing matched.
+   */
+  async setStatus(
+    id: string,
+    status: UserStatus,
+    change: {
+      reason: string | null;
+      changedBy: string;
+      fromStatuses?: UserStatus[];
+    },
+  ): Promise<UserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        {
+          _id: id,
+          deletedAt: null,
+          ...(change.fromStatuses
+            ? { status: { $in: change.fromStatuses } }
+            : {}),
+        },
+        {
+          $set: {
+            status,
+            statusReason: change.reason,
+            statusChangedBy: change.changedBy,
+            statusChangedAt: new Date(),
+            ...(status === UserStatus.Active
+              ? { deletionScheduledAt: null }
+              : {}),
+          },
+        },
+        { new: true },
+      )
+      .lean();
+    return user ? toUserResponse(user) : null;
+  }
+
+  /** The user asked for deletion: deactivated now, purged at `at` unless recovered. */
+  async scheduleDeletion(
+    id: string,
+    at: Date,
+    reason: string | null,
+  ): Promise<UserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: null, deletionScheduledAt: null },
+        {
+          $set: {
+            status: UserStatus.Inactive,
+            deletionScheduledAt: at,
+            statusReason: reason ?? 'Deletion requested by the user',
+            statusChangedBy: id,
+            statusChangedAt: new Date(),
+          },
+        },
+        { new: true },
+      )
+      .lean();
+    return user ? toUserResponse(user) : null;
+  }
+
+  async setMustChangePassword(
+    id: string,
+    value: boolean,
+  ): Promise<UserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: null },
+        { $set: { mustChangePassword: value } },
+        { new: true },
+      )
+      .lean();
+    return user ? toUserResponse(user) : null;
+  }
+
+  async setRoleById(
+    id: string,
+    role: UserRole,
+  ): Promise<UserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: null },
+        { $set: { role } },
+        { new: true },
+      )
+      .lean();
+    return user ? toUserResponse(user) : null;
+  }
+
+  /** ADMIN users that can still sign in (protects the last administrator). */
+  async countActiveAdmins(): Promise<number> {
+    return this.userModel.countDocuments({
+      role: UserRole.Admin,
+      status: UserStatus.Active,
+      deletedAt: null,
+    });
+  }
+
+  async softDelete(
+    id: string,
+    deletedBy: string,
+  ): Promise<AdminUserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: null },
+        { $set: { deletedAt: new Date(), deletedBy } },
+        { new: true },
+      )
+      .lean();
+    return user ? toAdminUserResponse(user) : null;
+  }
+
+  async restore(id: string): Promise<AdminUserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { _id: id, deletedAt: { $ne: null } },
+        { $set: { deletedAt: null, deletedBy: null } },
+        { new: true },
+      )
+      .lean();
+    return user ? toAdminUserResponse(user) : null;
+  }
+
+  /** Removes the user document for good (callers delete related data first). */
+  async hardDelete(id: string): Promise<boolean> {
+    return (await this.userModel.deleteOne({ _id: id })).deletedCount === 1;
+  }
+
+  /** Users whose self-requested deletion date has passed. */
+  async findDueForDeletion(now: Date, limit: number): Promise<string[]> {
+    const users = await this.userModel
+      .find({ deletionScheduledAt: { $ne: null, $lte: now } }, { _id: 1 })
+      .limit(limit)
+      .lean();
+    return users.map((u) => u._id);
+  }
+
+  /** Filtered, sorted page of users for admins. */
+  async listForAdmin(
+    filter: Record<string, unknown>,
+    sort: Record<string, 1 | -1>,
+    skip: number,
+    limit: number,
+  ): Promise<{ items: AdminUserResponseDto[]; total: number }> {
+    const [users, total] = await Promise.all([
+      this.userModel
+        .find(filter)
+        .collation({ locale: 'en', strength: 2 })
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.userModel.countDocuments(filter),
+    ]);
+    return { items: users.map(toAdminUserResponse), total };
   }
 
   async findByEmail(email: string): Promise<UserResponseDto | null> {
@@ -113,7 +379,11 @@ export class UsersService {
     const result = await this.userModel.updateOne(
       { _id: id, passwordHash: expectedHash, deletedAt: null },
       {
-        $set: { passwordHash: newHash, passwordChangedAt: new Date() },
+        $set: {
+          passwordHash: newHash,
+          passwordChangedAt: new Date(),
+          mustChangePassword: false,
+        },
         $push: {
           passwordHistory: {
             $each: [expectedHash],

@@ -137,6 +137,37 @@ export const envValidationSchema = Joi.object({
   SCHEDULER_ENABLED: Joi.boolean().default(true),
   // Access control: members of a sub-group also get the roles of its parent groups.
   ACCESS_INHERIT_PARENT_GROUPS: Joi.boolean().default(false),
+
+  // Account self-service: email-change / recovery codes, deletion grace period
+  ACCOUNT_CODE_TTL_MINUTES: Joi.number().integer().min(5).max(60).default(15),
+  ACCOUNT_CODE_MAX_ATTEMPTS: Joi.number().integer().min(3).max(10).default(5),
+  ACCOUNT_CODE_RESEND_COOLDOWN_SECONDS: Joi.number()
+    .integer()
+    .min(30)
+    .max(3600)
+    .default(60),
+  // Days between "delete my account" and the permanent purge (0 = next purge run)
+  ACCOUNT_DELETION_GRACE_DAYS: Joi.number()
+    .integer()
+    .min(0)
+    .max(90)
+    .default(14),
+  ACCOUNT_PURGE_INTERVAL_MINUTES: Joi.number()
+    .integer()
+    .min(1)
+    .max(1440)
+    .default(60),
+
+  // User invites
+  INVITE_ACCEPT_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .default('http://localhost:5173/accept-invite'),
+  INVITE_TTL_DAYS: Joi.number().integer().min(1).max(30).default(7),
+  INVITE_RESEND_COOLDOWN_SECONDS: Joi.number()
+    .integer()
+    .min(30)
+    .max(3600)
+    .default(60),
   SCHEDULER_POLL_SECONDS: Joi.number().integer().min(5).max(300).default(30),
 
   // Login (optional)

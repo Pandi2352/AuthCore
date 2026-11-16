@@ -241,3 +241,229 @@ ${footer}
     }),
   };
 }
+
+function codeEmail(params: {
+  appName: string;
+  firstName: string;
+  code: string;
+  ttlMinutes: number;
+  subject: string;
+  heading: string;
+  intro: string;
+  footer: string;
+}): MailContent {
+  const { appName, firstName, code, ttlMinutes } = params;
+  const intro = `${params.intro} It expires in ${String(ttlMinutes)} minutes.`;
+  return {
+    subject: params.subject,
+    text: `${greeting(firstName)}\n\n${intro}\n\n${code}\n\n${params.footer}\n`,
+    html: renderHtml({
+      appName,
+      heading: params.heading,
+      paragraphs: [greeting(firstName), intro],
+      highlightHtml: `<p style="margin:8px 0 24px;font-size:32px;letter-spacing:8px;font-weight:bold">${escapeHtml(code)}</p>`,
+      footer: params.footer,
+    }),
+  };
+}
+
+function noticeEmail(params: {
+  appName: string;
+  firstName: string;
+  subject: string;
+  heading: string;
+  paragraphs: string[];
+  footer?: string;
+}): MailContent {
+  const paragraphs = [greeting(params.firstName), ...params.paragraphs];
+  return {
+    subject: params.subject,
+    text: `${paragraphs.join('\n\n')}${params.footer ? `\n\n${params.footer}` : ''}\n`,
+    html: renderHtml({
+      appName: params.appName,
+      heading: params.heading,
+      paragraphs,
+      ...(params.footer ? { footer: params.footer } : {}),
+    }),
+  };
+}
+
+const NOT_YOU = "If you didn't do this, contact support right away.";
+
+export function emailChangeCodeEmail(params: {
+  appName: string;
+  firstName: string;
+  code: string;
+  ttlMinutes: number;
+}): MailContent {
+  return codeEmail({
+    ...params,
+    subject: `${params.code} is your ${params.appName} email change code`,
+    heading: 'Confirm your new email address',
+    intro: `Use this code to confirm this address as your new ${params.appName} sign-in email.`,
+    footer: "If you didn't ask for this, ignore this email: nothing changes.",
+  });
+}
+
+export function emailChangedNoticeEmail(params: {
+  appName: string;
+  firstName: string;
+  newEmail: string;
+}): MailContent {
+  return noticeEmail({
+    ...params,
+    subject: `Your ${params.appName} email address was changed`,
+    heading: 'Email address changed',
+    paragraphs: [
+      `The sign-in email of your ${params.appName} account was changed to ${params.newEmail}. This address will no longer receive account emails.`,
+    ],
+    footer: NOT_YOU,
+  });
+}
+
+export function accountDeactivatedEmail(params: {
+  appName: string;
+  firstName: string;
+}): MailContent {
+  return noticeEmail({
+    ...params,
+    subject: `Your ${params.appName} account was deactivated`,
+    heading: 'Account deactivated',
+    paragraphs: [
+      'Your account was deactivated and you were signed out on all devices. You can reactivate it any time with account recovery.',
+    ],
+    footer: NOT_YOU,
+  });
+}
+
+export function accountDeletionScheduledEmail(params: {
+  appName: string;
+  firstName: string;
+  deletionDate: Date;
+}): MailContent {
+  const date = params.deletionDate.toUTCString();
+  return noticeEmail({
+    ...params,
+    subject: `Your ${params.appName} account will be deleted`,
+    heading: 'Account deletion scheduled',
+    paragraphs: [
+      `As requested, your account and its data will be permanently deleted on ${date}. You were signed out on all devices.`,
+      'Changed your mind? Use account recovery before that date to keep your account.',
+    ],
+    footer: NOT_YOU,
+  });
+}
+
+export function accountRecoveryCodeEmail(params: {
+  appName: string;
+  firstName: string;
+  code: string;
+  ttlMinutes: number;
+}): MailContent {
+  return codeEmail({
+    ...params,
+    subject: `${params.code} is your ${params.appName} account recovery code`,
+    heading: 'Reactivate your account',
+    intro: `Use this code to reactivate your ${params.appName} account.`,
+    footer:
+      "If you didn't ask for this, ignore this email: your account stays as it is.",
+  });
+}
+
+export function accountRecoveredEmail(params: {
+  appName: string;
+  firstName: string;
+}): MailContent {
+  return noticeEmail({
+    ...params,
+    subject: `Your ${params.appName} account is active again`,
+    heading: 'Account reactivated',
+    paragraphs: [
+      'Your account was reactivated (any scheduled deletion was cancelled). You can sign in again.',
+    ],
+    footer: NOT_YOU,
+  });
+}
+
+export function accountStatusChangedEmail(params: {
+  appName: string;
+  firstName: string;
+  status: 'ACTIVE' | 'SUSPENDED' | 'BANNED' | 'INACTIVE';
+  reason: string | null;
+}): MailContent {
+  const lines: Record<typeof params.status, [string, string]> = {
+    ACTIVE: ['Account activated', 'Your account is active. You can sign in.'],
+    SUSPENDED: [
+      'Account suspended',
+      'Your account was suspended by an administrator and you were signed out.',
+    ],
+    BANNED: [
+      'Account blocked',
+      'Your account was blocked by an administrator and you were signed out.',
+    ],
+    INACTIVE: [
+      'Account deactivated',
+      'Your account was deactivated by an administrator and you were signed out.',
+    ],
+  };
+  const [heading, body] = lines[params.status];
+  return noticeEmail({
+    ...params,
+    subject: `${params.appName}: ${heading.toLowerCase()}`,
+    heading,
+    paragraphs: [body, ...(params.reason ? [`Reason: ${params.reason}`] : [])],
+    footer: 'Questions? Contact support.',
+  });
+}
+
+export function adminCreatedAccountEmail(params: {
+  appName: string;
+  firstName: string;
+  email: string;
+  mustChangePassword: boolean;
+}): MailContent {
+  return noticeEmail({
+    ...params,
+    subject: `An ${params.appName} account was created for you`,
+    heading: 'Your account is ready',
+    paragraphs: [
+      `An administrator created a ${params.appName} account for ${params.email}. Your administrator will give you the password.`,
+      ...(params.mustChangePassword
+        ? [
+            'You will be asked to choose your own password when you first sign in.',
+          ]
+        : []),
+    ],
+  });
+}
+
+export function userInviteEmail(params: {
+  appName: string;
+  firstName: string | null;
+  inviterName: string;
+  link: string;
+  expiresAt: Date;
+  message: string | null;
+}): MailContent {
+  const name = params.firstName ?? 'there';
+  const intro = `${params.inviterName} invited you to join ${params.appName}. Accept the invitation to create your account. The invitation is valid until ${params.expiresAt.toUTCString()}.`;
+  const paragraphs = [
+    `Hi ${name},`,
+    intro,
+    ...(params.message ? [`Message: ${params.message}`] : []),
+  ];
+  const safeLink = escapeHtml(params.link);
+  return {
+    subject: `${params.inviterName} invited you to ${params.appName}`,
+    text: `${paragraphs.join('\n\n')}\n\n${params.link}\n`,
+    html: renderHtml({
+      appName: params.appName,
+      heading: "You're invited",
+      paragraphs,
+      highlightHtml:
+        `<p style="margin:8px 0 16px"><a href="${safeLink}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px">Accept invitation</a></p>` +
+        `<p style="margin:0 0 16px;font-size:13px;color:#6b7280;word-break:break-all">${safeLink}</p>`,
+      footer: "If you weren't expecting this, you can ignore this email.",
+    }),
+  };
+}

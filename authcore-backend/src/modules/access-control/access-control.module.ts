@@ -59,6 +59,6 @@ import { RolesService } from './services/roles.service';
     AccessSeedService,
     RoleSetupService,
   ],
-  exports: [AccessResolverService],
+  exports: [AccessResolverService, AccessAuditService, AccessMappingsService],
 })
 export class AccessControlModule {}

@@ -32,6 +32,20 @@ export const API_TAGS = {
     description:
       'Users ↔ groups, roles ↔ groups, permissions ↔ roles; effective access and audit',
   },
+  Account: {
+    name: 'My Account',
+    description:
+      'Profile, preferences, email change, deactivation, deletion and account recovery',
+  },
+  UserAdmin: {
+    name: 'User Administration',
+    description:
+      'Manage users: list, create, edit, status, password resets, sessions, delete / restore',
+  },
+  UserInvites: {
+    name: 'User Invites',
+    description: 'Invite people by email; they accept and create their account',
+  },
   Sessions: {
     name: 'Sessions',
     description: 'My signed-in devices: list and sign out',

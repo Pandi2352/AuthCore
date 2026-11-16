@@ -79,15 +79,17 @@ export class AuthService {
   ) {}
 
   /** Password expiry under the current policy, for the sign-in / refresh response. */
-  private async passwordStatus(passwordChangedAt: Date): Promise<{
+  private async passwordStatus(user: UserResponseDto): Promise<{
     passwordExpiresAt: Date | null;
     isPasswordChangeRequired: boolean;
   }> {
-    const status =
-      await this.passwordValidationService.getExpiryStatus(passwordChangedAt);
+    const status = await this.passwordValidationService.getExpiryStatus(
+      user.passwordChangedAt,
+    );
     return {
       passwordExpiresAt: status.expiresAt,
-      isPasswordChangeRequired: status.isChangeRequired,
+      isPasswordChangeRequired:
+        status.isChangeRequired || user.mustChangePassword,
     };
   }
 
@@ -150,7 +152,7 @@ export class AuthService {
       accessToken,
       tokenType: 'Bearer',
       expiresIn,
-      ...(await this.passwordStatus(user.passwordChangedAt)),
+      ...(await this.passwordStatus(user)),
     };
     if (this.refreshTokenCookieService.isBodyDelivery) {
       body.refreshToken = session.refreshToken;
@@ -406,7 +408,7 @@ export class AuthService {
       accessToken,
       tokenType: 'Bearer',
       expiresIn,
-      ...(await this.passwordStatus(user.passwordChangedAt)),
+      ...(await this.passwordStatus(user)),
     };
     if (result.kind !== 'rotated') {
       return { body, rotation: null };

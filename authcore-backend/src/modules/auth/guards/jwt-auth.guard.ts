@@ -178,11 +178,13 @@ export class JwtAuthGuard implements CanActivate {
       const expiry = await this.passwordValidationService.getExpiryStatus(
         user.passwordChangedAt,
       );
-      if (expiry.isChangeRequired) {
+      if (expiry.isChangeRequired || user.mustChangePassword) {
         throw new AppException(
           HttpStatus.FORBIDDEN,
           ErrorCode.AuthPasswordExpired,
-          'Your password has expired. Change it to continue.',
+          user.mustChangePassword
+            ? 'An administrator requires you to change your password. Change it to continue.'
+            : 'Your password has expired. Change it to continue.',
         );
       }
     }
