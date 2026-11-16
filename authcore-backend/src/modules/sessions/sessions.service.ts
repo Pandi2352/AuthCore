@@ -23,6 +23,8 @@ const REFRESH_TOKEN_BYTES = 32;
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Rotated token hashes kept per session for reuse detection. */
 const ROTATED_HISTORY_SIZE = 100;
+/** Upper bound for session lists (MAX_SESSIONS_PER_USER is at most 100). */
+const MAX_LISTED_SESSIONS = 100;
 
 /**
  * Sessions = signed-in devices. Each holds the hash of its current refresh
@@ -158,6 +160,51 @@ export class SessionsService {
       };
     }
     return { kind: 'invalid' };
+  }
+
+  /**
+   * The user's active sessions, most recently used first. Bounded by
+   * MAX_SESSIONS_PER_USER (≤ 100), so no pagination is needed.
+   */
+  async listActiveForUser(userId: string): Promise<Session[]> {
+    return this.sessionModel
+      .find({ userId, revokedAt: null, expiresAt: { $gt: new Date() } })
+      .sort({ lastUsedAt: -1 })
+      .limit(MAX_LISTED_SESSIONS)
+      .lean();
+  }
+
+  /** One active session of the user, or null (unknown, someone else's, revoked or expired). */
+  async findActiveForUser(
+    sessionId: string,
+    userId: string,
+  ): Promise<Session | null> {
+    return this.sessionModel
+      .findOne({
+        _id: sessionId,
+        userId,
+        revokedAt: null,
+        expiresAt: { $gt: new Date() },
+      })
+      .lean();
+  }
+
+  /** Revokes one of the user's own active sessions. False if there was none to revoke. */
+  async revokeForUser(
+    sessionId: string,
+    userId: string,
+    reason: string,
+  ): Promise<boolean> {
+    const result = await this.sessionModel.updateOne(
+      {
+        _id: sessionId,
+        userId,
+        revokedAt: null,
+        expiresAt: { $gt: new Date() },
+      },
+      { $set: { revokedAt: new Date(), revokedReason: reason } },
+    );
+    return result.modifiedCount > 0;
   }
 
   /** True if the session exists, belongs to the user, and is neither revoked nor expired. */

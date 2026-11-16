@@ -21,6 +21,8 @@ import { AccessTokenService } from './services/access-token.service';
 import { AccountEligibilityService } from './services/account-eligibility.service';
 import { LoginSecurityService } from './services/login-security.service';
 import { RefreshTokenCookieService } from './services/refresh-token-cookie.service';
+import { SessionManagementService } from './services/session-management.service';
+import { SessionManagementController } from './session-management.controller';
 
 /** Clock skew tolerated when verifying exp / iat (seconds). */
 const JWT_CLOCK_TOLERANCE_SECONDS = 5;
@@ -53,7 +55,7 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
       }),
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, SessionManagementController],
   providers: [
     RegistrationService,
     AuthService,
@@ -61,6 +63,7 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
     AccessTokenService,
     LoginSecurityService,
     RefreshTokenCookieService,
+    SessionManagementService,
     // Every route requires an access token unless marked @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],

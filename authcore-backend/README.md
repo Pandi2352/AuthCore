@@ -754,7 +754,24 @@ Revoked sessions take effect immediately: their access tokens get `401 AUTH_SESS
 
 Frontend: if the access token has expired, call `/auth/refresh` and then log out; if refresh fails, the session is already unusable, so just clear the client state.
 
-Coming next: session list / revoke one session (Session Management).
+### Session management: `/api/v1/auth/sessions`
+
+A signed-in user's own devices. All routes require `Authorization: Bearer <accessToken>`.
+
+| Endpoint | Purpose | `data` |
+| --- | --- | --- |
+| `GET /auth/sessions` | List my active sessions, most recently used first | `SessionResponseDto[]` |
+| `GET /auth/sessions/:sessionId` | One of my sessions | `SessionResponseDto` |
+| `DELETE /auth/sessions/:sessionId` | Sign out that device | `{ revokedSessionId, isCurrentSession }` |
+
+Each session: `id`, `deviceName` (e.g. "Safari 18 on iOS 18.1"), `deviceType`, `browser`, `os`, `ipAddress` (sign-in), `lastIpAddress` (latest refresh), `signedInAt`, `lastUsedAt`, `expiresAt`, `isPersistent` (remember me), `isCurrent` (this device). Token hashes, token family ids and raw user agents are never returned.
+
+- Another user's session, or a revoked / expired one → `404 Session not found` (not 403, so ids can't be probed). Non-UUID ids → `400 INVALID_ID`.
+- Revoking a device: its access and refresh tokens stop working immediately (reason `revoked_by_user`).
+- Revoking the current device is the same as logout: reason `logout`, refresh cookie cleared, `isCurrentSession: true`.
+- Not paginated: the list is bounded by `MAX_SESSIONS_PER_USER` (≤ 100).
+
+Admin-side session management (any user's sessions) comes with the Admin module.
 
 ## 12. Deployment
 

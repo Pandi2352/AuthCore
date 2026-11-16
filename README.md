@@ -203,7 +203,8 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 🔄 Refresh token: rotation, reuse detection, CSRF origin check | ✅ Done |
 | 🛡️ Auth guard (secure by default) + GET /auth/me | ✅ Done |
 | 🚪 Logout + logout from all devices | ✅ Done |
-| 📱 Session management: list / revoke sessions (next) | ⏳ Not started |
+| 📱 Session management: list / view / revoke my devices | ✅ Done |
+| 🔐 Forgot / reset / change password (next) | ⏳ Not started |
 
 ---
 

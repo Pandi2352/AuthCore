@@ -1166,11 +1166,13 @@ Applied to every field of every entry, at any depth, before output:
 
 | What | Becomes |
 | --- | --- |
-| Keys containing `password`, `passwd`, `secret`, `token`, `authorization`, `cookie`, `apiKey` / `api_key`, `credential`, `privateKey`, `session`, or equal to `otp` / `pin` | `[REDACTED]` |
+| Keys containing `password`, `passwd`, `secret`, `token`, `authorization`, `cookie`, `apiKey` / `api_key`, `credential`, `privateKey`, or equal to `otp` / `pin` | `[REDACTED]` |
 | `scheme://user:pass@host` in any string | `scheme://[REDACTED]@host` |
 | `Bearer ...` / `Basic ...` | `Bearer [REDACTED]` |
 | JWTs (`eyJ...`) | `[REDACTED]` |
 | `password=...`, `"token": "..."`, `apiKey: ...` inside text | `password=[REDACTED]` |
+
+Session **ids** (`sessionId`) are deliberately not redacted: they are identifiers needed to investigate incidents, not secrets. Session **tokens** are covered by `token` and `cookie`.
 
 Words like "passwordless" or "tokens count" are not touched. Redaction is a safety net: still never log secrets on purpose.
 

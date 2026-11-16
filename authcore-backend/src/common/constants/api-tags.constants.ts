@@ -9,6 +9,10 @@ export const API_TAGS = {
     name: 'Auth',
     description: 'Registration and sign-in',
   },
+  Sessions: {
+    name: 'Sessions',
+    description: 'My signed-in devices: list and sign out',
+  },
   Health: {
     name: 'Health',
     description: 'Liveness and readiness checks for load balancers',

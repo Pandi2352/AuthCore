@@ -82,9 +82,9 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 ## 4. Session & Device Management Module
 
 - [x] Create user session
-- [ ] List active sessions
-- [ ] Get session details
-- [ ] Revoke individual session
+- [x] List active sessions *(`GET /api/v1/auth/sessions`, `isCurrent` marks this device)*
+- [x] Get session details *(`GET /api/v1/auth/sessions/:sessionId`)*
+- [x] Revoke individual session *(`DELETE /api/v1/auth/sessions/:sessionId`)*
 - [x] Revoke all sessions *(user: logout-all; admin version in Admin module)*
 - [x] Device identification
 - [x] Device information tracking

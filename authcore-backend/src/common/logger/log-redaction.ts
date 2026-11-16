@@ -4,7 +4,7 @@ export const REDACTED = '[REDACTED]';
 
 /** Keys whose values are never logged, at any depth. */
 const SENSITIVE_KEY =
-  /(password|passwd|secret|token|authorization|cookie|api[-_]?key|credential|private[-_]?key|session|^otp$|^pin$)/i;
+  /(password|passwd|secret|token|authorization|cookie|api[-_]?key|credential|private[-_]?key|^otp$|^pin$)/i;
 
 /** Patterns removed from any logged string (messages, stacks, values). */
 const SENSITIVE_STRING_PATTERNS: [RegExp, string][] = [
