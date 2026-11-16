@@ -40,6 +40,12 @@ export enum ErrorCode {
   AuthInvalidRefreshToken = 'AUTH_INVALID_REFRESH_TOKEN',
   AuthRefreshTokenReused = 'AUTH_REFRESH_TOKEN_REUSED',
   AuthInvalidOrigin = 'AUTH_INVALID_ORIGIN',
+
+  // Auth: access token (protected routes)
+  AuthAccessTokenMissing = 'AUTH_ACCESS_TOKEN_MISSING',
+  AuthAccessTokenInvalid = 'AUTH_ACCESS_TOKEN_INVALID',
+  AuthAccessTokenExpired = 'AUTH_ACCESS_TOKEN_EXPIRED',
+  AuthSessionRevoked = 'AUTH_SESSION_REVOKED',
 }
 
 /** Default code and safe client message for each HTTP status. */

@@ -160,6 +160,17 @@ export class SessionsService {
     return { kind: 'invalid' };
   }
 
+  /** True if the session exists, belongs to the user, and is neither revoked nor expired. */
+  async isActive(sessionId: string, userId: string): Promise<boolean> {
+    const session = await this.sessionModel.exists({
+      _id: sessionId,
+      userId,
+      revokedAt: null,
+      expiresAt: { $gt: new Date() },
+    });
+    return session !== null;
+  }
+
   /** Signs one session out. Returns false if it was already revoked. */
   async revoke(sessionId: string, reason: string): Promise<boolean> {
     const result = await this.sessionModel.updateOne(

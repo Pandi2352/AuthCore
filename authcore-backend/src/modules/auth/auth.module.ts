@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -10,6 +11,7 @@ import { UsersModule } from '@modules/users/users.module';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RegistrationService } from './registration.service';
 import {
   LoginAttempt,
@@ -59,6 +61,8 @@ const JWT_CLOCK_TOLERANCE_SECONDS = 5;
     AccessTokenService,
     LoginSecurityService,
     RefreshTokenCookieService,
+    // Every route requires an access token unless marked @Public().
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
   exports: [AccessTokenService],
 })

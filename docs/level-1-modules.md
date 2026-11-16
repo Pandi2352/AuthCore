@@ -18,9 +18,9 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [ ] Common response format
 - [ ] Common error response format
 - [ ] Custom exception classes
-- [ ] Authentication guards
+- [x] Authentication guards *(global `JwtAuthGuard`, secure by default)*
 - [ ] Authorization guards
-- [ ] Custom decorators
+- [x] Custom decorators *(`@Public()`, `@CurrentUser()`, `@ClientInfoParam()`, `@ResponseMessage()`, ...)*
 - [ ] Interceptors
 - [ ] Middleware
 - [ ] Request ID generation
@@ -40,7 +40,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] User registration *(`POST /api/v1/auth/register`)*
 - [ ] User login identity (email/username/mobile)
 - [ ] User profile management
-- [ ] Get current user profile
+- [x] Get current user profile *(`GET /api/v1/auth/me`)*
 - [ ] Update user profile
 - [ ] Change email address
 - [ ] Change mobile number
@@ -64,7 +64,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [ ] Logout
 - [ ] Logout from all devices
 - [x] JWT access token generation *(HS256, 15 min; `sub`, `sid`, `jti`, `iss`, `aud`)*
-- [ ] JWT access token validation
+- [x] JWT access token validation *(every request: signature, alg, exp, iss, aud, typ + active session + account status)*
 - [x] Refresh token generation *(256-bit random, SHA-256 stored; rotation comes with the refresh API)*
 - [x] Refresh token rotation *(`POST /api/v1/auth/refresh`: new token every refresh, atomic)*
 - [x] Refresh token validation
@@ -72,10 +72,10 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Token family management
 - [x] Token family revocation *(on reuse; session expiry never extended)*
 - [x] Token expiration management
-- [ ] Token revocation
-- [ ] Authentication guards
-- [ ] Public route decorator
-- [ ] Current user decorator
+- [x] Token revocation *(revoked session → its access tokens rejected immediately)*
+- [x] Authentication guards
+- [x] Public route decorator
+- [x] Current user decorator
 - [ ] Authentication strategy management
 - [x] Authentication method tracking *(email / username logged per login)*
 

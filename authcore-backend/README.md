@@ -698,7 +698,49 @@ Exchanges the refresh token for a new access token. Same `200` body as login (`u
 
 Frontend pattern: on any API `401`, call `/auth/refresh` once, then retry the request; if refresh fails, go to sign-in.
 
-Coming next: logout, logout all devices, `/me` with the auth guard, session list / revoke.
+### Authentication guard (all routes)
+
+**Secure by default.** A global guard (`JwtAuthGuard`, registered as `APP_GUARD` in `AuthModule`) requires an access token on **every** route. Public routes opt out explicitly:
+
+```ts
+@Public()                       // whole controller or one route
+@Post('login')
+login(...) { ... }
+
+@Get('me')                      // protected: no decorator needed
+me(@CurrentUser() auth: AuthContext) {   // { userId, sessionId, tokenId }
+  ...
+}
+```
+
+Currently public: `GET /api/v1`, `/health*`, `register`, `login`, `refresh`, `verify-email/*`. Everything added later is protected unless marked `@Public()`.
+
+On each protected request the guard checks:
+
+1. `Authorization: Bearer <accessToken>` is present
+2. The JWT: HS256 only, signature, expiry, issuer, audience, `typ: "access"`
+3. The session (`sid`) is still active and belongs to the user: logout or a revoked session takes effect immediately, not after 15 minutes
+4. The account can still sign in (same rules as login): a suspended user is locked out immediately
+
+| Response | When |
+| --- | --- |
+| `401 AUTH_ACCESS_TOKEN_MISSING` | No `Authorization` header |
+| `401 AUTH_ACCESS_TOKEN_EXPIRED` | Token expired: call `/auth/refresh`, then retry |
+| `401 AUTH_ACCESS_TOKEN_INVALID` | Malformed, tampered, wrong algorithm / audience, not an access token |
+| `401 AUTH_SESSION_REVOKED` | Session signed out / revoked, or user deleted: sign in again |
+| `403 AUTH_ACCOUNT_*` / `AUTH_EMAIL_NOT_VERIFIED` | Account can no longer sign in |
+
+All 401s include `WWW-Authenticate: Bearer realm="authcore", error="..."` (RFC 6750). In Swagger, protected routes show a lock; use **Authorize** with the access token.
+
+### `GET /api/v1/auth/me`
+
+Returns the signed-in user (same fields as the login response's `user`). `Cache-Control: no-store`.
+
+```bash
+curl -H "Authorization: Bearer <accessToken>" http://localhost:3000/api/v1/auth/me
+```
+
+Coming next: logout, logout all devices, session list / revoke.
 
 ## 12. Deployment
 

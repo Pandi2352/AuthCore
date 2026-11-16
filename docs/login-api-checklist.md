@@ -88,7 +88,7 @@ Verified by an end-to-end test against MongoDB (11 groups, all passing) plus a r
 - [x] No personal data, no password
 - [x] `AccessTokenService.verify()`: signature, algorithm, expiry, issuer, audience, `typ` (tampering, wrong secret, expired, wrong audience: rejected)
 - [ ] Role claim → *RBAC module*
-- [ ] Guard that accepts only verified tokens on protected routes → *`/me` API*
+- [x] Guard that accepts only verified tokens on protected routes (global `JwtAuthGuard`: token + active session + account status on every request)
 - [ ] Asymmetric keys (RS256 / ES256) + JWKS → *Level 2, Advanced Token & Cryptography*
 
 ## 7. Refresh token and sessions

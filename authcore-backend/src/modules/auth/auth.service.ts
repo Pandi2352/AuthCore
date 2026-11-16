@@ -4,6 +4,7 @@ import type { ConfigType } from '@nestjs/config';
 import { ErrorCode } from '@common/constants/error-codes.constants';
 import { AppException } from '@common/exceptions/app.exception';
 import { ValidationException } from '@common/exceptions/validation.exception';
+import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { authConfig } from '@config/configuration';
 import type { CreatedSession } from '@modules/sessions/interfaces/session.interface';
@@ -139,6 +140,23 @@ export class AuthService {
       body.refreshTokenExpiresAt = session.expiresAt;
     }
     return { body, session };
+  }
+
+  /**
+   * The signed-in user (GET /auth/me). The guard has already checked the
+   * token, session and account, so a missing user here means it was just
+   * deleted.
+   */
+  async getCurrentUser(auth: AuthContext): Promise<UserResponseDto> {
+    const user = await this.usersService.findById(auth.userId);
+    if (!user) {
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCode.AuthSessionRevoked,
+        'This session has ended. Please sign in again.',
+      );
+    }
+    return user;
   }
 
   /** Exactly one identifier, and only one that LOGIN_IDENTIFIERS allows. */

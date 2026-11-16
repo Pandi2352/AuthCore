@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Header,
   HttpCode,
   HttpStatus,
@@ -8,7 +9,7 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
@@ -19,8 +20,12 @@ import {
   ApiWrappedResponse,
 } from '@common/decorators/api-response.decorator';
 import { ClientInfoParam } from '@common/decorators/client-info.decorator';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { Public } from '@common/decorators/public.decorator';
 import { ResponseMessage } from '@common/decorators/response-message.decorator';
+import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
+import { UserResponseDto } from '@modules/users/dto/user-response.dto';
 
 import { AuthService } from './auth.service';
 import {
@@ -52,6 +57,7 @@ export class AuthController {
     private readonly refreshTokenCookieService: RefreshTokenCookieService,
   ) {}
 
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @Throttle({ default: REGISTER_THROTTLE })
@@ -73,6 +79,7 @@ export class AuthController {
     return this.registrationService.register(dto);
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: LOGIN_THROTTLE })
@@ -107,6 +114,7 @@ export class AuthController {
     return body;
   }
 
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: REFRESH_THROTTLE })
@@ -150,6 +158,7 @@ export class AuthController {
     return body;
   }
 
+  @Public()
   @Post('verify-email/otp')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: VERIFY_EMAIL_THROTTLE })
@@ -169,6 +178,7 @@ export class AuthController {
     return this.registrationService.verifyEmailOtp(dto.email, dto.code);
   }
 
+  @Public()
   @Post('verify-email/link')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: VERIFY_EMAIL_THROTTLE })
@@ -188,6 +198,7 @@ export class AuthController {
     return this.registrationService.verifyEmailLink(dto.token);
   }
 
+  @Public()
   @Post('verify-email/resend')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: RESEND_VERIFICATION_THROTTLE })
@@ -206,5 +217,23 @@ export class AuthController {
   async resendVerification(@Body() dto: ResendVerificationDto): Promise<null> {
     await this.registrationService.resendVerification(dto.email);
     return null;
+  }
+
+  @Get('me')
+  @Header('Cache-Control', 'no-store')
+  @ApiBearerAuth('access-token')
+  @ResponseMessage('Current user')
+  @ApiOperation({
+    summary: 'Get the signed-in user',
+    description:
+      'Requires `Authorization: Bearer <accessToken>`. Returns the profile of the user the token ' +
+      'belongs to.\n\nErrors: 401 AUTH_ACCESS_TOKEN_MISSING / AUTH_ACCESS_TOKEN_INVALID / ' +
+      'AUTH_ACCESS_TOKEN_EXPIRED (refresh, then retry) / AUTH_SESSION_REVOKED (sign in again); ' +
+      '403 with the account code when the account can no longer sign in.',
+  })
+  @ApiWrappedResponse(UserResponseDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  me(@CurrentUser() auth: AuthContext): Promise<UserResponseDto> {
+    return this.authService.getCurrentUser(auth);
   }
 }

@@ -7,6 +7,7 @@ import {
   ApiErrorResponses,
   ApiWrappedResponse,
 } from '@common/decorators/api-response.decorator';
+import { Public } from '@common/decorators/public.decorator';
 
 import { HealthResponseDto } from './dto/health-response.dto';
 import { HealthService } from './health.service';
@@ -14,6 +15,7 @@ import { HealthService } from './health.service';
 /** Polled by load balancers and orchestrators: not rate limited, never cached. */
 @ApiTags(API_TAGS.Health.name)
 @SkipThrottle()
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}

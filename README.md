@@ -201,7 +201,8 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 🧩 Registration: Direct / Email OTP / Email link / Admin approval (configurable) | ✅ Done |
 | 🔑 Login: email / username + password, JWT, sessions, lockout | ✅ Done |
 | 🔄 Refresh token: rotation, reuse detection, CSRF origin check | ✅ Done |
-| 🚪 Logout, /me + auth guard, session management (next) | ⏳ Not started |
+| 🛡️ Auth guard (secure by default) + GET /auth/me | ✅ Done |
+| 🚪 Logout, logout all devices, session management (next) | ⏳ Not started |
 
 ---
 

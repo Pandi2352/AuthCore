@@ -6,11 +6,13 @@ import {
   ApiStandardErrors,
   ApiWrappedResponse,
 } from '@common/decorators/api-response.decorator';
+import { Public } from '@common/decorators/public.decorator';
 
 import { AppService } from './app.service';
 
 @ApiTags(API_TAGS.App.name)
 @ApiStandardErrors()
+@Public()
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
