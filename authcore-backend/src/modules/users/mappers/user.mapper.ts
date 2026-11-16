@@ -13,8 +13,10 @@ export function toUserResponse(user: User): UserResponseDto {
     firstName: user.firstName,
     lastName: user.lastName ?? null,
     status: user.status,
+    role: user.role,
     isEmailVerified: user.isEmailVerified,
     emailVerifiedAt: user.emailVerifiedAt,
+    passwordChangedAt: user.passwordChangedAt,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

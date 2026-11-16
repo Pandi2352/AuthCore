@@ -11,6 +11,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
 import { API_TAGS } from '@common/constants/api-tags.constants';
+import { AllowExpiredPassword } from '@common/decorators/allow-expired-password.decorator';
 import {
   ApiErrorResponses,
   ApiStandardErrors,
@@ -132,6 +133,7 @@ export class PasswordController {
   }
 
   @Patch('change-password')
+  @AllowExpiredPassword()
   @Throttle({ default: CHANGE_PASSWORD_THROTTLE })
   @Header('Cache-Control', 'no-store')
   @ApiBearerAuth('access-token')

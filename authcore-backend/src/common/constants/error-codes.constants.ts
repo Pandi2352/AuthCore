@@ -53,6 +53,11 @@ export enum ErrorCode {
   AuthInvalidResetToken = 'AUTH_INVALID_RESET_TOKEN',
   AuthInvalidCurrentPassword = 'AUTH_INVALID_CURRENT_PASSWORD',
   AuthPasswordReused = 'AUTH_PASSWORD_REUSED',
+  AuthPasswordChangedTooRecently = 'AUTH_PASSWORD_CHANGED_TOO_RECENTLY',
+  AuthPasswordExpired = 'AUTH_PASSWORD_EXPIRED',
+
+  // Password policy
+  InvalidPasswordPolicy = 'INVALID_PASSWORD_POLICY',
 }
 
 /** Default code and safe client message for each HTTP status. */

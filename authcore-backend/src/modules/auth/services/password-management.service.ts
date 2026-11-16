@@ -13,6 +13,7 @@ import {
   passwordResetCodeEmail,
   passwordResetLinkEmail,
 } from '@modules/mail/templates/mail-templates';
+import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import { PasswordResetService } from '@modules/password-reset/password-reset.service';
 import { PasswordResetMethod } from '@modules/password-reset/schemas/password-reset.schema';
 import { SessionsService } from '@modules/sessions/sessions.service';
@@ -30,7 +31,6 @@ import type {
 } from '../dto/password.dto';
 import { AccountEligibilityService } from './account-eligibility.service';
 import { LoginSecurityService } from './login-security.service';
-import { PasswordPolicyService } from './password-policy.service';
 
 /**
  * Accounts that may reset their password. Suspended, banned, rejected and
@@ -54,7 +54,7 @@ export class PasswordManagementService {
     private readonly usersService: UsersService,
     private readonly sessionsService: SessionsService,
     private readonly passwordService: PasswordService,
-    private readonly passwordPolicyService: PasswordPolicyService,
+    private readonly passwordValidationService: PasswordValidationService,
     private readonly passwordResetService: PasswordResetService,
     private readonly loginSecurityService: LoginSecurityService,
     private readonly accountEligibilityService: AccountEligibilityService,
@@ -166,7 +166,7 @@ export class PasswordManagementService {
       userId,
       account.passwordHash,
       newHash,
-      this.config.historySize,
+      await this.passwordValidationService.historySize(),
     );
     if (!isUpdated) {
       // The password changed in between: the reset no longer applies.
@@ -228,6 +228,9 @@ export class PasswordManagementService {
     if (!isCurrentCorrect) {
       await this.rejectCurrentPassword(lockKey, auth, client);
     }
+    await this.passwordValidationService.assertMinimumAgeReached(
+      account.user.passwordChangedAt,
+    );
 
     await this.assertNewPasswordAllowed(dto.newPassword, account);
     const newHash = await this.passwordService.hash(dto.newPassword);
@@ -235,7 +238,7 @@ export class PasswordManagementService {
       auth.userId,
       account.passwordHash,
       newHash,
-      this.config.historySize,
+      await this.passwordValidationService.historySize(),
     );
     if (!isUpdated) {
       throw new AppException(
@@ -347,15 +350,11 @@ export class PasswordManagementService {
     newPassword: string,
     account: { user: UserResponseDto; passwordHash: string; history: string[] },
   ): Promise<void> {
-    this.passwordPolicyService.assertNotPersonal(
+    await this.passwordValidationService.assertAcceptable(
       newPassword,
-      account.user,
       'newPassword',
-    );
-    await this.passwordPolicyService.assertNotReused(
-      newPassword,
-      account.passwordHash,
-      account.history,
+      account.user,
+      { passwordHash: account.passwordHash, history: account.history },
     );
   }
 

@@ -198,7 +198,15 @@ Config groups: `appConfig`, `databaseConfig`, `securityConfig`, `lifecycleConfig
 | `PASSWORD_RESET_MAX_ATTEMPTS` | `5` | 3–10 wrong codes, then a new code is needed |
 | `PASSWORD_RESET_RESEND_COOLDOWN_SECONDS` | `60` | 30–3600; minimum time between reset emails per account |
 | `PASSWORD_RESET_AUTH_TTL_MINUTES` | `10` | 1–30; validity of the `resetToken` from verify |
-| `PASSWORD_HISTORY_SIZE` | `5` | 0–24; the current and last N passwords can't be reused |
+
+Password rules themselves (length, complexity, history, expiry) are not env vars: they are the **password policy**, managed through the API (see below).
+
+### Scheduled jobs
+
+| Variable | Default | Rule |
+| --- | --- | --- |
+| `SCHEDULER_ENABLED` | `true` | `false` on instances that must never run jobs |
+| `SCHEDULER_POLL_SECONDS` | `30` | 5–300; how often each instance checks for due jobs |
 
 ### Mail
 
@@ -810,10 +818,10 @@ change-password (signed in)
 - A correct code is exchanged atomically for a single-use `resetToken` (`PASSWORD_RESET_AUTH_TTL_MINUTES`); the code stops working.
 
 **New password rules** (reset and change)
-- Strength: the same policy as registration (8–128 chars, lower, upper, number, symbol).
+- The password policy, the same one as registration (default: Test@123 format).
 - `confirmPassword` must equal `newPassword`.
 - Must not contain the email name, username, first or last name.
-- Must not be the current password or one of the last `PASSWORD_HISTORY_SIZE` (`AUTH_PASSWORD_REUSED`). Previous hashes are kept in `passwordHistory` (never returned).
+- All rules come from the password policy (below). Reuse: the current password and the last `passwordHistory.historyCount` are rejected (`AUTH_PASSWORD_REUSED`); previous hashes are kept in `passwordHistory` on the user (never returned).
 - A rejected password doesn't consume the `resetToken`, so the user can try again.
 
 **After a reset:** all sessions signed out, sign-in lockout cleared, "password was reset" email.
@@ -822,6 +830,46 @@ change-password (signed in)
 
 **Rate limits per IP:** forgot 3/min, verify 10/min, reset 5/min, change 5/min.
 
+
+### Password policy: `/api/v1/password-policies`
+
+One policy for the whole service, stored in MongoDB and changed through the API without a restart (every instance picks it up within 15 seconds). Until an admin saves one, the built-in default applies: **8–64 characters, at least one uppercase letter, one lowercase letter, one digit and one special character** (e.g. `Test@123`), last 5 passwords blocked, common passwords blocked, no personal info, no whitespace, no expiry.
+
+| Endpoint | Auth | Purpose |
+| --- | --- | --- |
+| `GET /password-policies/requirements` | public | Rules for sign-up / reset / change forms (numbers + a ready-to-show list) |
+| `POST /password-policies/validate` | public | `{ password, email?, username?, firstName?, lastName? }` → `{ isValid, violations[] }` |
+| `GET /password-policies` | ADMIN | Current policy (`isDefault: true` while nothing is saved) |
+| `PUT /password-policies` | ADMIN | Save the complete policy (`version` +1, audited) |
+| `GET /password-policies/history` | ADMIN | Change history: who, when, IP, changed fields, old / new values (paginated) |
+| `GET /password-policies/schedulers` | ADMIN | Reminder job schedule + last / next run and status |
+| `PUT /password-policies/schedulers` | ADMIN | `{ passwordExpiryNotification: { enabled, frequency, executionTime, timezone, dayOfWeek?, dayOfMonth? } }` |
+| `POST /password-policies/schedulers/password-expiry-notification/run` | ADMIN | Run the reminder job now |
+
+**Policy groups** (`PUT` body): `policyName`; `characterLength { minimum, maximum }` (8–128); `complexity { minimumDigitCount, minimumSpecialCharacterCount, requireUpperAndLowerCase, minimumUppercaseCount, minimumLowercaseCount }`; `passwordHistory { preventReuse, historyCount }` (0–24); `additionalRules { blockCommonPasswords, blockCompromisedPasswords, preventPersonalInfoInPassword, allowWhitespace, maximumRepeatedCharacters, minimumPasswordAgeHours }`; `passwordValidity { enabled, validityDays, notificationDaysBeforeExpiry[], gracePeriodDays, forceChangeOnExpiry }`.
+
+- Field errors → `400 VALIDATION_FAILED` (nested paths, e.g. `characterLength.minimum`); contradictions (minimum > maximum, required characters don't fit, reminder days ≥ validity) → `400 INVALID_PASSWORD_POLICY`. Unknown fields are rejected.
+- **Enforced in one place** (`PasswordValidationService`) for register, reset and change. All broken rules are returned at once, one `errors[]` entry each.
+- `blockCompromisedPasswords` (off by default) checks [Have I Been Pwned](https://haveibeenpwned.com/API/v3#PwnedPasswords) with k-anonymity: only the first 5 characters of the SHA-1 hash leave the server. If the service is unreachable the check is skipped (logged). Stored Argon2 hashes can't be checked later, so there is no "breached password scan" job.
+- `minimumPasswordAgeHours` applies to change-password only (not to a forgotten-password reset, and not when the password has expired).
+
+**Password expiry** (`passwordValidity.enabled`): counted from `passwordChangedAt`.
+- Login / refresh responses include `passwordExpiresAt` and `isPasswordChangeRequired`.
+- After expiry + `gracePeriodDays`, with `forceChangeOnExpiry`, every protected route answers `403 AUTH_PASSWORD_EXPIRED` except `PATCH /auth/change-password`, `GET /auth/me` and logout.
+- Turning expiry on applies to existing passwords immediately (passwords older than `validityDays` are expired at once).
+
+**Reminder scheduler**: emails users whose password expires within the reminder days (only the nearest threshold, e.g. 2 days left → the "3 days" email).
+- `frequency`: `HOURLY` (at the minute of `executionTime`), `DAILY`, `WEEKLY` (`dayOfWeek` 1 = Monday), `MONTHLY` (`dayOfMonth` 1–28); time zone aware (IANA, DST-safe).
+- Every instance polls (`SCHEDULER_POLL_SECONDS`); a due job is claimed with an atomic database lock, so it runs once across replicas. Changes apply without a restart.
+- No duplicate emails (unique record per user, password and threshold); failed sends are retried on later runs (3 attempts); a failed run is retried after 15 minutes. Run results are stored (`lastExecutionStatus`, `lastExecutionSummary`).
+
+**Roles (minimal, until the RBAC module):** users have `role: USER | ADMIN` (shown in `/auth/me`). `@Roles(UserRole.Admin)` on a route → `403 FORBIDDEN` for others. Grant admin from the command line (takes effect on the user's next request):
+
+```bash
+npm run build
+npm run users:role -- jane@example.com ADMIN
+npm run users:role -- jane@example.com USER
+```
 
 ## 12. Deployment
 

@@ -47,7 +47,7 @@ Verified by an end-to-end test against MongoDB (8 groups, 64 checks, OTP and lin
 - [x] Accept reset authorization token, new password, confirm password
 - [x] Validate password strength *(same policy as registration)*
 - [x] Password and confirm match *(`@Match` validator)*
-- [x] Check against previous passwords *(current + last `PASSWORD_HISTORY_SIZE`, default 5 → AUTH_PASSWORD_REUSED)*
+- [x] Check against previous passwords *(current + last `historyCount` from the password policy, default 5 → AUTH_PASSWORD_REUSED)*
 - [x] Must not contain email name, username or names
 - [x] Verify reset token and its expiration *(AUTH_INVALID_RESET_TOKEN)*
 - [x] Hash with Argon2id
@@ -68,7 +68,7 @@ Verified by an end-to-end test against MongoDB (8 groups, 64 checks, OTP and lin
 - [x] New and confirm match
 - [x] Password strength
 - [x] Prevent reuse of current password
-- [x] Password history *(last `PASSWORD_HISTORY_SIZE`; history capped)*
+- [x] Password history *(password policy `historyCount`; history capped)*
 - [x] Hash new password
 - [x] Update password *(atomic, conditional on the current hash)*
 - [x] Revoke other active sessions *(reason `password_changed`)*
@@ -96,7 +96,7 @@ Verified by an end-to-end test against MongoDB (8 groups, 64 checks, OTP and lin
 
 ## Configuration
 
-`PASSWORD_RESET_METHOD`, `PASSWORD_RESET_URL`, `PASSWORD_RESET_TTL_MINUTES`, `PASSWORD_RESET_MAX_ATTEMPTS`, `PASSWORD_RESET_RESEND_COOLDOWN_SECONDS`, `PASSWORD_RESET_AUTH_TTL_MINUTES`, `PASSWORD_HISTORY_SIZE`. See the backend README.
+`PASSWORD_RESET_METHOD`, `PASSWORD_RESET_URL`, `PASSWORD_RESET_TTL_MINUTES`, `PASSWORD_RESET_MAX_ATTEMPTS`, `PASSWORD_RESET_RESEND_COOLDOWN_SECONDS`, `PASSWORD_RESET_AUTH_TTL_MINUTES`. Password rules (strength, history) come from the password policy (`docs/password-policy-checklist.md`). See the backend README.
 
 ## Not in this sprint
 

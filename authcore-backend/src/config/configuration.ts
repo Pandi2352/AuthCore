@@ -142,7 +142,6 @@ export const passwordResetConfig = registerAs('passwordReset', () => ({
   resendCooldownSeconds: Number(env('PASSWORD_RESET_RESEND_COOLDOWN_SECONDS')),
   authorizationTtlMinutes: Number(env('PASSWORD_RESET_AUTH_TTL_MINUTES')),
   resetUrl: env('PASSWORD_RESET_URL'),
-  historySize: Number(env('PASSWORD_HISTORY_SIZE')),
   tokenSecret: env('VERIFICATION_TOKEN_SECRET'),
 }));
 
@@ -158,6 +157,11 @@ export const mailConfig = registerAs('mail', () => ({
     user: env('SMTP_USER'),
     password: env('SMTP_PASSWORD'),
   },
+}));
+
+export const schedulerConfig = registerAs('scheduler', () => ({
+  isEnabled: env('SCHEDULER_ENABLED') !== 'false',
+  pollSeconds: Number(env('SCHEDULER_POLL_SECONDS')),
 }));
 
 export const lifecycleConfig = registerAs('lifecycle', () => ({
@@ -204,6 +208,7 @@ export const configModuleOptions: ConfigModuleOptions = {
     passwordResetConfig,
     mailConfig,
     lifecycleConfig,
+    schedulerConfig,
     performanceConfig,
     loggingConfig,
     swaggerConfig,

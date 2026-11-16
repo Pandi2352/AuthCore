@@ -8,8 +8,11 @@ import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
 import { ErrorCode } from '@common/constants/error-codes.constants';
+import { ALLOW_EXPIRED_PASSWORD_KEY } from '@common/decorators/allow-expired-password.decorator';
 import { IS_PUBLIC_KEY } from '@common/decorators/public.decorator';
+import { ROLES_KEY } from '@common/decorators/roles.decorator';
 import { AppException } from '@common/exceptions/app.exception';
+import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import { SessionsService } from '@modules/sessions/sessions.service';
 import { UsersService } from '@modules/users/users.service';
 
@@ -39,6 +42,8 @@ function unauthorized(
  *  2. JWT valid (HS256, signature, exp, iss, aud, typ)
  *  3. Session still active: logout / revocation takes effect immediately
  *  4. User still allowed to sign in (same rules as login and refresh)
+ *  5. Role, if the route has @Roles(...)
+ *  6. Password not expired, unless the route has @AllowExpiredPassword()
  * Then `request.auth` = { userId, sessionId, tokenId } (see @CurrentUser()).
  */
 @Injectable()
@@ -49,6 +54,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly sessionsService: SessionsService,
     private readonly usersService: UsersService,
     private readonly accountEligibilityService: AccountEligibilityService,
+    private readonly passwordValidationService: PasswordValidationService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -122,6 +128,37 @@ export class JwtAuthGuard implements CanActivate {
         refusal.code,
         refusal.message,
       );
+    }
+
+    const targets = [context.getHandler(), context.getClass()];
+    const roles = this.reflector.getAllAndOverride<string[] | undefined>(
+      ROLES_KEY,
+      targets,
+    );
+    if (roles && !roles.includes(user.role)) {
+      throw new AppException(
+        HttpStatus.FORBIDDEN,
+        ErrorCode.Forbidden,
+        'You do not have permission to perform this action',
+      );
+    }
+
+    // Expired password (policy: forceChangeOnExpiry, grace over): only the
+    // routes needed to change it stay usable.
+    const isExpiredAllowed = this.reflector.getAllAndOverride<
+      boolean | undefined
+    >(ALLOW_EXPIRED_PASSWORD_KEY, targets);
+    if (isExpiredAllowed !== true) {
+      const expiry = await this.passwordValidationService.getExpiryStatus(
+        user.passwordChangedAt,
+      );
+      if (expiry.isChangeRequired) {
+        throw new AppException(
+          HttpStatus.FORBIDDEN,
+          ErrorCode.AuthPasswordExpired,
+          'Your password has expired. Change it to continue.',
+        );
+      }
     }
 
     request.auth = {

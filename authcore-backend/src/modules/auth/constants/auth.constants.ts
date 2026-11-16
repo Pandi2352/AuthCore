@@ -1,19 +1,8 @@
 /**
- * Password rules for registration (and later: password change / reset).
- * Max length caps the work an attacker can force on the password hasher.
- * Becomes configurable per tenant in the Configuration & Policy module.
+ * Longest password accepted anywhere (caps the work an attacker can force on
+ * the hasher). The configurable password policy decides the actual rules.
  */
-export const PASSWORD_POLICY = {
-  minLength: 8,
-  maxLength: 128,
-  minLowercase: 1,
-  minUppercase: 1,
-  minNumbers: 1,
-  minSymbols: 1,
-} as const;
-
-/** Parts of the user's own details (email name, username, names) shorter than this are not checked. */
-export const PASSWORD_PERSONAL_INFO_MIN_LENGTH = 4;
+export const PASSWORD_MAX_LENGTH = 128;
 
 /** Usernames: 3–30 chars, lowercase letters/digits, '.', '_' or '-' inside. */
 export const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._-]{1,28})[a-z0-9]$/;

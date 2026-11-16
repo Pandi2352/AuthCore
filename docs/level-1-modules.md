@@ -136,12 +136,12 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] Reset password *(`POST /api/v1/auth/reset-password`)*
 - [x] Change password *(`PATCH /api/v1/auth/change-password`, other devices signed out)*
 - [x] Current password verification
-- [x] Password history *(`PASSWORD_HISTORY_SIZE`, default 5)*
+- [x] Password history *(policy `passwordHistory.historyCount`, default 5)*
 - [x] Password reuse prevention
 - [x] Password strength validation *(registration policy; reused for change/reset)*
-- [ ] Password policy management
-- [ ] Password expiration policy (optional)
-- [ ] Breached password checking (optional)
+- [x] Password policy management *(`/api/v1/password-policies`, admin; audit history)*
+- [x] Password expiration policy (optional) *(validity days, grace, forced change, reminder scheduler)*
+- [x] Breached password checking (optional) *(Have I Been Pwned k-anonymity when a password is set; off by default)*
 - [x] Revoke existing sessions after password reset
 - [x] Notify user after password change
 
@@ -158,7 +158,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [ ] System roles
 - [ ] Custom roles
 - [ ] Role hierarchy
-- [ ] Role-based guards
+- [ ] Role-based guards *(minimal USER / ADMIN + `@Roles()` in place; full RBAC pending)*
 - [ ] Roles decorator (`@Roles()`)
 - [ ] Role validation
 
@@ -328,7 +328,7 @@ Modules are numbered in build order: Module 1 = Sprint 1. See the [sprint plan](
 - [x] JWT configuration
 - [x] Access token expiry configuration
 - [x] Refresh token expiry configuration
-- [ ] Password policy configuration
+- [x] Password policy configuration *(API, no restart needed)*
 - [ ] MFA policy configuration
 - [ ] Session timeout configuration
 - [x] Maximum concurrent sessions

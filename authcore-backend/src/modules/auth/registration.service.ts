@@ -14,6 +14,7 @@ import {
   verificationCodeEmail,
   verificationLinkEmail,
 } from '@modules/mail/templates/mail-templates';
+import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import { UserResponseDto } from '@modules/users/dto/user-response.dto';
 import { UserStatus } from '@modules/users/enums/user-status.enum';
 import { UsersService } from '@modules/users/users.service';
@@ -23,7 +24,6 @@ import { RegisterDto } from './dto/register.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { VerifyEmailResponseDto } from './dto/verify-email-response.dto';
 import { RegistrationNextStep } from './enums/registration-next-step.enum';
-import { PasswordPolicyService } from './services/password-policy.service';
 
 /**
  * Registration flows, chosen by configuration:
@@ -41,7 +41,7 @@ export class RegistrationService {
   constructor(
     private readonly usersService: UsersService,
     private readonly passwordService: PasswordService,
-    private readonly passwordPolicyService: PasswordPolicyService,
+    private readonly passwordValidationService: PasswordValidationService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly mailService: MailService,
     @Inject(registrationConfig.KEY)
@@ -54,7 +54,11 @@ export class RegistrationService {
 
   /** Cheap checks first, the expensive password hash last. */
   async register(dto: RegisterDto): Promise<RegisterResponseDto> {
-    this.passwordPolicyService.assertNotPersonal(dto.password, dto);
+    await this.passwordValidationService.assertAcceptable(
+      dto.password,
+      'password',
+      dto,
+    );
     await this.assertIdentityAvailable(dto.email, dto.username);
 
     const passwordHash = await this.passwordService.hash(dto.password);

@@ -17,15 +17,14 @@ import {
   trimLowerOrUndefined,
 } from '@common/utils/transform.util';
 
-import { PASSWORD_POLICY } from '../constants/auth.constants';
-import { IsStrongPasswordPolicy } from '../decorators/strong-password.decorator';
+import { PASSWORD_MAX_LENGTH } from '../constants/auth.constants';
+import { IsNewPassword } from '../decorators/new-password.decorator';
 
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 const NEW_PASSWORD_DESCRIPTION =
-  `${PASSWORD_POLICY.minLength}–${PASSWORD_POLICY.maxLength} characters with a lowercase letter, ` +
-  'an uppercase letter, a number and a symbol. Must not contain your email, username or name, ' +
-  'and must not be your current or a recently used password.';
+  'Must meet the password policy (GET /api/v1/password-policies/requirements) and must not ' +
+  'be your current or a recently used password.';
 
 export class ForgotPasswordDto {
   @ApiProperty({ example: 'jane.doe@example.com' })
@@ -105,7 +104,7 @@ export class ResetPasswordDto {
     example: 'N3w!Passw0rd',
     format: 'password',
   })
-  @IsStrongPasswordPolicy('newPassword')
+  @IsNewPassword('newPassword')
   newPassword!: string;
 
   @ApiProperty({
@@ -121,7 +120,7 @@ export class ResetPasswordDto {
 
 export class ChangePasswordDto {
   @ApiProperty({ example: 'Str0ng!Passw0rd', format: 'password' })
-  @MaxLength(PASSWORD_POLICY.maxLength)
+  @MaxLength(PASSWORD_MAX_LENGTH)
   @IsNotEmpty({ message: 'currentPassword is required' })
   @IsString()
   @IsDefined({ message: 'currentPassword is required' })
@@ -132,7 +131,7 @@ export class ChangePasswordDto {
     example: 'N3w!Passw0rd',
     format: 'password',
   })
-  @IsStrongPasswordPolicy('newPassword')
+  @IsNewPassword('newPassword')
   newPassword!: string;
 
   @ApiProperty({

@@ -7,6 +7,7 @@ import { ValidationException } from '@common/exceptions/validation.exception';
 import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
 import { authConfig } from '@config/configuration';
+import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import type { CreatedSession } from '@modules/sessions/interfaces/session.interface';
 import { SessionsService } from '@modules/sessions/sessions.service';
 import { UserResponseDto } from '@modules/users/dto/user-response.dto';
@@ -72,9 +73,23 @@ export class AuthService {
     private readonly loginSecurityService: LoginSecurityService,
     private readonly refreshTokenCookieService: RefreshTokenCookieService,
     private readonly accountEligibilityService: AccountEligibilityService,
+    private readonly passwordValidationService: PasswordValidationService,
     @Inject(authConfig.KEY)
     private readonly auth: ConfigType<typeof authConfig>,
   ) {}
+
+  /** Password expiry under the current policy, for the sign-in / refresh response. */
+  private async passwordStatus(passwordChangedAt: Date): Promise<{
+    passwordExpiresAt: Date | null;
+    isPasswordChangeRequired: boolean;
+  }> {
+    const status =
+      await this.passwordValidationService.getExpiryStatus(passwordChangedAt);
+    return {
+      passwordExpiresAt: status.expiresAt,
+      isPasswordChangeRequired: status.isChangeRequired,
+    };
+  }
 
   async login(dto: LoginDto, client: ClientInfo): Promise<LoginResult> {
     const lookup = this.resolveLookup(dto);
@@ -135,6 +150,7 @@ export class AuthService {
       accessToken,
       tokenType: 'Bearer',
       expiresIn,
+      ...(await this.passwordStatus(user.passwordChangedAt)),
     };
     if (this.refreshTokenCookieService.isBodyDelivery) {
       body.refreshToken = session.refreshToken;
@@ -390,6 +406,7 @@ export class AuthService {
       accessToken,
       tokenType: 'Bearer',
       expiresIn,
+      ...(await this.passwordStatus(user.passwordChangedAt)),
     };
     if (result.kind !== 'rotated') {
       return { body, rotation: null };

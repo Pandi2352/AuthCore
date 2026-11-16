@@ -14,6 +14,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
 import { API_TAGS } from '@common/constants/api-tags.constants';
+import { AllowExpiredPassword } from '@common/decorators/allow-expired-password.decorator';
 import {
   ApiErrorResponses,
   ApiStandardErrors,
@@ -222,6 +223,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @AllowExpiredPassword()
   @HttpCode(HttpStatus.OK)
   @Header('Cache-Control', 'no-store')
   @ApiBearerAuth('access-token')
@@ -248,6 +250,7 @@ export class AuthController {
   }
 
   @Post('logout-all')
+  @AllowExpiredPassword()
   @HttpCode(HttpStatus.OK)
   @Header('Cache-Control', 'no-store')
   @ApiBearerAuth('access-token')
@@ -281,6 +284,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @AllowExpiredPassword()
   @Header('Cache-Control', 'no-store')
   @ApiBearerAuth('access-token')
   @ResponseMessage('Current user')

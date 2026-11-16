@@ -13,6 +13,11 @@ export const API_TAGS = {
     name: 'Password',
     description: 'Forgot / reset password and change password',
   },
+  PasswordPolicy: {
+    name: 'Password Policy',
+    description:
+      'Password rules, expiry and scheduled reminders (admin); requirements and pre-check (public)',
+  },
   Sessions: {
     name: 'Sessions',
     description: 'My signed-in devices: list and sign out',

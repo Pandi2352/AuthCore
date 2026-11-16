@@ -3,6 +3,7 @@ import type { HydratedDocument } from 'mongoose';
 
 import { BaseSchema, baseSchemaOptions } from '@database/schemas/base.schema';
 
+import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
 
 @Schema({ ...baseSchemaOptions, collection: 'users' })
@@ -39,6 +40,15 @@ export class User extends BaseSchema {
     index: true,
   })
   status!: UserStatus;
+
+  @Prop({
+    type: String,
+    required: true,
+    enum: Object.values(UserRole),
+    default: UserRole.User,
+    index: true,
+  })
+  role!: UserRole;
 
   @Prop({ required: true, default: false })
   isEmailVerified!: boolean;

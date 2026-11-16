@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
 
 /** Public view of a user. Never contains the password hash or internal fields. */
@@ -26,11 +27,21 @@ export class UserResponseDto {
   })
   status!: UserStatus;
 
+  @ApiProperty({ enum: UserRole, enumName: 'UserRole', example: UserRole.User })
+  role!: UserRole;
+
   @ApiProperty({ example: false })
   isEmailVerified!: boolean;
 
   @ApiProperty({ type: Date, nullable: true, example: null })
   emailVerifiedAt!: Date | null;
+
+  @ApiProperty({
+    example: '2026-11-15T10:00:00.000Z',
+    description:
+      'When the password was last set (password expiry is counted from here)',
+  })
+  passwordChangedAt!: Date;
 
   @ApiProperty({ example: '2026-11-15T10:00:00.000Z' })
   createdAt!: Date;

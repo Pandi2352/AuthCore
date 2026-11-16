@@ -132,8 +132,10 @@ export const envValidationSchema = Joi.object({
       then: Joi.required(),
       otherwise: Joi.optional(),
     }),
-  // New passwords may not repeat the current or the last N passwords (0 = only the current).
-  PASSWORD_HISTORY_SIZE: Joi.number().integer().min(0).max(24).default(5),
+  // Scheduled jobs (password expiry reminders). Every instance polls; a database
+  // lock makes each run happen once. Set false on instances that must not run jobs.
+  SCHEDULER_ENABLED: Joi.boolean().default(true),
+  SCHEDULER_POLL_SECONDS: Joi.number().integer().min(5).max(300).default(30),
 
   // Login (optional)
   // Which identifiers can sign in: "email", "username" or "email,username".

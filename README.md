@@ -205,6 +205,7 @@ Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist
 | 🚪 Logout + logout from all devices | ✅ Done |
 | 📱 Session management: list / view / revoke my devices | ✅ Done |
 | 🔐 Forgot / reset / change password | ✅ Done |
+| 📏 Password policy: rules, expiry, reminder scheduler (admin API) | ✅ Done |
 
 ---
 

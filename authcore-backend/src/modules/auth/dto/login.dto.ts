@@ -13,7 +13,7 @@ import {
 
 import { trimLowerOrUndefined } from '@common/utils/transform.util';
 
-import { PASSWORD_POLICY } from '../constants/auth.constants';
+import { PASSWORD_MAX_LENGTH } from '../constants/auth.constants';
 
 /**
  * Sign in with `email` + password or `username` + password (exactly one
@@ -50,9 +50,9 @@ export class LoginDto {
     description: 'Account password. Sent as typed (never trimmed).',
     example: 'Str0ng!Passw0rd',
     format: 'password',
-    maxLength: PASSWORD_POLICY.maxLength,
+    maxLength: PASSWORD_MAX_LENGTH,
   })
-  @MaxLength(PASSWORD_POLICY.maxLength)
+  @MaxLength(PASSWORD_MAX_LENGTH)
   @IsNotEmpty({ message: 'password is required' })
   @IsString()
   @IsDefined({ message: 'password is required' })

@@ -214,3 +214,30 @@ export function passwordChangedEmail(params: {
     }),
   };
 }
+
+export function passwordExpiryReminderEmail(params: {
+  appName: string;
+  firstName: string;
+  daysLeft: number;
+  expiresAt: Date;
+}): MailContent {
+  const { appName, firstName, daysLeft, expiresAt } = params;
+  const when = daysLeft === 1 ? 'tomorrow' : `in ${String(daysLeft)} days`;
+  const body = `Your ${appName} password expires ${when} (${expiresAt.toUTCString()}). Change it before then to keep signing in without interruption.`;
+  const footer = 'You can change your password from your account settings.';
+  return {
+    subject: `Your ${appName} password expires ${when}`,
+    text: `${greeting(firstName)}
+
+${body}
+
+${footer}
+`,
+    html: renderHtml({
+      appName,
+      heading: 'Your password expires soon',
+      paragraphs: [greeting(firstName), body],
+      footer,
+    }),
+  };
+}

@@ -21,6 +21,23 @@ export class LoginResponseDto {
   })
   expiresIn!: number;
 
+  @ApiProperty({
+    type: Date,
+    nullable: true,
+    example: null,
+    description:
+      'When the password expires (null when the policy has no password validity)',
+  })
+  passwordExpiresAt!: Date | null;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'true: the password has expired and must be changed. Until then only ' +
+      'PATCH /auth/change-password, GET /auth/me and logout work (403 AUTH_PASSWORD_EXPIRED).',
+  })
+  isPasswordChangeRequired!: boolean;
+
   @ApiPropertyOptional({
     description:
       'Only when REFRESH_TOKEN_DELIVERY is `body` or `both` (mobile apps). ' +

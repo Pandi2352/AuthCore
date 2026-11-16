@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 
 import { UserResponseDto } from './dto/user-response.dto';
+import { UserRole } from './enums/user-role.enum';
 import { UserStatus } from './enums/user-status.enum';
 import { CreateUserInput } from './interfaces/create-user-input.interface';
 import {
@@ -116,12 +117,49 @@ export class UsersService {
         $push: {
           passwordHistory: {
             $each: [expectedHash],
-            $slice: -Math.max(historySize, 1),
+            // 0 keeps no history; -N keeps the last N.
+            $slice: historySize === 0 ? 0 : -historySize,
           },
         },
       },
     );
     return result.modifiedCount > 0;
+  }
+
+  /** Sets a user's role by email. null if no such user. */
+  async setRole(
+    email: string,
+    role: UserRole,
+  ): Promise<UserResponseDto | null> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { email: email.trim().toLowerCase(), deletedAt: null },
+        { $set: { role } },
+        { new: true },
+      )
+      .lean();
+    return user ? toUserResponse(user) : null;
+  }
+
+  /**
+   * Active users whose password was last set within [from, to), oldest
+   * first. Used for password-expiry reminders.
+   */
+  async findByPasswordChangedBetween(
+    from: Date,
+    to: Date,
+    limit: number,
+  ): Promise<UserResponseDto[]> {
+    const users = await this.userModel
+      .find({
+        status: UserStatus.Active,
+        deletedAt: null,
+        passwordChangedAt: { $gte: from, $lt: to },
+      })
+      .sort({ passwordChangedAt: 1 })
+      .limit(limit)
+      .lean();
+    return users.map(toUserResponse);
   }
 
   async recordLogin(id: string): Promise<void> {

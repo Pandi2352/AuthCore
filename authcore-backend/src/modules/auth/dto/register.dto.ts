@@ -6,7 +6,6 @@ import {
   IsNotIn,
   IsOptional,
   IsString,
-  IsStrongPassword,
   Length,
   Matches,
   MaxLength,
@@ -20,11 +19,12 @@ import {
 } from '@common/utils/transform.util';
 
 import {
-  PASSWORD_POLICY,
+  PASSWORD_MAX_LENGTH,
   PERSON_NAME_PATTERN,
   RESERVED_USERNAMES,
   USERNAME_PATTERN,
 } from '../constants/auth.constants';
+import { IsNewPassword } from '../decorators/new-password.decorator';
 
 // With stopAtFirstError, class-validator runs the decorator closest to the
 // property first. Basic checks (IsDefined, IsString) therefore sit at the
@@ -45,31 +45,14 @@ export class RegisterDto {
 
   @ApiProperty({
     description:
-      `${PASSWORD_POLICY.minLength}–${PASSWORD_POLICY.maxLength} characters with at least one ` +
-      'lowercase letter, uppercase letter, number and symbol. Must not contain your email, ' +
-      'username or name.',
+      'Must meet the password policy (GET /api/v1/password-policies/requirements). ' +
+      'Default: 8–64 characters with an uppercase letter, a lowercase letter, a digit and a ' +
+      'special character, e.g. Test@123. Must not contain your email, username or name.',
     example: 'Str0ng!Passw0rd',
-    minLength: PASSWORD_POLICY.minLength,
-    maxLength: PASSWORD_POLICY.maxLength,
+    maxLength: PASSWORD_MAX_LENGTH,
     format: 'password',
   })
-  @IsStrongPassword(
-    {
-      minLength: PASSWORD_POLICY.minLength,
-      minLowercase: PASSWORD_POLICY.minLowercase,
-      minUppercase: PASSWORD_POLICY.minUppercase,
-      minNumbers: PASSWORD_POLICY.minNumbers,
-      minSymbols: PASSWORD_POLICY.minSymbols,
-    },
-    {
-      message:
-        `password must be at least ${PASSWORD_POLICY.minLength} characters and contain ` +
-        'a lowercase letter, an uppercase letter, a number and a symbol',
-    },
-  )
-  @MaxLength(PASSWORD_POLICY.maxLength)
-  @IsString()
-  @IsDefined({ message: 'password is required' })
+  @IsNewPassword('password')
   password!: string;
 
   @ApiProperty({ example: 'Jane', minLength: 1, maxLength: 50 })
