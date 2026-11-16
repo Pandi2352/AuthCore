@@ -1,4 +1,4 @@
-import { Logger, VersioningType } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -17,7 +17,7 @@ import {
 } from '@common/middleware/request-id.middleware';
 import { ALLOWED_HTTP_METHODS } from '@common/middleware/security.middleware';
 import { shutdownMiddleware } from '@common/middleware/shutdown.middleware';
-import { setupSwagger } from '@common/swagger/setup-swagger';
+import { applyApiRouting, setupSwagger } from '@common/swagger/setup-swagger';
 import {
   appConfig,
   loggingConfig,
@@ -106,11 +106,7 @@ async function bootstrap() {
   app.use(bodyParserErrorHandler);
 
   // All routes: /<apiPrefix>/v<version>/..., e.g. /api/v1/health
-  app.setGlobalPrefix(apiPrefix);
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: DEFAULT_API_VERSION,
-  });
+  applyApiRouting(app, apiPrefix);
 
   // Only when SWAGGER_ENABLED=true; config validation forbids it in production.
   if (swagger.enabled) {

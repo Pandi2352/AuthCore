@@ -24,7 +24,8 @@
     "audit:all": "npm audit",
     "users:pending": "node dist/modules/users/scripts/user-approval.js pending",
     "users:approve": "node dist/modules/users/scripts/user-approval.js approve",
-    "users:reject": "node dist/modules/users/scripts/user-approval.js reject"
+    "users:reject": "node dist/modules/users/scripts/user-approval.js reject",
+    "openapi:export": "nest build && node dist/scripts/export-openapi.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
