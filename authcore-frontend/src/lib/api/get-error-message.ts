@@ -1,8 +1,14 @@
+import { CLIENT_ERROR_CODES, ERROR_CODES } from '../constants/error-codes';
+import { HTTP_STATUS, isServerError } from '../constants/http';
 import { ApiError } from './api-error';
 
 const BY_CODE: Record<string, string> = {
-  NETWORK_ERROR: 'Cannot reach the server. Check your connection and try again.',
-  AUTH_SESSION_EXPIRED: 'Your session has expired. Please sign in again.',
+  [CLIENT_ERROR_CODES.NETWORK_ERROR]:
+    'Cannot reach the server. Check your connection and try again.',
+  [CLIENT_ERROR_CODES.TIMEOUT]: 'The server took too long to respond. Try again.',
+  [CLIENT_ERROR_CODES.AUTH_SESSION_EXPIRED]: 'Your session has expired. Please sign in again.',
+  [ERROR_CODES.AUTH_ACCESS_TOKEN_EXPIRED]: 'Your session has expired. Please sign in again.',
+  [ERROR_CODES.TOO_MANY_REQUESTS]: 'Too many requests. Wait a moment and try again.',
 };
 
 const BY_STATUS: Record<number, string> = {
@@ -24,7 +30,11 @@ export function getErrorMessage(
   if (error instanceof ApiError) {
     const known = BY_CODE[error.code];
     if (known) return known;
-    if (error.statusCode >= 500) return BY_STATUS[error.statusCode] ?? BY_STATUS[500] ?? fallback;
+    if (isServerError(error.statusCode)) {
+      return (
+        BY_STATUS[error.statusCode] ?? BY_STATUS[HTTP_STATUS.INTERNAL_SERVER_ERROR] ?? fallback
+      );
+    }
     return error.message || BY_STATUS[error.statusCode] || fallback;
   }
   if (error instanceof Error && error.message) return error.message;

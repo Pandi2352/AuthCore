@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import { useTheme } from '@/app/theme';
 import { findThemePreset } from '@/config';
-import { cn } from '@/lib/utils';
+import { capitalize, cn } from '@/lib/utils';
 import { APPEARANCE_VALUES, type AppearanceOption, type ColorMode } from '@/types/theme.types';
 
 const MODES: { value: ColorMode; label: string; icon: typeof Sun }[] = [
@@ -24,8 +24,6 @@ const OPTION_LABEL: Record<AppearanceOption, string> = {
   inputs: 'Input style',
   buttons: 'Button style',
 };
-
-const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
 /** A native radio group: arrow keys move between choices, the legend names the group. */
 function Group({ title, children }: { title: string; children: ReactNode }) {

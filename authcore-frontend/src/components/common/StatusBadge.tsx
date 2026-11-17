@@ -1,4 +1,5 @@
 import { Badge, type BadgeProps } from '@/components/ui';
+import { humanize } from '@/lib/utils';
 import type { BadgeTone } from '@/types/config.types';
 
 /** Common status words → tone. Extend per call with `tones`. */
@@ -27,12 +28,6 @@ const DEFAULT_TONES: Record<string, BadgeTone> = {
   failed: 'danger',
   rejected: 'danger',
   deleted: 'danger',
-};
-
-/** "PENDING_VERIFICATION" → "Pending verification". */
-const humanize = (status: string) => {
-  const text = status.replace(/[_-]+/g, ' ').trim().toLowerCase();
-  return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
 export interface StatusBadgeProps extends Omit<BadgeProps, 'tone' | 'children'> {

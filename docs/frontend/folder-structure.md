@@ -267,11 +267,14 @@ src/
 │   ├── query/                       Level 2
 │   │   ├── query-client.ts          TanStack Query defaults (retry rules by ApiError code)
 │   │   └── query-keys.ts            Key factory per feature
-│   ├── format/                      date.ts (formatDateTime, formatRelative), file-size.ts; number / currency later
-│   ├── utils/                       cn.ts, variants.ts (our cva), url.ts (safeReturnTo), …
+│   ├── format/                      date.ts, number.ts (number, compact, currency, percent, count), file-size.ts,
+│   │                                locale.ts (user locale / time zone defaults)
+│   ├── utils/                       cn.ts, variants.ts (our cva), string.ts, url.ts (query strings, safeReturnTo),
+│   │                                assert.ts (invariant, assertNever), platform.ts (⌘ / Ctrl)
 │   ├── storage.ts                   The only localStorage access: JSON-safe, never throws, cross-tab subscribe (keys `<slug>:<name>:v1`)
 │   ├── validation/                  Shared Zod helpers (email, password-policy rules), Level 2
-│   └── constants/                   breakpoints.ts (single source, = Tailwind), storage-keys.ts, http.ts
+│   └── constants/                   breakpoints.ts (= Tailwind), storage-keys.ts (key registry), http.ts,
+│                                    error-codes.ts (mirror of the backend enum, checked by check:error-codes)
 │
 ├── types/                           Shared types
 │   ├── navigation.types.ts
@@ -304,7 +307,7 @@ src/
 | `components/ui/` | `lib/utils`, `hooks/`, `types/` | `components/common` / `page` / `feedback` / `form`, `features/`, `app/`, `config/` (except theme types) |
 | `components/common`, `page`, `feedback`, `form` | `components/ui/`, `hooks/`, `lib/`, `config/`, `types/`, `@/app/theme` (public index) | `features/`, other `app/` |
 | `hooks/` | `lib/`, `types/`, `config/` | React components, `features/`, `app/` |
-| `lib/` | `lib/`, `types/`, `config/env.ts` | React, `components/`, `hooks/`, `features/`, `app/` |
+| `lib/` | `lib/`, `types/`, `config/env.ts`, `config/app.config.ts` (slug for storage keys) | React, `components/`, `hooks/`, `features/`, `app/` |
 | `config/` | `types/`, `lucide-react` (icons registry) | Everything else |
 
 Other rules:

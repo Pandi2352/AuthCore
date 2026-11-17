@@ -5,4 +5,3 @@ export {
   type AvatarProps,
   type AvatarSize,
 } from './Avatar';
-export { initialsOf } from './avatar-utils';

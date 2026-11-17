@@ -22,13 +22,13 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const { sidebar } = layoutConfig;
   const isDesktop = useBreakpoint(sidebar.mobileBreakpoint);
   const [storedCollapsed, setStoredCollapsed] = useLocalStorage(
-    'sidebar-collapsed',
+    'sidebarCollapsed',
     sidebar.defaultCollapsed,
     {
       validate: toBoolean,
     },
   );
-  const [expandedIds, setExpandedIds] = useLocalStorage<string[]>('sidebar-expanded', NO_IDS, {
+  const [expandedIds, setExpandedIds] = useLocalStorage<string[]>('sidebarExpanded', NO_IDS, {
     validate: toIdList,
   });
   const collapsed = sidebar.collapsible && isDesktop && storedCollapsed;

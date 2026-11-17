@@ -5,6 +5,7 @@ import { CopyButton } from '@/components/common/CopyButton';
 import { Button } from '@/components/ui';
 import { env } from '@/config';
 import { ApiError, getErrorMessage, getRequestId } from '@/lib/api';
+import { ERROR_CODES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 export interface ErrorStateProps {
@@ -30,7 +31,7 @@ export function ErrorState({
 }: ErrorStateProps) {
   const [isRetrying, setIsRetrying] = useState(false);
   const requestId = getRequestId(error);
-  const isOffline = error instanceof ApiError && error.code === 'NETWORK_ERROR';
+  const isOffline = error instanceof ApiError && error.code === ERROR_CODES.NETWORK_ERROR;
   const Icon = isOffline ? WifiOff : AlertTriangle;
 
   const retry = async () => {

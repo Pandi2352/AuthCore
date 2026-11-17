@@ -1,5 +1,7 @@
 import { env } from '@/config';
 
+import { CLIENT_ERROR_CODES } from '../constants/error-codes';
+import { HTTP_HEADERS } from '../constants/http';
 import { ApiError } from './api-error';
 import type { ApiErrorResponse, ApiResponse } from './types';
 
@@ -43,12 +45,12 @@ class ApiClient {
       : `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
     const headers = new Headers(options.headers);
-    if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
-      headers.set('Content-Type', 'application/json');
+    if (!headers.has(HTTP_HEADERS.CONTENT_TYPE) && !(options.body instanceof FormData)) {
+      headers.set(HTTP_HEADERS.CONTENT_TYPE, 'application/json');
     }
 
-    if (this.accessToken && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${this.accessToken}`);
+    if (this.accessToken && !headers.has(HTTP_HEADERS.AUTHORIZATION)) {
+      headers.set(HTTP_HEADERS.AUTHORIZATION, `Bearer ${this.accessToken}`);
     }
 
     try {
@@ -75,7 +77,7 @@ class ApiClient {
             this.isRefreshing = false;
             this.onRefreshed(newAccessToken);
 
-            headers.set('Authorization', `Bearer ${newAccessToken}`);
+            headers.set(HTTP_HEADERS.AUTHORIZATION, `Bearer ${newAccessToken}`);
             return this.request<T>(endpoint, { ...options, headers }, true);
           } catch (refreshErr) {
             this.isRefreshing = false;
@@ -91,7 +93,7 @@ class ApiClient {
           return new Promise<ApiResponse<T>>((resolve, reject) => {
             this.subscribeTokenRefresh(async (token) => {
               if (token) {
-                headers.set('Authorization', `Bearer ${token}`);
+                headers.set(HTTP_HEADERS.AUTHORIZATION, `Bearer ${token}`);
                 try {
                   const res = await this.request<T>(endpoint, { ...options, headers }, true);
                   resolve(res);
@@ -103,7 +105,7 @@ class ApiClient {
                   new ApiError({
                     success: false,
                     message: 'Session expired',
-                    code: 'AUTH_SESSION_EXPIRED',
+                    code: CLIENT_ERROR_CODES.AUTH_SESSION_EXPIRED,
                     statusCode: 401,
                     timestamp: new Date().toISOString(),
                     path: endpoint,
@@ -121,12 +123,12 @@ class ApiClient {
         const errorData: ApiErrorResponse = data || {
           success: false,
           message: response.statusText || 'Request failed',
-          code: 'HTTP_ERROR',
+          code: CLIENT_ERROR_CODES.HTTP_ERROR,
           statusCode: response.status,
           timestamp: new Date().toISOString(),
           path: endpoint,
         };
-        throw new ApiError(errorData, response.headers.get('X-Request-Id') ?? undefined);
+        throw new ApiError(errorData, response.headers.get(HTTP_HEADERS.REQUEST_ID) ?? undefined);
       }
 
       return data as ApiResponse<T>;
@@ -137,7 +139,7 @@ class ApiClient {
       throw new ApiError({
         success: false,
         message: error instanceof Error ? error.message : 'Network error',
-        code: 'NETWORK_ERROR',
+        code: CLIENT_ERROR_CODES.NETWORK_ERROR,
         statusCode: 0,
         timestamp: new Date().toISOString(),
         path: endpoint,

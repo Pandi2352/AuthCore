@@ -18,12 +18,13 @@ import { FilterBar, PageHeader, PageSection, ResponsiveGrid } from '@/components
 import { Button, Card, toast } from '@/components/ui';
 import { useQueryParams } from '@/hooks/useQueryParams';
 import { ApiError } from '@/lib/api';
+import { ERROR_CODES } from '@/lib/constants';
 
 const SAMPLE_ERROR = new ApiError(
   {
     success: false,
     message: 'The user could not be found.',
-    code: 'USER_NOT_FOUND',
+    code: ERROR_CODES.NOT_FOUND,
     statusCode: 404,
     timestamp: new Date(0).toISOString(),
     path: '/api/v1/users/42',
@@ -33,7 +34,7 @@ const SAMPLE_ERROR = new ApiError(
 const NETWORK_ERROR = new ApiError({
   success: false,
   message: 'Failed to fetch',
-  code: 'NETWORK_ERROR',
+  code: ERROR_CODES.NETWORK_ERROR,
   statusCode: 0,
   timestamp: new Date(0).toISOString(),
   path: '/api/v1/users',

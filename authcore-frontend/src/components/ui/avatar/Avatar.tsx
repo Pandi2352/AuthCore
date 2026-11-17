@@ -1,8 +1,6 @@
 import { Children, isValidElement, useState, type HTMLAttributes, type ReactElement } from 'react';
 
-import { cn } from '@/lib/utils';
-
-import { initialsOf } from './avatar-utils';
+import { cn, initials } from '@/lib/utils';
 
 const SIZE = {
   xs: 'size-6 text-[10px]',
@@ -56,7 +54,7 @@ export function Avatar({ src, name, size = 'md', status, className, ...props }: 
           />
         ) : (
           <span aria-label={name ?? undefined} role={name ? 'img' : undefined}>
-            {initialsOf(name)}
+            {initials(name)}
           </span>
         )}
       </span>

@@ -6,6 +6,7 @@ import { Alert, Button, Card, Checkbox, Field, Input, PasswordInput } from '@/co
 import { appConfig, featuresConfig, paths } from '@/config';
 import { useAuth } from '@/features/auth/session/useAuth';
 import { ApiError } from '@/lib/api';
+import { ERROR_CODES } from '@/lib/constants';
 import { safeReturnTo } from '@/lib/utils';
 
 export const LoginPage: React.FC = () => {
@@ -42,7 +43,7 @@ export const LoginPage: React.FC = () => {
       }
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.code === 'AUTH_EMAIL_NOT_VERIFIED') {
+        if (err.code === ERROR_CODES.AUTH_EMAIL_NOT_VERIFIED) {
           navigate(paths.auth.verifyEmail, {
             state: { email: identifier.trim().toLowerCase() },
           });

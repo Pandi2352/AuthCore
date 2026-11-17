@@ -40,7 +40,7 @@ export function HooksShowcase() {
   const online = useOnlineStatus();
   const mounted = useMounted();
 
-  const [count, setCount, resetCount] = useLocalStorage('dev-counter', 0, { validate: toCount });
+  const [count, setCount, resetCount] = useLocalStorage('devCounter', 0, { validate: toCount });
   const previousCount = usePrevious(count);
 
   const [text, setText] = useState('');
@@ -77,7 +77,7 @@ export function HooksShowcase() {
       </Card>
 
       <Card title="State">
-        <Row name="useLocalStorage('dev-counter') + usePrevious">
+        <Row name="useLocalStorage('devCounter') + usePrevious">
           <span>
             {count} <span className="text-muted-foreground">(was {previousCount ?? '—'})</span>
           </span>

@@ -100,6 +100,7 @@ What exists and what has to change before the starter kit is "foundation-ready":
 | `typecheck` | Types only (`tsc -b`) | [x] |
 | `check:architecture` | Architecture rules (colors, shape, boundaries, env, network, identity, routes, no native `<select>`) | [x] |
 | `check:contrast` | WCAG contrast of every preset × mode (module 3) | [x] |
+| `check:error-codes` | Frontend API error codes = backend `ErrorCode` enum (module 12; skipped when the backend folder is absent) | [x] |
 | `verify` | Everything CI runs | [x] |
 | `analyze` | Bundle size report | [ ] (Level 3) |
 | `project:init` | Rename the starter for a new project (like the backend) | [ ] (Level 1 · module 2) |

@@ -1,3 +1,5 @@
+import { getFormatDefaults } from './locale';
+
 export type DateInput = string | number | Date | null | undefined;
 
 const toDate = (value: DateInput): Date | null => {
@@ -9,9 +11,9 @@ const toDate = (value: DateInput): Date | null => {
 export interface FormatDateOptions {
   /** date: "17 Nov 2026" · time: "14:05" · datetime: both · relative: "3 hours ago". */
   style?: 'date' | 'time' | 'datetime' | 'relative';
-  /** IANA zone; default: the browser's. */
+  /** IANA zone; default: the user's preference (setFormatDefaults) or the browser's. */
   timeZone?: string;
-  /** BCP 47 locale; default: the browser's. */
+  /** BCP 47 locale; default: the user's preference or the browser's. */
   locale?: string;
 }
 
@@ -35,7 +37,9 @@ export function formatRelative(
   if (!d) return '-';
   const seconds = Math.round((d.getTime() - now) / 1000);
   if (Math.abs(seconds) < 45) return 'just now';
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const rtf = new Intl.RelativeTimeFormat(locale ?? getFormatDefaults().locale, {
+    numeric: 'auto',
+  });
   for (const [unit, size] of UNITS) {
     if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
   }
@@ -44,7 +48,8 @@ export function formatRelative(
 
 /** Localised date / time ("-" for empty or invalid values). */
 export function formatDateTime(value: DateInput, options: FormatDateOptions = {}): string {
-  const { style = 'datetime', timeZone, locale } = options;
+  const fallback = getFormatDefaults();
+  const { style = 'datetime', timeZone = fallback.timeZone, locale = fallback.locale } = options;
   const d = toDate(value);
   if (!d) return '-';
   if (style === 'relative') return formatRelative(d, locale);

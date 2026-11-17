@@ -11,6 +11,7 @@ import type {
 } from '@/features/auth/types/auth.types';
 import type { User } from '@/features/auth/types/user.types';
 import { apiClient } from '@/lib/api';
+import { setFormatDefaults } from '@/lib/format';
 
 import { AuthContext, type AuthContextType } from './auth-context';
 
@@ -19,6 +20,13 @@ const register = (payload: RegisterPayload): Promise<RegisterResponse> => authAp
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+
+  // Dates / numbers everywhere follow the signed-in user's language and time zone.
+  const language = user?.preferences?.language ?? null;
+  const timeZone = user?.preferences?.timezone ?? null;
+  useEffect(() => {
+    setFormatDefaults({ locale: language, timeZone });
+  }, [language, timeZone]);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [effectiveAccess, setEffectiveAccess] = useState<EffectiveAccess | null>(null);
   const [isLoading, setIsLoading] = useState(true);

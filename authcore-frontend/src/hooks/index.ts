@@ -11,7 +11,7 @@ export { useDisclosure } from './useDisclosure';
 export { formatDocumentTitle, useDocumentTitle } from './useDocumentTitle';
 export { useEventListener } from './useEventListener';
 export { getFocusable, useFocusTrap } from './useFocusTrap';
-export { storageKey, useLocalStorage, type UseLocalStorageOptions } from './useLocalStorage';
+export { useLocalStorage, type UseLocalStorageOptions } from './useLocalStorage';
 export {
   BREAKPOINTS,
   useBreakpoint,

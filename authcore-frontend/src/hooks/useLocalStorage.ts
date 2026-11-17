@@ -1,35 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { appConfig } from '@/config';
+import { keyOf, type StorageKeyId } from '@/lib/constants/storage-keys';
 import { storage } from '@/lib/storage';
 
 export interface UseLocalStorageOptions<T> {
   /** Turn the stored value into T, or null to fall back to the default (old / tampered data). */
   validate?: (value: unknown) => T | null;
-  /** Bump when the stored shape changes: old values are ignored. */
-  version?: number;
 }
 
-/** Key for app data in localStorage: `<slug>:<name>:v<version>`. */
-export const storageKey = (name: string, version = 1): string =>
-  `${appConfig.slug}:${name}:v${version}`;
-
 /**
- * State remembered in localStorage (namespaced by the app slug, JSON-safe, never throws,
- * synced across tabs). Without `validate`, any stored JSON of the same type as the default
+ * State remembered in localStorage under a registered key (lib/constants/storage-keys.ts →
+ * `<slug>:<name>:v<version>`), JSON-safe, never throws, synced across tabs. Without `validate`, any stored JSON of the same type as the default
  * is accepted.
  *
- *   const [view, setView, resetView] = useLocalStorage('users-view', 'table', {
+ *   const [view, setView, resetView] = useLocalStorage('usersView', 'table', {
  *     validate: (v) => (v === 'table' || v === 'cards' ? v : null),
  *   });
  */
 export function useLocalStorage<T>(
-  name: string,
+  id: StorageKeyId,
   defaultValue: T,
   options: UseLocalStorageOptions<T> = {},
 ): [T, (next: T | ((current: T) => T)) => void, () => void] {
-  const { version = 1 } = options;
-  const key = storageKey(name, version);
+  const key = keyOf(id);
   const latest = useRef({ defaultValue, validate: options.validate });
   useEffect(() => {
     latest.current = { defaultValue, validate: options.validate };

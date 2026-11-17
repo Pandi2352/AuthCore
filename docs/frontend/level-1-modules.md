@@ -242,13 +242,15 @@ Generic hooks in `src/hooks/` (export via `@/hooks`), all written for the React 
 
 ## 12. Utilities (`lib/`)
 
-- [~] `cn()` *(exists in `lib/utils.ts`)*
-- [ ] Formatting with `Intl`: date / time / relative time (user locale + time zone), number, currency, percent, file size
-- [ ] String helpers (truncate, initials, slugify)
-- [ ] URL helpers: query-string build / parse, `safeReturnTo()` (same-origin relative only)
-- [ ] `local-storage.ts`: namespaced by app slug, versioned keys, safe JSON
-- [ ] Constants: breakpoints, storage keys, HTTP status / error codes
-- [ ] `invariant()`, exhaustive-switch helper
+Plain TypeScript, no React (`lib/utils`, `lib/format`, `lib/constants`, `lib/storage.ts`; the React ref / prop helpers live in `components/ui/primitives/compose.ts`).
+
+- [x] `cn()` (`lib/utils/cn.ts`) + `variants()` (our cva, module 4)
+- [x] Formatting with `Intl` (`lib/format`): `formatDateTime` / `formatRelative` (module 10), `formatNumber`, `formatCompact`, `formatCurrency`, `formatPercent`, `formatCount` (plural rules), `formatFileSize` — **user locale + time zone**: `setFormatDefaults()` is called by `AuthProvider` from the signed-in user's preferences (language, timezone); invalid values fall back to the browser's
+- [x] String helpers (`lib/utils/string.ts`): `truncate` (end / middle, emoji-safe), `initials`, `slugify`, `capitalize`, `humanize`, `collapseWhitespace`, `mask`, `maskEmail` *(Avatar, StatusBadge, ThemeCustomizer now use them instead of local copies)*
+- [x] URL helpers (`lib/utils/url.ts`): `buildQueryString`, `parseQueryString`, `appendQuery`, `joinUrl`, `isExternalUrl`, `safeReturnTo()` (same-origin relative only; backslash / protocol-relative / absolute / control characters rejected)
+- [x] Local storage: `lib/storage.ts` (only localStorage access, safe JSON, never throws, cross-tab) + `lib/constants/storage-keys.ts` (every key registered once, `<slug>:<name>:v<version>`); `useLocalStorage` accepts registered ids only
+- [x] Constants (`lib/constants`): breakpoints, storage keys, HTTP status / headers / retryable statuses, **API error codes** (`API_ERROR_CODES` mirrors the backend `ErrorCode` enum, `CLIENT_ERROR_CODES` for client-side failures) — `npm run check:error-codes` (in `verify`) fails when the frontend and backend lists differ; client, error messages, ErrorState and Login use the constants instead of strings
+- [x] `invariant()`, `assertNever()` (exhaustive switch), `isDefined()` (`lib/utils/assert.ts`)
 
 ## 13. API Layer
 
@@ -351,7 +353,7 @@ Level 1 is done when all of these pass **without editing any component**:
 | 8 | 8. Navbar ✅ | Critical | Configurable actions, responsive |
 | 9 | 9. Responsive & accessibility ✅ | Critical | Breakpoint and keyboard pass |
 | 10 | 10. Page & feedback components ✅ | High | Page scaffolding, states, global pages |
-| 11 | 11–12. Hooks ✅ & utilities | High | Reusable helpers |
+| 11 | 11–12. Hooks & utilities ✅ | High | Reusable helpers |
 | 12 | 13. API layer | High | Client, errors, upload / download |
 | 13 | 14. Error handling | High | Boundaries, chunk errors, offline |
 | 14 | 4. UI components (rest: table, tabs, pagination, avatar, sheet, select, …) | High | Complete design system |
