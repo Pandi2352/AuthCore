@@ -28,3 +28,5 @@ Planning and setup documents for both applications.
 | [frontend/level-2-modules.md](frontend/level-2-modules.md) | Modules 17–26: every AuthCore backend feature in the UI |
 | [frontend/level-3-modules.md](frontend/level-3-modules.md) | Modules 27–34: i18n, E2E, monitoring, deployment, MFA UI, DX |
 | [frontend/techstack.md](frontend/techstack.md) | Installed and planned packages, decisions |
+| [../authcore-frontend/README.md](../authcore-frontend/README.md) | **Using the kit:** quick start, scripts, env, configuration, recipes, verification, deployment, troubleshooting |
+| [../authcore-frontend/CHANGELOG.md](../authcore-frontend/CHANGELOG.md) | Breaking changes for projects copied from earlier versions |

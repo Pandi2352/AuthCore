@@ -310,17 +310,17 @@ Follow the backend README (architecture and conventions): DTOs for every input, 
 
 If the module stores personal data, add its collection to `user-data-cleanup.service.ts` so permanent account deletion removes it.
 
-### Frontend
+### Frontend ✅
 
 ```text
-authcore-frontend/src/features/leads/      (🔜 target structure, see docs/frontend/folder-structure.md)
+authcore-frontend/src/features/leads/
 ├── api/leads.api.ts         calls through the API client only
 ├── components/              LeadsTable, LeadForm
 ├── pages/                   LeadsListPage, LeadDetailPage
 └── index.ts
 ```
 
-Add the route (lazy) and the navigation item; protect it with the permission from Step 8.
+Add the paths (`config/paths.ts`), the lazy routes (`src/app/routes/leads.routes.tsx` with `handle.permission`) and the navigation item; protect them with the permission from Step 8. Step-by-step: [frontend README → Recipes → Add a business module](../authcore-frontend/README.md#add-a-business-module-eg-leads). Components to build with, and when to use which: `/dev/ui` in development ("Usage" under each section).
 
 ---
 
@@ -330,7 +330,7 @@ Add the route (lazy) and the navigation item; protect it with the permission fro
 | --- | --- | --- |
 | CI | ✅ | `.github/workflows/backend-ci.yml` and `frontend-ci.yml` run on push / PR. Adjust paths if you renamed folders. |
 | Backend image | ✅ | `authcore-backend/Dockerfile`; mount a volume at `/app/uploads`; pass `.env` values as environment variables (never bake `.env` into the image). |
-| Frontend hosting | 🔜 | Static `dist/` behind nginx (or any static host) with SPA fallback and `/api` proxied to the backend (frontend Level 3, module 32). |
+| Frontend hosting | ✅ | Static `dist/` behind nginx (or any static host) with SPA fallback, no-cache `index.html` and `/api` proxied to the backend: example config in the [frontend README → Deployment](../authcore-frontend/README.md#deployment). Docker image and CSP: frontend Level 3, module 32. |
 | HTTPS | — | Required in production: `REFRESH_COOKIE_SECURE=true`, `TRUST_PROXY_HOPS` set to your proxy count. |
 | Database | — | Managed MongoDB (replica set), backups per the backend operations notes. |
 | Virus scanning | — | `VIRUS_SCAN_ENABLED=true` with a ClamAV container. |

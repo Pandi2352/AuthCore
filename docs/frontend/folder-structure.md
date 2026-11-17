@@ -229,7 +229,8 @@ src/
 │   ├── RouteErrorPage.tsx           errorElement: 404, chunk-load (reload once), other errors (reported, Try again)
 │   ├── PlannedModulePage.tsx        "Not built yet" module overview (from navigation config)
 │   ├── PlannedFeaturePage.tsx       "Not built yet" page
-│   └── dev/                         UiKitchenSinkPage.tsx + PageFeedbackShowcase.tsx + HooksShowcase.tsx (development only)
+│   └── dev/                         UiKitchenSinkPage.tsx + PageFeedbackShowcase.tsx + HooksShowcase.tsx (development only);
+│                                    UsageNotes.tsx + kitchen-sink-notes.ts ("Usage" per section)
 │
 ├── config/                          Everything a new project edits
 │   ├── app.config.ts                Name, short name, description, logos, favicon, company, support, links

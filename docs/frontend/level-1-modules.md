@@ -311,10 +311,14 @@ No automated test framework (decision of 2026-11-17). Each module is verified by
 ## 16. Documentation
 
 - [x] `docs/frontend/` planning documents
-- [ ] README: quick start, scripts, environment, configuration guide, theme guide, structure, recipes (add page / module / component / preset), manual verification checklist, deployment, troubleshooting
-- [ ] "Start a new project in 10 minutes" guide (copy → `project:init` → brand assets → navigation → theme → run)
-- [ ] Component usage notes on the kitchen-sink page
-- [ ] Changelog of breaking starter-kit changes (projects copied earlier can follow)
+- [x] README: quick start, scripts, environment, configuration guide, theme guide, structure, recipes (add page / module / component / preset), manual verification checklist, deployment, troubleshooting
+  - `authcore-frontend/README.md`; also architecture rules, API calls and error handling (which error UI for which situation), recipes for navbar actions and stored preferences, nginx example
+- [x] "Start a new project in 10 minutes" guide (copy → `project:init` → brand assets → navigation → theme → run)
+  - README section with the 7 frontend steps; the full backend + frontend guide stays in `docs/new-project-guide.md` (frontend steps updated, no more 🔜)
+- [x] Component usage notes on the kitchen-sink page
+  - `/dev/ui`: collapsible "Usage" under each section (when to use which component, rules, copyable example); content in `src/pages/dev/kitchen-sink-notes.ts`, keyed by section id
+- [x] Changelog of breaking starter-kit changes (projects copied earlier can follow)
+  - `authcore-frontend/CHANGELOG.md`: per module, **Breaking** vs *Additive*, how to follow, migration steps for pre-Level-1 copies; add an entry with every kit change
 
 ---
 
@@ -376,9 +380,9 @@ Level 1 is done when all of these pass **without editing any component**:
 | 10 | 10. Page & feedback components ✅ | High | Page scaffolding, states, global pages |
 | 11 | 11–12. Hooks & utilities ✅ | High | Reusable helpers |
 | 12 | 13. API layer ✅ | High | Client, errors, upload / download |
-| 13 | 14. Error handling | High | Boundaries, chunk errors, offline |
-| 14 | 4. UI components (rest: table, tabs, pagination, avatar, sheet, select, …) | High | Complete design system |
+| 13 | 14. Error handling ✅ | High | Boundaries, chunk errors, offline |
+| 14 | 4. UI components ✅ (rest: table, tabs, pagination, avatar, sheet, select, …) | High | Complete design system |
 | 15 | 15. Manual verification | High | Checklist passed in every preset, mode and breakpoint |
-| 16 | 16. Documentation | High | README + new-project guide; acceptance checklist passed |
+| 16 | 16. Documentation ✅ | High | README, 10-minute guide, kitchen-sink usage notes, CHANGELOG |
 
 Level 2 (AuthCore client) starts after Sprint 16. Authentication and permissions are deliberately later: the shell must work without them.

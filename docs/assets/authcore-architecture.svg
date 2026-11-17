@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820" role="img" aria-labelledby="t d">
+  <title id="t">AuthCore architecture</title>
+  <desc id="d">Browser runs the React frontend, which calls the NestJS backend through /api/v1. The backend has feature modules behind a security pipeline and uses MongoDB, SMTP, local file storage, ClamAV and Prometheus.</desc>
+  <defs>
+    <linearGradient id="fe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0891b2"/>
+      <stop offset="1" stop-color="#0e7490"/>
+    </linearGradient>
+    <linearGradient id="be" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#64748b"/>
+    </marker>
+    <style>
+      text { font-family: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif; }
+      .h { font-size: 20px; font-weight: 700; fill: #ffffff; }
+      .sub { font-size: 13px; fill: #e0f2fe; }
+      .tile { font-size: 13.5px; font-weight: 600; fill: #1e1b4b; }
+      .tile2 { font-size: 13.5px; font-weight: 600; fill: #083344; }
+      .ext { font-size: 15px; font-weight: 700; fill: #0f172a; }
+      .extsub { font-size: 12.5px; fill: #334155; }
+      .pipe { font-size: 12.5px; font-weight: 600; fill: #ffffff; }
+      .label { font-size: 13px; font-weight: 600; fill: #475569; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="820" rx="18" fill="#f8fafc"/>
+  <rect x="0.5" y="0.5" width="1279" height="819" rx="18" fill="none" stroke="#e2e8f0"/>
+
+  <!-- Browser -->
+  <g>
+    <rect x="40" y="40" width="300" height="70" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+    <circle cx="62" cy="62" r="5" fill="#f87171"/><circle cx="78" cy="62" r="5" fill="#fbbf24"/><circle cx="94" cy="62" r="5" fill="#34d399"/>
+    <text x="190" y="92" text-anchor="middle" class="ext">🌐  User's browser</text>
+  </g>
+  <path d="M190 110 V150" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Frontend -->
+  <g>
+    <rect x="40" y="152" width="300" height="470" rx="14" fill="url(#fe)"/>
+    <text x="64" y="188" class="h">authcore-frontend</text>
+    <text x="64" y="210" class="sub">React 19 · Vite 8 · Tailwind 4 · TS 7</text>
+    <g>
+      <rect x="60" y="228" width="260" height="40" rx="8" fill="#cffafe"/><text x="76" y="253" class="tile2">App shell: sidebar, navbar, layouts</text>
+      <rect x="60" y="276" width="260" height="40" rx="8" fill="#cffafe"/><text x="76" y="301" class="tile2">Sign-in, sign-up, verify, reset</text>
+      <rect x="60" y="324" width="260" height="40" rx="8" fill="#cffafe"/><text x="76" y="349" class="tile2">My account: profile, security, sessions</text>
+      <rect x="60" y="372" width="260" height="40" rx="8" fill="#cffafe"/><text x="76" y="397" class="tile2">33 own UI components (no UI library)</text>
+      <rect x="60" y="420" width="260" height="40" rx="8" fill="#cffafe"/><text x="76" y="445" class="tile2">Theme: modes × presets × appearance</text>
+      <rect x="60" y="468" width="260" height="40" rx="8" fill="#cffafe"/><text x="76" y="493" class="tile2">Config-driven: brand, nav, flags</text>
+      <rect x="60" y="516" width="260" height="40" rx="8" fill="#a5f3fc"/><text x="76" y="541" class="tile2">API client: refresh, errors, retry</text>
+      <rect x="60" y="564" width="260" height="40" rx="8" fill="#a5f3fc"/><text x="76" y="589" class="tile2">Error boundaries, offline, reporting</text>
+    </g>
+  </g>
+
+  <!-- Arrow frontend -> backend -->
+  <path d="M342 380 H420" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path d="M420 410 H344" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#arrow)"/>
+  <text x="381" y="362" text-anchor="middle" class="label">/api/v1</text>
+  <text x="381" y="436" text-anchor="middle" class="label">JSON</text>
+  <text x="381" y="452" text-anchor="middle" class="label">envelope</text>
+
+  <!-- Backend -->
+  <g>
+    <rect x="422" y="40" width="818" height="582" rx="14" fill="url(#be)"/>
+    <text x="448" y="76" class="h">authcore-backend</text>
+    <text x="448" y="98" class="sub" fill="#e0e7ff">NestJS 11 · TypeScript 5.9 strict · Mongoose 8 · Node 20</text>
+
+    <!-- Pipeline -->
+    <g>
+      <text x="448" y="132" class="sub" fill="#c7d2fe">Every request passes the pipeline:</text>
+      <rect x="448" y="142" width="96" height="30" rx="6" fill="#6366f1"/><text x="496" y="162" text-anchor="middle" class="pipe">Helmet+CORS</text>
+      <rect x="552" y="142" width="96" height="30" rx="6" fill="#6366f1"/><text x="600" y="162" text-anchor="middle" class="pipe">Rate limit</text>
+      <rect x="656" y="142" width="96" height="30" rx="6" fill="#7c3aed"/><text x="704" y="162" text-anchor="middle" class="pipe">JWT guard</text>
+      <rect x="760" y="142" width="110" height="30" rx="6" fill="#7c3aed"/><text x="815" y="162" text-anchor="middle" class="pipe">Permissions</text>
+      <rect x="878" y="142" width="96" height="30" rx="6" fill="#9333ea"/><text x="926" y="162" text-anchor="middle" class="pipe">Validation</text>
+      <rect x="982" y="142" width="104" height="30" rx="6" fill="#c026d3"/><text x="1034" y="162" text-anchor="middle" class="pipe">Controller</text>
+      <rect x="1094" y="142" width="122" height="30" rx="6" fill="#db2777"/><text x="1155" y="162" text-anchor="middle" class="pipe">Envelope/errors</text>
+    </g>
+
+    <!-- Module tiles: 4 columns x 4 rows -->
+    <g>
+      <rect x="448" y="196" width="186" height="88" rx="10" fill="#e0e7ff"/>
+      <text x="462" y="222" class="tile">🔑 Auth</text><text x="462" y="244" class="tile" font-weight="400">register · login · refresh</text><text x="462" y="264" class="tile" font-weight="400">logout · me</text>
+
+      <rect x="644" y="196" width="186" height="88" rx="10" fill="#e0e7ff"/>
+      <text x="658" y="222" class="tile">📱 Sessions</text><text x="658" y="244" class="tile" font-weight="400">list · revoke · max per</text><text x="658" y="264" class="tile" font-weight="400">user · token rotation</text>
+
+      <rect x="840" y="196" width="186" height="88" rx="10" fill="#e0e7ff"/>
+      <text x="854" y="222" class="tile">✉️ Email verification</text><text x="854" y="244" class="tile" font-weight="400">OTP · link · resend</text><text x="854" y="264" class="tile" font-weight="400">or admin approval</text>
+
+      <rect x="1036" y="196" width="180" height="88" rx="10" fill="#e0e7ff"/>
+      <text x="1050" y="222" class="tile">🔐 Passwords</text><text x="1050" y="244" class="tile" font-weight="400">forgot · reset · change</text><text x="1050" y="264" class="tile" font-weight="400">policy · expiry</text>
+
+      <rect x="448" y="294" width="186" height="88" rx="10" fill="#ede9fe"/>
+      <text x="462" y="320" class="tile">🛡️ Access control</text><text x="462" y="342" class="tile" font-weight="400">roles · permissions</text><text x="462" y="362" class="tile" font-weight="400">groups · mappings</text>
+
+      <rect x="644" y="294" width="186" height="88" rx="10" fill="#ede9fe"/>
+      <text x="658" y="320" class="tile">👤 My account</text><text x="658" y="342" class="tile" font-weight="400">profile · avatar · export</text><text x="658" y="362" class="tile" font-weight="400">deactivate · recovery</text>
+
+      <rect x="840" y="294" width="186" height="88" rx="10" fill="#ede9fe"/>
+      <text x="854" y="320" class="tile">🛠️ User admin</text><text x="854" y="342" class="tile" font-weight="400">users · status · role</text><text x="854" y="362" class="tile" font-weight="400">unlock · set password</text>
+
+      <rect x="1036" y="294" width="180" height="88" rx="10" fill="#ede9fe"/>
+      <text x="1050" y="320" class="tile">📨 Invites</text><text x="1050" y="342" class="tile" font-weight="400">invite · resend</text><text x="1050" y="362" class="tile" font-weight="400">accept · revoke</text>
+
+      <rect x="448" y="392" width="186" height="88" rx="10" fill="#fae8ff"/>
+      <text x="462" y="418" class="tile">🧩 User schema</text><text x="462" y="440" class="tile" font-weight="400">custom user fields</text><text x="462" y="460" class="tile" font-weight="400">validated per project</text>
+
+      <rect x="644" y="392" width="186" height="88" rx="10" fill="#fae8ff"/>
+      <text x="658" y="418" class="tile">📁 Files</text><text x="658" y="440" class="tile" font-weight="400">upload · images (sharp)</text><text x="658" y="460" class="tile" font-weight="400">virus scan · cleanup</text>
+
+      <rect x="840" y="392" width="186" height="88" rx="10" fill="#fae8ff"/>
+      <text x="854" y="418" class="tile">🔔 Login alerts</text><text x="854" y="440" class="tile" font-weight="400">new device · locked</text><text x="854" y="460" class="tile" font-weight="400">known devices</text>
+
+      <rect x="1036" y="392" width="180" height="88" rx="10" fill="#fae8ff"/>
+      <text x="1050" y="418" class="tile">📜 Activity</text><text x="1050" y="440" class="tile" font-weight="400">audit trail · login</text><text x="1050" y="460" class="tile" font-weight="400">history · search</text>
+
+      <rect x="448" y="490" width="186" height="88" rx="10" fill="#fce7f3"/>
+      <text x="462" y="516" class="tile">📧 Mail</text><text x="462" y="538" class="tile" font-weight="400">templates · en / ta / hi</text><text x="462" y="558" class="tile" font-weight="400">SMTP or outbox</text>
+
+      <rect x="644" y="490" width="186" height="88" rx="10" fill="#fce7f3"/>
+      <text x="658" y="516" class="tile">👑 Bootstrap admin</text><text x="658" y="538" class="tile" font-weight="400">first admin from .env</text><text x="658" y="558" class="tile" font-weight="400">must change password</text>
+
+      <rect x="840" y="490" width="186" height="88" rx="10" fill="#fce7f3"/>
+      <text x="854" y="516" class="tile">💓 Health</text><text x="854" y="538" class="tile" font-weight="400">live · ready (DB)</text><text x="854" y="558" class="tile" font-weight="400">graceful shutdown</text>
+
+      <rect x="1036" y="490" width="180" height="88" rx="10" fill="#fce7f3"/>
+      <text x="1050" y="516" class="tile">📈 Metrics</text><text x="1050" y="538" class="tile" font-weight="400">Prometheus format</text><text x="1050" y="558" class="tile" font-weight="400">token protected</text>
+    </g>
+    <text x="831" y="606" text-anchor="middle" class="sub" fill="#c7d2fe">~140 endpoints · Swagger / OpenAPI at /api/docs · 62 error codes · UUID v7 ids</text>
+  </g>
+
+  <!-- Arrows backend -> external -->
+  <path d="M520 624 V690" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M700 624 V690" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M880 624 V690" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M1060 624 V690" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M1190 690 V624" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- External services -->
+  <g>
+    <rect x="440" y="692" width="160" height="84" rx="10" fill="#dcfce7" stroke="#86efac"/>
+    <text x="520" y="724" text-anchor="middle" class="ext">🍃 MongoDB 8</text>
+    <text x="520" y="746" text-anchor="middle" class="extsub">users, sessions, roles,</text>
+    <text x="520" y="764" text-anchor="middle" class="extsub">activity, files metadata</text>
+
+    <rect x="620" y="692" width="160" height="84" rx="10" fill="#fef3c7" stroke="#fcd34d"/>
+    <text x="700" y="724" text-anchor="middle" class="ext">📬 SMTP</text>
+    <text x="700" y="746" text-anchor="middle" class="extsub">or local outbox folder</text>
+    <text x="700" y="764" text-anchor="middle" class="extsub">(development / tests)</text>
+
+    <rect x="800" y="692" width="160" height="84" rx="10" fill="#e0f2fe" stroke="#7dd3fc"/>
+    <text x="880" y="724" text-anchor="middle" class="ext">🗄️ File storage</text>
+    <text x="880" y="746" text-anchor="middle" class="extsub">local uploads folder</text>
+    <text x="880" y="764" text-anchor="middle" class="extsub">(driver-based)</text>
+
+    <rect x="980" y="692" width="160" height="84" rx="10" fill="#fee2e2" stroke="#fca5a5"/>
+    <text x="1060" y="724" text-anchor="middle" class="ext">🦠 ClamAV</text>
+    <text x="1060" y="746" text-anchor="middle" class="extsub">optional virus scan</text>
+    <text x="1060" y="764" text-anchor="middle" class="extsub">of uploads</text>
+
+    <rect x="1150" y="692" width="90" height="84" rx="10" fill="#f3e8ff" stroke="#d8b4fe"/>
+    <text x="1195" y="724" text-anchor="middle" class="ext">📊</text>
+    <text x="1195" y="746" text-anchor="middle" class="extsub">Prometheus</text>
+    <text x="1195" y="764" text-anchor="middle" class="extsub">scrapes</text>
+  </g>
+
+  <!-- Legend -->
+  <g>
+    <rect x="40" y="660" width="300" height="116" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+    <text x="58" y="688" class="ext">How they talk</text>
+    <text x="58" y="712" class="extsub">• Short-lived JWT access token (memory)</text>
+    <text x="58" y="732" class="extsub">• Refresh token in an httpOnly cookie,</text>
+    <text x="58" y="750" class="extsub">   rotated on every refresh</text>
+    <text x="58" y="768" class="extsub">• X-Request-Id on every request / response</text>
+  </g>
+</svg>

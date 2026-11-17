@@ -101,15 +101,20 @@ import {
 import { appConfig } from '@/config';
 
 import { HooksShowcase } from './HooksShowcase';
+import { KITCHEN_SINK_NOTES } from './kitchen-sink-notes';
 import { PageFeedbackShowcase } from './PageFeedbackShowcase';
+import { UsageNotes } from './UsageNotes';
 
+/** A showcase section; its usage note (kitchen-sink-notes.ts, same id) shows under it. */
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  const note = KITCHEN_SINK_NOTES[id];
   return (
     <section aria-labelledby={id} className="space-y-4">
       <h2 id={id} className="text-lg font-semibold text-foreground">
         {title}
       </h2>
       <div className="rounded-md border border-border bg-surface p-card">{children}</div>
+      {note && <UsageNotes note={note} />}
     </section>
   );
 }
@@ -174,6 +179,8 @@ export function UiKitchenSinkPage() {
         <h1 className="text-2xl font-bold text-foreground">UI kit</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Development only. Switch the theme here and check every component in each preset and mode.
+          Open “Usage” under a section for when to use each component, the project rules and a
+          copyable example.
         </p>
       </div>
 
