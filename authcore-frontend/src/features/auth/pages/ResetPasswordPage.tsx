@@ -2,16 +2,13 @@ import { Lock } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { PasswordRequirements } from '@/components/auth/PasswordRequirements';
-import { Alert } from '@/components/common/Alert';
-import { Button } from '@/components/common/Button';
-import { Card } from '@/components/common/Card';
-import { Input } from '@/components/common/Input';
+import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
-import { ApiError } from '@/lib/api-client';
-import { authService } from '@/services/auth.service';
+import { authApi } from '@/features/auth/api/auth.api';
+import { PasswordRequirements } from '@/features/auth/components/PasswordRequirements';
+import { ApiError } from '@/lib/api';
 
-export const ResetPassword: React.FC = () => {
+export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -40,7 +37,7 @@ export const ResetPassword: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const res = await authService.verifyResetToken({
+      const res = await authApi.verifyResetToken({
         email: email.trim().toLowerCase(),
         code: code.trim(),
       });
@@ -65,7 +62,7 @@ export const ResetPassword: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await authService.resetPassword({
+      await authApi.resetPassword({
         resetToken,
         newPassword,
         confirmPassword,
@@ -84,14 +81,14 @@ export const ResetPassword: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-background py-12 sm:px-6 lg:px-8">
-      <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="w-full">
+      <div className="text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary-soft text-primary">
           <Lock className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Set new password
-        </h2>
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {isTokenVerified
             ? 'Enter your new strong password'
@@ -99,10 +96,10 @@ export const ResetPassword: React.FC = () => {
         </p>
       </div>
 
-      <div className="mt-8 px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
-        <Card className="border-border">
-          {error && <Alert type="error" message={error} className="mb-4" />}
-          {successMessage && <Alert type="info" message={successMessage} className="mb-4" />}
+      <div className="mt-8">
+        <Card>
+          {error && <Alert variant="danger" message={error} className="mb-4" />}
+          {successMessage && <Alert variant="info" message={successMessage} className="mb-4" />}
 
           {!isTokenVerified ? (
             <form onSubmit={handleVerifyCode} className="space-y-4">
@@ -125,12 +122,7 @@ export const ResetPassword: React.FC = () => {
                 className="text-center font-mono text-lg tracking-widest"
               />
 
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full py-2.5"
-                isLoading={isLoading}
-              >
+              <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
                 Verify Code
               </Button>
             </form>
@@ -158,7 +150,7 @@ export const ResetPassword: React.FC = () => {
 
               <Button
                 type="submit"
-                variant="primary"
+                variant="solid"
                 className="mt-2 w-full py-2.5"
                 isLoading={isLoading}
               >

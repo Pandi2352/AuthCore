@@ -60,10 +60,12 @@ function themeNoFlash(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss(), appConfigHtml(), themeNoFlash()],
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
+    // true only in the dev server: dev-only routes (/dev/ui) are removed from production builds
+    __DEV_BUILD__: JSON.stringify(command === 'serve'),
   },
   resolve: {
     alias: {
@@ -79,4 +81,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

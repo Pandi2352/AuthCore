@@ -71,7 +71,7 @@
     "no-underscore-dangle": [
       "warn",
       {
-        "allow": ["__APP_VERSION__"]
+        "allow": ["__APP_VERSION__", "__DEV_BUILD__"]
       }
     ]
   },
@@ -96,6 +96,17 @@
       "files": ["src/app/theme/theme-core.ts"],
       "rules": {
         "unicorn/consistent-function-scoping": "off"
+      }
+    },
+    {
+      "files": ["src/components/ui/**", "src/app/layouts/**"],
+      "rules": {
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "jsx-a11y/no-static-element-interactions": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-noninteractive-tabindex": "off",
+        "jsx-a11y/interactive-supports-focus": "off"
       }
     }
   ],

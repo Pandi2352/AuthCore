@@ -1,20 +1,31 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Compass } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
-import { Button } from '@/components/common/Button';
+import { Button } from '@/components/ui';
 import { paths } from '@/config';
 
-export const NotFound: React.FC = () => {
+import { StatusPage } from './StatusPage';
+
+/** 404. `embedded` = inside the app layout (sidebar stays); otherwise full screen. */
+export function NotFoundPage({ embedded = false }: { embedded?: boolean }) {
+  const navigate = useNavigate();
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
-      <h1 className="mb-2 text-6xl font-black text-primary">404</h1>
-      <h2 className="mb-2 text-2xl font-bold text-foreground">Page Not Found</h2>
-      <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-        The page you are looking for does not exist or has been moved.
-      </p>
-      <Link to={paths.dashboard}>
-        <Button variant="primary">Return Home</Button>
-      </Link>
-    </div>
+    <StatusPage
+      fullScreen={!embedded}
+      icon={<Compass aria-hidden="true" />}
+      code="404"
+      title="Page not found"
+      description="The page you are looking for doesn't exist or has been moved."
+      actions={
+        <>
+          <Button variant="outline" leftIcon={<ArrowLeft />} onClick={() => navigate(-1)}>
+            Go back
+          </Button>
+          <Button asChild>
+            <Link to={paths.root}>Go to home</Link>
+          </Button>
+        </>
+      }
+    />
   );
-};
+}

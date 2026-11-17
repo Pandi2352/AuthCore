@@ -52,6 +52,7 @@ src/
 │   ├── router.tsx                   createBrowserRouter(routes)
 │   │
 │   ├── routes/                      One file per area; every page lazy
+│   │   ├── route-handle.ts          RouteHandle type (title, breadcrumb, permission, featureFlag) + lazyPage()
 │   │   ├── index.tsx                The tree: layouts, guards, error elements, redirects, 404
 │   │   ├── public.routes.tsx        PublicLayout pages (landing, about) — optional per project
 │   │   ├── auth.routes.tsx          AuthLayout pages (login, register, verify, reset, invite)
@@ -66,13 +67,21 @@ src/
 │   │   ├── AppLayout.tsx            Sidebar + Navbar + MainContent(<Outlet />)
 │   │   ├── AuthLayout.tsx           Centered card / split screen for sign-in flows
 │   │   ├── PublicLayout.tsx         Marketing header + footer
+│   │   ├── RootLayout.tsx           Title, progress bar, scroll restoration, focus on navigation
 │   │   ├── components/
+│   │   │   ├── FullPageLoader.tsx   Session check / first load
+│   │   │   ├── FocusOnNavigate.tsx  Focus the new page h1 after navigation
+│   │   │   ├── RouteAccessBoundary.tsx handle.featureFlag → 404, handle.permission → 403
+│   │   │   ├── use-breadcrumbs.ts
 │   │   │   ├── MainContent.tsx      Scroll container, content width, skip-link target
 │   │   │   ├── Breadcrumbs.tsx      From route handle.breadcrumb
 │   │   │   ├── PageTitle.tsx        document.title from route handle.title + app name
 │   │   │   ├── RouteProgress.tsx    Top progress bar during navigation / lazy load
 │   │   │   └── SkipLink.tsx
 │   │   ├── sidebar/
+│   │   │   ├── SidebarProvider.tsx  State: collapsed (persisted, Ctrl/Cmd+B), drawer, expanded submenus
+│   │   │   ├── sidebar-context.ts / sidebar-mode.ts / navigation-filter.ts (flags, permissions, active)
+│   │   │   ├── NavBadge.tsx         Static or live-count badge
 │   │   │   ├── Sidebar.tsx          Container: header, content, footer; variant from layout config
 │   │   │   ├── SidebarHeader.tsx    Logo / logo mark (collapsed), app name
 │   │   │   ├── SidebarContent.tsx   Groups from navigation config, filtered by permissions / flags
@@ -81,8 +90,8 @@ src/
 │   │   │   ├── SidebarSubmenu.tsx   Nested items, expand / collapse, keyboard support
 │   │   │   ├── SidebarFooter.tsx    Settings / user section / collapse toggle
 │   │   │   ├── SidebarMobile.tsx    Drawer + overlay below the lg breakpoint
-│   │   │   ├── useSidebar.ts        Collapsed / mobile-open state (persisted)
-│   │   │   ├── sidebar.variants.ts  classic | minimal | floating | compact
+│   │   │   ├── useSidebar.ts
+│   │   │   ├── sidebar.variants.ts  classic | minimal | floating | compact | dark; row classes
 │   │   │   └── index.ts
 │   │   ├── navbar/
 │   │   │   ├── Navbar.tsx           Container; variant from layout config
@@ -111,7 +120,7 @@ src/
 │   │   ├── icon-button/
 │   │   ├── input/                   Input, InputGroup (prefix / suffix), PasswordInput
 │   │   ├── textarea/
-│   │   ├── select/                  Radix Select
+│   │   ├── select/                  Custom listbox select (no <select>): Select.tsx, listbox.tsx, listbox-utils.ts
 │   │   ├── combobox/                Searchable select (optional)
 │   │   ├── checkbox/
 │   │   ├── radio-group/
@@ -138,8 +147,10 @@ src/
 │   │   ├── table/                   Table primitives (DataTable with TanStack Table in Level 2)
 │   │   ├── scroll-area/
 │   │   ├── kbd/
-│   │   ├── command/                 Command palette (optional, cmdk)
-│   │   ├── toaster/                 Sonner wrapper + toast() helper
+│   │   ├── command/                 Command palette (optional, module 8, own code)
+│   │   ├── toaster/                 Own toast store (toast-store.ts) + <Toaster>
+│   │   ├── primitives/              Our a11y building blocks: Slot (asChild), Portal, useFloating,
+│   │   │                            useDismiss (layers), list-navigation (roving / typeahead), compose (refs / props)
 │   │   └── index.ts                 Barrel: export * from each component
 │   │
 │   ├── common/                      App-level building blocks (still business-free)
@@ -202,6 +213,7 @@ src/
 │       └── index.ts
 │
 ├── pages/                           App-wide pages that belong to no feature
+│   ├── StatusPage.tsx               Shared layout for 403 / 404 / error / planned pages
 │   ├── NotFoundPage.tsx             404
 │   ├── ForbiddenPage.tsx            403
 │   ├── RouteErrorPage.tsx           errorElement: render / chunk-load errors
@@ -233,6 +245,8 @@ src/
 │   ├── useDocumentTitle.ts
 │   ├── useCopyToClipboard.ts
 │   ├── useQueryParams.ts            Typed search-param state (filters, page, tab)
+│   ├── useRequiredParam.ts          Typed :id route params
+│   ├── useControllableState.ts / useFocusTrap.ts / useScrollLock.ts / usePersistentState.ts
 │   ├── usePagination.ts
 │   └── index.ts
 │
@@ -249,7 +263,7 @@ src/
 │   │   ├── query-client.ts          TanStack Query defaults (retry rules by ApiError code)
 │   │   └── query-keys.ts            Key factory per feature
 │   ├── format/                      date.ts, number.ts, currency.ts, file-size.ts, string.ts
-│   ├── utils/                       cn.ts, invariant.ts, sleep.ts, object.ts, url.ts (safe returnTo)
+│   ├── utils/                       cn.ts, variants.ts (our cva), url.ts (safeReturnTo), …
 │   ├── storage.ts                   The only localStorage access: JSON-safe, never throws, cross-tab subscribe (keys `<slug>:<name>:v1`)
 │   ├── validation/                  Shared Zod helpers (email, password-policy rules), Level 2
 │   └── constants/                   breakpoints.ts, storage-keys.ts, http.ts
@@ -302,8 +316,8 @@ Other rules:
 
 ```text
 components/ui/button/
-├── Button.tsx            forwardRef, typed props, variants via cva, asChild (Radix Slot)
-├── button.variants.ts    variant: solid | soft | outline | ghost | link | destructive; size: sm | md | lg | icon
+├── Button.tsx            forwardRef, typed props, variants via our variants() helper, asChild (primitives/Slot)
+├── button.variants.ts    variant: solid | soft | outline | secondary | ghost | link | destructive; size: sm | md | lg | icon
 └── index.ts              export { Button, type ButtonProps } from './Button'
 ```
 
@@ -348,36 +362,36 @@ Exports: named exports everywhere (default exports only where a tool requires th
 
 ## Migration of the current files
 
-The current code is kept and moved; nothing is rewritten from scratch.
+The current code is kept and moved; nothing is rewritten from scratch. **Status: every move below is done** (struck through). Remaining notes (timeouts / typed API errors, password rules from the API) belong to their modules (13, Level 2).
 
 | Current file | Target | Notes |
 | --- | --- | --- |
 | `src/main.tsx` | `src/main.tsx` | Import `@/app/App`; keep `StrictMode` |
-| `src/App.tsx` | `src/app/App.tsx` | Providers + `RouterProvider` |
+| ~~`src/App.tsx`~~ | `src/app/App.tsx` + `Providers.tsx` | Done (module 5) |
 | `src/App.css`, `assets/hero.png`, `react.svg`, `vite.svg`, `public/icons.svg` | delete | Unused template files |
 | ~~`src/index.css`~~ | `src/styles/index.css` + `tokens.css` / `themes.css` / `appearance.css` / `base.css` | Done (module 3) |
-| `src/router/index.tsx` | `src/app/router.tsx` + `src/app/routes/*.routes.tsx` (paths already in `src/config/paths.ts`) | Data router, lazy pages |
+| ~~`src/router/index.tsx`~~ | `src/app/router.tsx` + `src/app/routes/*.routes.tsx` | Done (module 5) |
 | ~~`src/config/project.ts`~~ | `config/app.config.ts` (identity, branding), `config/features.config.ts` (flags), `config/env.ts` (API URL) | Done (module 2) |
-| `src/components/common/Layout.tsx` | `app/layouts/AppLayout.tsx` | + sidebar, main content |
-| `src/components/common/Navbar.tsx` | `app/layouts/navbar/*` | Split into left / right / user menu |
-| `src/components/common/Button.tsx`, `Input.tsx`, `Card.tsx`, `Badge.tsx`, `Alert.tsx` | `components/ui/<name>/` | Variants via cva, tokens |
-| `src/components/auth/ProtectedRoute.tsx` | `app/layouts/guards/RequireAuth.tsx` | `returnTo` support |
-| `src/components/auth/GuestRoute.tsx` | `app/layouts/guards/RequireGuest.tsx` | |
-| `src/components/auth/PermissionGate.tsx` | `features/auth/permissions/PermissionGate.tsx` | Exported via `features/auth/index.ts` |
-| `src/components/auth/PasswordRequirements.tsx` | `features/auth/components/PasswordRequirements.tsx` | Rules from `GET /password-policies/requirements` |
-| `src/context/AuthContext.tsx` | `features/auth/session/AuthProvider.tsx` + `auth-context.ts` + `useAuth.ts` | |
-| `src/hooks/usePermissions.ts` | `features/auth/permissions/usePermissions.ts` | |
-| `src/lib/api-client.ts` | `lib/api/client.ts` + `api-error.ts` + `types.ts` | Add timeout, typed errors |
-| `src/lib/utils.ts` | `lib/utils/cn.ts` (+ others) | |
-| `src/services/auth.service.ts` | `features/auth/api/auth.api.ts` | |
-| `src/services/account.service.ts` | `features/account/api/account.api.ts` | |
-| `src/services/access-control.service.ts` | `features/auth/api/access.api.ts` (my access) / `features/admin-access/api/` | |
-| `src/types/api.ts` | `lib/api/types.ts` | |
-| `src/types/auth.ts`, `user.ts`, `session.ts`, `access-control.ts` | `features/<feature>/types/` | Shared ones (`AuthUser`) exported via `features/auth` |
-| `src/pages/auth/*.tsx` | `features/auth/pages/*Page.tsx` | Rendered inside `AuthLayout` |
-| `src/pages/account/*.tsx` | `features/account/pages/*Page.tsx` | |
-| `src/pages/dashboard/Dashboard.tsx` | `features/dashboard/pages/DashboardPage.tsx` | |
-| `src/pages/NotFound.tsx` | `src/pages/NotFoundPage.tsx` | |
+| ~~`src/components/common/Layout.tsx`~~ | `app/layouts/AppLayout.tsx` | Done (module 6) |
+| ~~`src/components/common/Navbar.tsx`~~ | `app/layouts/navbar/*` | Done (left / right / user menu; rest in module 8) |
+| ~~`src/components/common/Button.tsx` …~~ | `components/ui/<name>/` | Done (module 4, own variants helper) |
+| ~~`src/components/auth/ProtectedRoute.tsx`~~ | `app/layouts/guards/RequireAuth.tsx` | `returnTo` support |
+| ~~`src/components/auth/GuestRoute.tsx`~~ | `app/layouts/guards/RequireGuest.tsx` | |
+| ~~`src/components/auth/PermissionGate.tsx`~~ | `features/auth/permissions/PermissionGate.tsx` | Exported via `features/auth/index.ts` |
+| ~~`src/components/auth/PasswordRequirements.tsx`~~ | `features/auth/components/PasswordRequirements.tsx` | Rules from `GET /password-policies/requirements` |
+| ~~`src/context/AuthContext.tsx`~~ | `features/auth/session/AuthProvider.tsx` + `auth-context.ts` + `useAuth.ts` | |
+| ~~`src/hooks/usePermissions.ts`~~ | `features/auth/permissions/usePermissions.ts` | |
+| ~~`src/lib/api-client.ts`~~ | `lib/api/client.ts` + `api-error.ts` + `types.ts` | Add timeout, typed errors |
+| ~~`src/lib/utils.ts`~~ | `lib/utils/cn.ts` (+ others) | |
+| ~~`src/services/auth.service.ts`~~ | `features/auth/api/auth.api.ts` | |
+| ~~`src/services/account.service.ts`~~ | `features/account/api/account.api.ts` | |
+| ~~`src/services/access-control.service.ts`~~ | `features/auth/api/access.api.ts` (my access) / `features/admin-access/api/` | |
+| ~~`src/types/api.ts`~~ | `lib/api/types.ts` | |
+| ~~`src/types/auth.ts`, `user.ts`, `session.ts`, `access-control.ts`~~ | `features/<feature>/types/` | Shared ones (`AuthUser`) exported via `features/auth` |
+| ~~`src/pages/auth/*.tsx`~~ | `features/auth/pages/*Page.tsx` | Rendered inside `AuthLayout` |
+| ~~`src/pages/account/*.tsx`~~ | `features/account/pages/*Page.tsx` | |
+| ~~`src/pages/dashboard/Dashboard.tsx`~~ | `features/dashboard/pages/DashboardPage.tsx` | |
+| ~~`src/pages/NotFound.tsx`~~ | `src/pages/NotFoundPage.tsx` | |
 
 ## How to…
 

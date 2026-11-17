@@ -3,10 +3,9 @@ import { createRoot } from 'react-dom/client';
 
 import './styles/index.css';
 
+import { App } from '@/app/App';
 import { env, getConfigProblems } from '@/config';
 import { ConfigErrorPage } from '@/pages/ConfigErrorPage';
-
-import { App } from './App';
 
 const configProblems = getConfigProblems();
 if (configProblems.length > 0) {

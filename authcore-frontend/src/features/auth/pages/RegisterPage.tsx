@@ -2,16 +2,13 @@ import { CheckCircle2, UserPlus } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { PasswordRequirements } from '@/components/auth/PasswordRequirements';
-import { Alert } from '@/components/common/Alert';
-import { Button } from '@/components/common/Button';
-import { Card } from '@/components/common/Card';
-import { Input } from '@/components/common/Input';
+import { Alert, Button, Card, Input } from '@/components/ui';
 import { appConfig, paths } from '@/config';
-import { useAuth } from '@/context/AuthContext';
-import { ApiError } from '@/lib/api-client';
+import { PasswordRequirements } from '@/features/auth/components/PasswordRequirements';
+import { useAuth } from '@/features/auth/session/useAuth';
+import { ApiError } from '@/lib/api';
 
-export const Register: React.FC = () => {
+export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -94,15 +91,15 @@ export const Register: React.FC = () => {
 
   if (infoMessage) {
     return (
-      <div className="flex min-h-screen flex-col justify-center bg-background py-12 sm:px-6 lg:px-8">
-        <div className="px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
+      <div className="w-full">
+        <div>
           <Card className="space-y-4 p-8 text-center">
             <CheckCircle2 className="mx-auto h-12 w-12 text-success" />
             <h3 className="text-xl font-bold text-foreground">Check your inbox</h3>
             <p className="text-sm text-muted-foreground">{infoMessage}</p>
             <div className="pt-4">
               <Link to={paths.auth.login}>
-                <Button variant="primary" className="w-full">
+                <Button variant="solid" className="w-full">
                   Return to Sign In
                 </Button>
               </Link>
@@ -114,21 +111,18 @@ export const Register: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-background py-12 sm:px-6 lg:px-8">
-      <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary text-2xl font-black text-primary-foreground">
-          {appConfig.name.charAt(0)}
-        </div>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+    <div className="w-full">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Create your account
-        </h2>
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">Join {appConfig.name} today</p>
       </div>
 
-      <div className="mt-8 px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
-        <Card className="border-border">
+      <div className="mt-8">
+        <Card>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
+            {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
 
             <div className="grid grid-cols-2 gap-3">
               <Input
@@ -187,7 +181,7 @@ export const Register: React.FC = () => {
 
             <Button
               type="submit"
-              variant="primary"
+              variant="solid"
               className="mt-2 w-full py-2.5"
               isLoading={isLoading}
             >

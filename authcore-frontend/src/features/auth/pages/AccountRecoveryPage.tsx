@@ -2,15 +2,12 @@ import { RotateCcw } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { Alert } from '@/components/common/Alert';
-import { Button } from '@/components/common/Button';
-import { Card } from '@/components/common/Card';
-import { Input } from '@/components/common/Input';
+import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
-import { ApiError } from '@/lib/api-client';
-import { accountService } from '@/services/account.service';
+import { authApi } from '@/features/auth/api/auth.api';
+import { ApiError } from '@/lib/api';
 
-export const AccountRecovery: React.FC = () => {
+export const AccountRecoveryPage: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<'request' | 'confirm'>('request');
   const [email, setEmail] = useState('');
@@ -26,7 +23,7 @@ export const AccountRecovery: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await accountService.requestRecovery({ email: email.trim().toLowerCase() });
+      await authApi.requestRecovery({ email: email.trim().toLowerCase() });
       setMessage(
         'If your account is eligible for self-recovery, a verification code has been dispatched.',
       );
@@ -45,7 +42,7 @@ export const AccountRecovery: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await accountService.confirmRecovery({
+      await authApi.confirmRecovery({
         email: email.trim().toLowerCase(),
         code: code.trim(),
       });
@@ -62,23 +59,23 @@ export const AccountRecovery: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-background py-12 sm:px-6 lg:px-8">
-      <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="w-full">
+      <div className="text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary-soft text-primary">
           <RotateCcw className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Account Recovery
-        </h2>
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Restore an account you previously deactivated or marked for deletion
         </p>
       </div>
 
-      <div className="mt-8 px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
-        <Card className="border-border">
-          {error && <Alert type="error" message={error} className="mb-4" />}
-          {message && <Alert type="info" message={message} className="mb-4" />}
+      <div className="mt-8">
+        <Card>
+          {error && <Alert variant="danger" message={error} className="mb-4" />}
+          {message && <Alert variant="info" message={message} className="mb-4" />}
 
           {step === 'request' ? (
             <form onSubmit={handleRequest} className="space-y-4">
@@ -91,12 +88,7 @@ export const AccountRecovery: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
               />
 
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full py-2.5"
-                isLoading={isLoading}
-              >
+              <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
                 Send Recovery Code
               </Button>
             </form>
@@ -120,12 +112,7 @@ export const AccountRecovery: React.FC = () => {
                 className="text-center font-mono text-lg tracking-widest"
               />
 
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full py-2.5"
-                isLoading={isLoading}
-              >
+              <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
                 Reactivate Account
               </Button>
             </form>

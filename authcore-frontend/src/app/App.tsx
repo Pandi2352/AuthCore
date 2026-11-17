@@ -1,20 +1,12 @@
-import React from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { RouterProvider } from 'react-router-dom';
 
-import { ThemeProvider } from '@/app/theme';
-import { AuthProvider } from '@/context/AuthContext';
-import { AppRouter } from '@/router';
+import { Providers } from './Providers';
+import { router } from './router';
 
-export const App: React.FC = () => {
+export function App() {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRouter />
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
+    <Providers>
+      <RouterProvider router={router} />
+    </Providers>
   );
-};
-
-export default App;
+}

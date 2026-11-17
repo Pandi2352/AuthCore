@@ -20,14 +20,14 @@
 
 | Area | Package | Added in | Why |
 | --- | --- | --- | --- |
-| Accessible primitives | `@radix-ui/react-*` (dialog, dropdown-menu, popover, tooltip, select, tabs, switch, checkbox, radio-group, accordion, scroll-area) | Level 1 · module 4 | Keyboard, focus trapping and ARIA solved; styled with our tokens |
-| Variants | `class-variance-authority` | Level 1 · module 4 | Typed `variant` / `size` props per component |
-| Toasts | `sonner` | Level 1 · module 10 | Accessible notifications, theme-aware |
+| Accessible primitives | **Own code** (no library): `components/ui/primitives/` — Slot, Portal, useFloating, useDismiss, list navigation; hooks useFocusTrap, useScrollLock, useControllableState | Level 1 · module 4 | Keyboard, focus trapping and ARIA solved; styled with our tokens |
+| Variants | **Own** `variants()` helper (`lib/utils/variants.ts`) | Level 1 · module 4 | Typed `variant` / `size` props per component |
+| Toasts | **Own** toast store + `<Toaster>` (`components/ui/toaster/`) | Level 1 · module 4 | Accessible notifications, theme-aware |
 | Server state | `@tanstack/react-query` (+ devtools in development) | Level 2 · module 17 | Caching, refetching, invalidation, pagination for admin lists |
 | Forms | `react-hook-form` + `@hookform/resolvers` | Level 2 · module 18 | Uncontrolled forms, field errors from the API |
 | Validation | `zod` | Level 2 · module 18 | Schemas shared by forms and API response parsing |
 | Tables | `@tanstack/react-table` | Level 2 · module 21 | Sorting, column visibility, selection for admin lists |
-| Command menu | `cmdk` | Level 1 · module 8 (optional) | Global search / command palette |
+| Command menu | Own implementation (planned) | Level 1 · module 8 (optional) | Global search / command palette |
 | Dates | Built-in `Intl` (no library) | Level 1 · module 12 | Format in the user's locale and time zone |
 | i18n | `i18next` + `react-i18next` | Level 3 · module 27 | UI in en / ta / hi like the backend emails |
 | E2E tests | `@playwright/test` | Not planned (manual testing) | Only if the team later decides to automate tests |
@@ -59,13 +59,13 @@ The one thing `fetch` can't do is **upload progress**: `lib/api/upload.ts` uses 
 
 ### Router: data router (`createBrowserRouter`)
 
-The current code uses `<BrowserRouter>` + `<Routes>`. Move to `createBrowserRouter` + `<RouterProvider>`: route-level `errorElement`, `lazy` per route, loaders later if useful, and route `handle` for breadcrumbs / titles / required permissions.
+`createBrowserRouter` + `<RouterProvider>` (module 5): route-level `errorElement`, `lazy` per route, route `handle` for titles / breadcrumbs / permissions / feature flags; loaders later if useful.
 
 React Router 7 ships everything in `react-router`; `react-router-dom` re-exports it. Import from one package consistently (`react-router-dom` while it is the installed one).
 
-### Components: own design system on Radix primitives
+### Components: our own design system, no UI library
 
-shadcn/ui-style: we own the component code in `components/ui/`, styled with our tokens, built on Radix primitives for the hard accessibility parts (focus trap, roving focus, typeahead, portals). No component library theme to fight, no runtime CSS-in-JS.
+Every component in `components/ui/` is our code end to end — including the hard accessibility parts (focus trap, layered dismiss, roving focus, typeahead, collision-aware positioning, portals) in `components/ui/primitives/`. No Radix, cva, sonner or cmdk; dropdowns are custom listboxes, never `<select>`. Components follow the WAI-ARIA Authoring Practices patterns; the oxlint rules that prefer native tags are switched off only for `components/ui/**` and `app/layouts/**` for that reason. No component library theme to fight, no runtime CSS-in-JS.
 
 ### Styling: Tailwind v4 + CSS variables
 
@@ -87,5 +87,5 @@ No global store (Redux / Zustand) unless a real cross-feature client state appea
 ## Versions policy
 
 - Exact versions come from `package-lock.json`; install with `npm ci`.
-- Upgrades: one package (or one family, e.g. all `@radix-ui/*`) at a time, followed by `npm run verify` and a manual check of the affected screens.
+- Upgrades: one package at a time, followed by `npm run verify` and a manual check of the affected screens.
 - `.nvmrc` pins Node for local development and CI.

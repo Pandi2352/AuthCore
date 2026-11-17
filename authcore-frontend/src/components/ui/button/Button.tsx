@@ -1,48 +1,72 @@
-import { Loader2 } from 'lucide-react';
-import React from 'react';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
-import { cn } from '@/lib/utils';
+import { useOptionalTheme } from '@/app/theme';
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+import { Slot } from '../primitives/Slot';
+import { Spinner } from '../spinner/Spinner';
+import { buttonVariants, type ButtonSize, type ButtonVariant } from './button.variants';
+
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Default: the theme's button style (theme.config.ts → appearance.buttons). */
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  fullWidth?: boolean;
+  /** Shows a spinner, disables the button and sets aria-busy. */
   isLoading?: boolean;
+  /** Text announced / shown while loading (keeps the label otherwise). */
+  loadingText?: string;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  /** Render the child element (e.g. a router <Link>) with button styles. */
+  asChild?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({
-  children,
-  className,
-  variant = 'primary',
-  size = 'md',
-  isLoading = false,
-  disabled,
-  ...props
-}) => {
-  const baseStyles =
-    'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50';
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    className,
+    variant,
+    size,
+    fullWidth,
+    isLoading = false,
+    loadingText,
+    leftIcon,
+    rightIcon,
+    asChild = false,
+    disabled,
+    type,
+    children,
+    ...props
+  },
+  ref,
+) {
+  const theme = useOptionalTheme();
+  const classes = buttonVariants({
+    variant: variant ?? theme?.appearance.buttons ?? 'solid',
+    size,
+    fullWidth: fullWidth ? 'true' : 'false',
+    className,
+  });
 
-  const variants = {
-    primary: 'bg-primary text-primary-foreground hover:bg-primary-hover',
-    secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary-hover',
-    outline: 'border border-input bg-surface text-foreground hover:bg-accent',
-    danger: 'bg-danger text-danger-foreground hover:bg-danger-hover',
-    ghost: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-  };
-
-  const sizes = {
-    sm: 'h-control-sm px-3 text-xs',
-    md: 'h-control-md px-4 text-sm',
-    lg: 'h-control-lg px-6 text-base',
-  };
+  if (asChild) {
+    return (
+      <Slot ref={ref} className={classes} {...props}>
+        {children}
+      </Slot>
+    );
+  }
 
   return (
     <button
-      className={cn(baseStyles, variants[variant], sizes[size], className)}
+      ref={ref}
+      type={type ?? 'button'}
+      className={classes}
       disabled={disabled || isLoading}
+      aria-busy={isLoading || undefined}
       {...props}
     >
-      {isLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-      {children}
+      {isLoading ? <Spinner size="sm" label={loadingText ?? 'Loading'} /> : leftIcon}
+      {isLoading && loadingText ? loadingText : children}
+      {!isLoading && rightIcon}
     </button>
   );
-};
+});

@@ -207,9 +207,9 @@ In `src/config/theme.config.ts`:
 
 Then run `npm run check:contrast` (also part of `verify`). For a new color preset, see [theme-system.md → Adding a preset](./frontend/theme-system.md#adding-a-preset).
 
-### 5.5 Navigation (config ✅, sidebar 🔜)
+### 5.5 Navigation ✅
 
-List your modules in `src/config/navigation.config.ts` (Leads, Contacts, Deals, Reports …), their URLs in `src/config/paths.ts`, and icons in `src/config/icons.ts`. *Frontend module 7 (sidebar)* renders it; items with `status: 'planned'` will show a "not built yet" page.
+List your modules in `src/config/navigation.config.ts` (Leads, Contacts, Deals, Reports …), their URLs in `src/config/paths.ts`, and icons in `src/config/icons.ts`. The sidebar renders it (groups, submenus, icons, badges, feature flags, permissions); items with `status: 'planned'` get a "not built yet" page automatically until you add the real route in `src/app/routes/<area>.routes.tsx`.
 
 ---
 

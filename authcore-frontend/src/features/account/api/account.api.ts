@@ -1,8 +1,12 @@
-import { apiClient } from '@/lib/api-client';
-import type { KnownDevice, Session, UserActivityEntry } from '@/types/session';
-import type { User, UserPreferences, UserProfileDetails } from '@/types/user';
+import type {
+  KnownDevice,
+  Session,
+  UserActivityEntry,
+} from '@/features/account/types/account.types';
+import type { User, UserPreferences, UserProfileDetails } from '@/features/auth';
+import { apiClient } from '@/lib/api';
 
-export const accountService = {
+export const accountApi = {
   async getProfile() {
     const res = await apiClient.get<UserProfileDetails>('/users/me');
     return res.data;
@@ -90,16 +94,6 @@ export const accountService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    return res;
-  },
-
-  async requestRecovery(payload: { email: string }) {
-    const res = await apiClient.post<null>('/account/recovery/request', payload);
-    return res;
-  },
-
-  async confirmRecovery(payload: { email: string; code: string }) {
-    const res = await apiClient.post<null>('/account/recovery/confirm', payload);
     return res;
   },
 

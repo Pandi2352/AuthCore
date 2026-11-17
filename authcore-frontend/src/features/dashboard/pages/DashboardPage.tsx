@@ -2,14 +2,12 @@ import { Activity, CheckCircle, KeyRound, Laptop, User as UserIcon } from 'lucid
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-import { Badge } from '@/components/common/Badge';
-import { Card } from '@/components/common/Card';
+import { Badge, Card } from '@/components/ui';
 import { paths } from '@/config';
-import { useAuth } from '@/context/AuthContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { formatDate } from '@/lib/utils';
+import { useAuth, usePermissions } from '@/features/auth';
+import { formatDate } from '@/lib/format';
 
-export const Dashboard: React.FC = () => {
+export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { isSuperAdmin, roles, permissions } = usePermissions();
 
@@ -61,7 +59,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <div className="flex justify-between border-b border-border py-1">
               <span className="text-muted-foreground">Status</span>
-              <Badge variant="success">{user?.status}</Badge>
+              <Badge tone="success">{user?.status}</Badge>
             </div>
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">Member Since</span>
@@ -79,7 +77,7 @@ export const Dashboard: React.FC = () => {
               <div className="flex flex-wrap gap-1">
                 {roles.length > 0 ? (
                   roles.map((r) => (
-                    <Badge key={r} variant="neutral">
+                    <Badge key={r} tone="neutral">
                       {r}
                     </Badge>
                   ))
@@ -95,10 +93,10 @@ export const Dashboard: React.FC = () => {
               </span>
               <div className="flex max-h-24 flex-wrap gap-1 overflow-y-auto">
                 {isSuperAdmin ? (
-                  <Badge variant="primary">ALL_PERMISSIONS (Super Admin)</Badge>
+                  <Badge tone="primary">ALL_PERMISSIONS (Super Admin)</Badge>
                 ) : permissions.length > 0 ? (
                   permissions.map((p) => (
-                    <Badge key={p} variant="info" className="text-[10px]">
+                    <Badge key={p} tone="info" className="text-[10px]">
                       {p}
                     </Badge>
                   ))

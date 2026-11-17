@@ -24,7 +24,7 @@ export { featuresConfig, isFeatureEnabled } from './features.config';
 export { icons, isIconName, type IconName } from './icons';
 export { layoutConfig } from './layout.config';
 export { navigationConfig, navigationFooterConfig } from './navigation.config';
-export { paths, withQuery } from './paths';
+export { paths, routePatterns, withQuery } from './paths';
 export { themeConfig } from './theme.config';
 export { findThemePreset, themePresets } from './theme.presets';
 

@@ -2,17 +2,13 @@ import { KeyRound, ShieldAlert, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { PasswordRequirements } from '@/components/auth/PasswordRequirements';
-import { Alert } from '@/components/common/Alert';
-import { Button } from '@/components/common/Button';
-import { Card } from '@/components/common/Card';
-import { Input } from '@/components/common/Input';
+import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
-import { ApiError } from '@/lib/api-client';
-import { accountService } from '@/services/account.service';
-import { authService } from '@/services/auth.service';
+import { accountApi } from '@/features/account/api/account.api';
+import { authApi, PasswordRequirements } from '@/features/auth';
+import { ApiError } from '@/lib/api';
 
-export const Security: React.FC = () => {
+export const SecurityPage: React.FC = () => {
   const location = useLocation();
   const initialAlert = (location.state as { message?: string })?.message || null;
 
@@ -40,7 +36,7 @@ export const Security: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const res = await authService.changePassword({
+      const res = await authApi.changePassword({
         currentPassword,
         newPassword,
         confirmPassword,
@@ -65,7 +61,7 @@ export const Security: React.FC = () => {
     setIsDeactivating(true);
 
     try {
-      await accountService.deactivateAccount({
+      await accountApi.deactivateAccount({
         currentPassword: deactivatePassword,
         reason: deactivateReason || undefined,
       });
@@ -86,9 +82,9 @@ export const Security: React.FC = () => {
         </p>
       </div>
 
-      {initialAlert && <Alert type="warning" message={initialAlert} className="mb-4" />}
-      {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
-      {success && <Alert type="success" message={success} onClose={() => setSuccess(null)} />}
+      {initialAlert && <Alert variant="warning" message={initialAlert} className="mb-4" />}
+      {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
+      {success && <Alert variant="success" message={success} onClose={() => setSuccess(null)} />}
 
       {/* Change Password Card */}
       <Card title="Change Password">
@@ -126,7 +122,7 @@ export const Security: React.FC = () => {
           <PasswordRequirements password={newPassword} />
 
           <div className="flex justify-end pt-2">
-            <Button type="submit" variant="primary" isLoading={isLoading}>
+            <Button type="submit" variant="solid" isLoading={isLoading}>
               <KeyRound className="mr-2 h-4 w-4" />
               Update Password
             </Button>
@@ -166,7 +162,7 @@ export const Security: React.FC = () => {
               onChange={(e) => setDeactivateReason(e.target.value)}
             />
             <div className="flex justify-end">
-              <Button type="submit" variant="danger" size="sm" isLoading={isDeactivating}>
+              <Button type="submit" variant="destructive" size="sm" isLoading={isDeactivating}>
                 <Trash2 className="mr-1.5 h-4 w-4" />
                 Deactivate Account
               </Button>

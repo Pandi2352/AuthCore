@@ -68,148 +68,109 @@ Full design: [theme-system.md](./theme-system.md). **Project defaults: corners `
 
 ## 4. UI Component Library (Design System)
 
-Every component: typed props, `className` merge (`cn`), ref forwarding, variants + sizes (cva), disabled / loading / invalid states where they apply, keyboard + ARIA, tokens only, export via `components/ui/index.ts`, entry on the `/dev/ui` kitchen-sink page (manual check in every preset × mode).
+**Hand-built, no UI library** (no Radix, cva, sonner, cmdk): every component is our own code in `components/ui/<name>/`, on our own primitives in `components/ui/primitives/` (`Slot` for `asChild`, `Portal`, `useFloating` collision-aware positioning, `useDismiss` layered Escape / outside-click, `list-navigation` roving focus + typeahead, `compose` refs / props) and hooks (`useControllableState`, `useFocusTrap`, `useScrollLock`). Variants: our `variants()` helper (`lib/utils/variants.ts`). Dropdowns never use `<select>`. Every clickable element has `cursor-pointer` (component classes + a base rule in `styles/base.css`). Corners `rounded-md`, shadows only `shadow-card` / `shadow-popover` (off by default).
+
+Every component: typed props, `className` merge (`cn`), ref forwarding, variants + sizes, disabled / loading / invalid states where they apply, keyboard + ARIA, tokens only, export via `components/ui/index.ts`, entry on the `/dev/ui` kitchen-sink page (development builds only; manual check in every preset × mode).
 
 Actions and inputs:
 
-- [~] Button *(exists in `components/common`; to move, add variants solid / soft / outline / ghost / link / destructive, sizes, loading, icon-only, `asChild`)*
-- [ ] IconButton (required `aria-label`)
-- [~] Input *(exists; add sizes, prefix / suffix, invalid state, `InputGroup`, `PasswordInput` with show / hide)*
-- [ ] Textarea (auto-resize option)
-- [ ] Select (Radix), Combobox (searchable, optional)
-- [ ] Checkbox, RadioGroup, Switch
-- [ ] Label, Field (label + control + description + error + required mark)
+- [x] Button *(solid / soft / outline / secondary / ghost / link / destructive; sm / md / lg / icon sizes; `isLoading` + `loadingText`; left / right icon; `fullWidth`; `asChild` (e.g. a router `<Link>`); default variant = theme `appearance.buttons`)*
+- [x] IconButton *(required `aria-label`, shown as tooltip)*
+- [x] Input *(sizes, `invalid`, prefix / suffix (input group), `label` / `hint` / `error` shortcut → Field; `PasswordInput` show / hide; default look = theme `appearance.inputs`: outlined / filled / underlined)*
+- [x] Textarea *(auto-resize with max rows, character count)*
+- [x] Select — **custom listbox, no native `<select>`** *(button role="combobox" + listbox popup, `aria-activedescendant`; ↑/↓/Home/End/PageUp/PageDown, type-to-jump (also while closed), Enter / Space, Escape / Tab; groups, descriptions, icons, disabled options, clearable, hidden input for forms, flips when there is no room)* and Combobox *(searchable, same listbox; local or server filtering)*
+- [x] Checkbox *(native input, themed; indeterminate)*, RadioGroup *(native radios; options or items)*, Switch *(role="switch")*
+- [x] Label *(required mark announced)*, Field *(label + control + description + error, ids / aria wired through context to every control)*
 
 Overlays:
 
-- [ ] Dialog, AlertDialog (focus trap, Esc, return focus)
-- [ ] Sheet / Drawer (left / right / bottom)
-- [ ] DropdownMenu (submenus, checkbox / radio items, shortcuts)
-- [ ] Popover, Tooltip (delay, collision-aware)
-- [ ] Command menu (optional, `cmdk`)
+- [x] Dialog, AlertDialog *(focus trap, Escape, return focus, scroll lock, `aria-modal`; AlertDialog: no backdrop close, focus on Cancel, async action with spinner)*
+- [x] Sheet / Drawer *(left / right / top / bottom; used by the mobile sidebar)*
+- [x] DropdownMenu *(roving focus, typeahead, submenus (hover / → / Enter, ← / Escape back), checkbox / radio items, labels, separators, shortcuts, destructive items, `asChild` links)*
+- [x] Popover, Tooltip *(hover delay + skip delay, opens on keyboard focus, hoverable (WCAG 1.4.13), collision-aware)*
+- [ ] Command menu (optional) → module 8 (global search), own implementation
 
 Display:
 
-- [~] Card *(exists; variants bordered / filled / elevated / minimal, header / content / footer parts)*
-- [~] Badge *(exists; variants neutral / primary / success / warning / danger / info, dot, sizes)*
-- [~] Alert *(exists; variants + icon + dismissible)*
-- [ ] Avatar (image, initials fallback, status dot, sizes, group)
-- [ ] Separator, Skeleton, Spinner, Progress (linear, indeterminate)
-- [ ] Tabs (URL-synced option), Accordion
-- [ ] Breadcrumb, Pagination (page + page size, total), Kbd
-- [ ] Table primitives (header, row, cell, sortable header, empty / loading rows, sticky header, responsive scroll)
-- [ ] ScrollArea
-- [ ] Toaster (Sonner) + `toast.success/error/info/promise` helper, theme-aware
+- [x] Card *(bordered / filled / elevated / minimal (default = theme `appearance.cards`); `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, or `title` / `subtitle` / `actions` / `footer` shortcuts)*
+- [x] Badge *(tone neutral / primary / success / warning / danger / info × soft / solid / outline, dot, sizes)*
+- [x] Alert *(info / success / warning / danger / neutral, icon, title, action, dismissible; errors announced)*
+- [x] Avatar *(image, initials fallback (also on load error), status dot, sizes, AvatarGroup with +N)*
+- [x] Separator, Skeleton (+ SkeletonText), Spinner, Progress (value / indeterminate, tones)
+- [x] Tabs *(underline / pills, horizontal / vertical, automatic / manual activation; URL-synced via `useQueryParams`)*, Accordion *(single / multiple, collapsible)*
+- [x] Breadcrumb *(composable, `asChild` links)*, Pagination *(page + page size (our Select), "1–10 of 95", ellipsis)*, Kbd
+- [x] Table primitives *(sortable header with `aria-sort`, empty row, loading rows, sticky header, compact density, horizontal scroll inside the wrapper)*
+- [x] ScrollArea *(native scrolling, thin themed scrollbars, keyboard-focusable)*
+- [x] Toaster + `toast()` / `toast.success/error/warning/info/loading/promise/dismiss` *(own store; pause on hover / focus, actions, errors as role="alert", theme tokens)*
 
 ## 5. Routing (React Router)
 
-- [~] React Router installed and used *(`<BrowserRouter>` + `<Routes>`; to migrate)*
-- [ ] `createBrowserRouter` + `<RouterProvider>`
-- [x] `config/paths.ts`: constants + builders; no path strings elsewhere *(done in module 2; enforced by the architecture check)*
-- [ ] Route files per area (`*.routes.tsx`), all pages lazy (`lazy` route property)
-- [ ] Nested routes and layout routes (`PublicLayout`, `AuthLayout`, `AppLayout`) with `<Outlet />`
-- [ ] Route `handle`: `title`, `breadcrumb`, `permission`, `featureFlag`
-- [ ] `errorElement` at root and per layout (render errors, chunk-load errors)
-- [ ] 404 catch-all, 403 page, redirects (`/` → home, old paths → new)
-- [ ] Dynamic params (`:id`) with typed helpers; query-param helpers (`useQueryParams`)
-- [ ] Navigation state (`returnTo`, `from`) handled safely (same-origin relative paths only)
-- [ ] Document title from `handle.title` + app name
-- [ ] Focus management on navigation (main heading), scroll restoration
-- [ ] Planned routes generated from navigation config ("not built yet" pages)
-- [ ] Deep-link refresh works in dev, preview and production hosting
+- [x] React Router (`react-router-dom` 7) — data router: `createBrowserRouter` + `<RouterProvider>` (`src/app/router.tsx`)
+- [x] `config/paths.ts`: constants + builders; no path strings elsewhere *(module 2; `routePatterns` for `:id` segments)*
+- [x] Route files per area (`app/routes/*.routes.tsx`: auth, dashboard, account, settings, admin, planned, dev, public); every page lazy (`lazy: lazyPage(() => import(…), 'XPage')`); layouts lazy too
+- [x] Nested routes and layout routes (`RootLayout` → `PublicLayout` / `AuthLayout` / `AppLayout`) with `<Outlet />`
+- [x] Route `handle`: `title`, `breadcrumb` (string / crumbs / function), `permission` (→ 403 inside the layout), `featureFlag` (→ 404) (`app/routes/route-handle.ts`, applied by `RouteAccessBoundary`)
+- [x] `errorElement` at root and per layout (`RouteErrorPage`: render errors, chunk-load errors → "new version, reload", 404 responses; details in development)
+- [x] 404 catch-all, 403 page, redirects (`/` → dashboard; old paths list in `routes/index.tsx`)
+- [x] Dynamic params (`routePatterns`, `useRequiredParam('id')`); query-param helper `useQueryParams({ page: 1, q: '' })`
+- [x] Navigation state handled safely (`RequireAuth` → `/login?returnTo=…`; `safeReturnTo` allows same-origin relative paths only)
+- [x] Document title from `handle.title` + app name (`PageTitle`)
+- [x] Focus moved to the new page's `h1` after navigation (`FocusOnNavigate`), `<ScrollRestoration />` (+ content-column reset in fixed layout)
+- [x] Planned routes generated from navigation config (`planned.routes.tsx` → `PlannedFeaturePage`; `/admin` → `PlannedModulePage`)
+- [x] Dev-only routes stripped from production builds (`__DEV_BUILD__` define → `/dev/ui` chunk not emitted)
+- [x] Deep-link refresh *(Vite dev and `vite preview` serve the SPA fallback; production: serve `index.html` for unknown paths, e.g. nginx `try_files $uri /index.html;`)*
 
 Routing hierarchy:
 
 ```text
 RouterProvider
-├── PublicLayout           (optional per project)  /, /about, /privacy
-├── AuthLayout             RequireGuest            /login, /register, /forgot-password, /reset-password,
-│                                                  /verify-email, /recovery, /accept-invite
-├── AppLayout              RequireAuth             Sidebar + Navbar + <Outlet>
-│   ├── /dashboard
-│   ├── /account/*         profile, security, sessions, devices, activity
-│   ├── /admin/*           RequirePermission per page
-│   ├── /settings/*
-│   └── /:module/*         planned pages until built
-├── /403, /404
-└── *                      → 404
+└── RootLayout             title, progress bar, scroll restoration, focus on navigation
+    ├── PublicLayout       (optional per project)  public.routes.tsx
+    ├── RequireGuest → AuthLayout   /login, /register, /forgot-password, /recovery
+    ├── AuthLayout                  /verify-email, /reset-password (email links, signed in or out)
+    ├── RequireAuth → AppLayout     sidebar + navbar + MainContent(<Outlet>)
+    │   ├── /dashboard
+    │   ├── /profile, /security, /sessions, /activity
+    │   ├── /settings/appearance
+    │   ├── /admin (+ planned admin pages)       handle.permission / featureFlag
+    │   ├── planned pages from navigation config
+    │   ├── /dev/ui                               development only
+    │   └── /403
+    ├── /404
+    └── *                  → 404
 ```
 
 ## 6. Layouts
 
-- [~] App layout *(`Layout` = navbar + outlet; no sidebar)*
-- [ ] `AppLayout`: sidebar + navbar + `MainContent` (`<Outlet />`)
-- [ ] `AuthLayout`: centered card and split-screen variants (image / brand panel), configurable
-- [ ] `PublicLayout`: header + footer for public pages (optional per project)
-- [ ] Full-height layout (`100dvh`), independent sidebar and content scrolling, no horizontal page scroll
-- [ ] Sticky / fixed navbar and sidebar options
-- [ ] Configurable content width (full / container / narrow) and page padding
-- [ ] Configurable navbar height, sidebar width, collapsed width, spacing (tokens)
-- [ ] Skip link, landmarks (`header`, `nav`, `main`, `aside`)
-- [ ] Route progress bar during lazy loading / navigation
-- [ ] Breadcrumbs from route handles (toggle in layout config)
+- [x] `AppLayout`: sidebar + navbar + `MainContent` (`<Outlet />`) inside `RouteAccessBoundary`
+- [x] `AuthLayout`: centered card and split-screen (brand panel or `sideImage`) via `layout.config.ts → auth.variant`; logo, theme toggle, legal links
+- [x] `PublicLayout`: header (logo, sign in / get started, theme) + footer (company, privacy, terms, support) — used when `public.routes.tsx` has pages
+- [x] Full-height layout (`100dvh`); `sidebar.behavior: 'fixed'` → sidebar and content scroll independently, `'sticky'` → page scrolls, sidebar sticks; no horizontal page scroll (`overflow-x-clip`, `min-w-0`)
+- [x] Sticky / fixed navbar and sidebar options (`layout.config.ts`)
+- [x] Configurable content width (full / container / narrow) and page padding (compact / comfortable / spacious)
+- [x] Navbar height, sidebar width, collapsed width as CSS tokens from `layout.config.ts`
+- [x] Skip link, landmarks (`header`, `nav`, `main`, `aside`)
+- [x] Route progress bar during lazy loading / navigation (`useNavigation`, appears after 150 ms)
+- [x] Breadcrumbs from route handles (toggle: `features.ui.breadcrumbs` + `layout.navbar.showBreadcrumbs`)
 
 ## 7. Sidebar System
 
-- [ ] Containers: `Sidebar`, `SidebarHeader`, `SidebarContent`, `SidebarGroup`, `SidebarItem`, `SidebarSubmenu`, `SidebarFooter`, `SidebarMobile`
-- [ ] Logo and app name from `app.config.ts`; logo mark when collapsed
-- [ ] Groups and items from `navigation.config.ts` only (no hard-coded items)
-- [ ] Nested items (2 levels), expand / collapse, auto-expand the active branch
-- [ ] Active route highlighting (exact or prefix match per item)
-- [ ] Expanded / collapsed (icon-only) mode; tooltips when collapsed; flyout submenus when collapsed
-- [ ] Width, collapsed width, position (left / right), fixed / sticky from `layout.config.ts`
-- [ ] Variants: classic, minimal, floating, compact, dark (theme tokens)
-- [ ] Mobile drawer with overlay below `lg`; closes on navigation and Esc
-- [ ] Keyboard: Tab order, Enter / Space toggles submenus, arrow keys within groups, `Ctrl/Cmd + B` toggles collapse
-- [ ] Item options: badge / count (static or from a hook), disabled, external link (new tab, icon), hidden, `featureFlag`, `permission` (Level 2), `status: 'planned'`
-- [ ] Collapsed state persisted per user (`localStorage`)
-- [ ] Works with every theme preset, mode and appearance
-- [ ] Manual check: renders config, active state, collapse / expand, submenu keyboard, mobile drawer, hidden by flag / permission
+- [x] Containers: `Sidebar`, `SidebarHeader`, `SidebarContent`, `SidebarGroup`, `SidebarItem`, `SidebarSubmenu`, `SidebarFooter`, `SidebarMobile` (+ `SidebarProvider` / `useSidebar`) in `app/layouts/sidebar/`
+- [x] Logo and app name from `app.config.ts`; logo mark when collapsed (`components/common/Logo.tsx`)
+- [x] Groups and items from `navigation.config.ts` only (footer group: settings / appearance)
+- [x] Nested items (2 levels), expand / collapse (persisted), auto-expand the active branch
+- [x] Active route highlighting (exact or prefix per item, `aria-current="page"`)
+- [x] Expanded / collapsed (icon-only) mode; tooltips when collapsed; flyout submenus (our DropdownMenu) when collapsed
+- [x] Width, collapsed width, position (left / right), fixed / sticky from `layout.config.ts`
+- [x] Variants: classic, minimal, floating, compact, dark (theme `appearance.sidebar`, user-selectable on the Appearance page)
+- [x] Mobile drawer (our Sheet) with overlay below `layout.sidebar.mobileBreakpoint` (lg); closes on navigation, Escape, overlay click
+- [x] Keyboard: Tab order, Enter / Space toggle submenus, → / ← open / close, ↑ / ↓ / Home / End between rows, `Ctrl / Cmd + B` toggles collapse
+- [x] Item options: badge (static or `useCount` hook), disabled, external link (new tab, icon, announced), hidden, `featureFlag`, `permission`, `status: 'planned'` ("Soon" badge + generated page)
+- [x] Collapsed state persisted per browser (`<slug>:sidebar-collapsed:v1`, cross-tab)
+- [x] Works with every theme preset, mode and appearance (sidebar tokens)
+- [ ] Manual check: renders config, active state, collapse / expand, submenu keyboard, mobile drawer, hidden by flag / permission *(your manual test)*
 
-Navigation config shape:
-
-```ts
-// types/navigation.types.ts
-export interface NavItem {
-  id: string;                        // unique, stable (used for keys and persisted expand state)
-  title: string;
-  path?: string;                     // from config/paths.ts
-  icon?: IconName;                   // key of config/icons.ts
-  children?: NavItem[];
-  badge?: { text: string; tone?: BadgeTone } | { useCount: () => number | undefined };
-  external?: boolean;
-  disabled?: boolean;
-  hidden?: boolean;
-  featureFlag?: FeatureFlag;         // hidden when the flag is off
-  permission?: string | string[];    // Level 2: hidden without the permission
-  status?: 'ready' | 'planned';      // planned → "not built yet" page
-  match?: 'exact' | 'prefix';
-}
-export interface NavGroup { id: string; title?: string; items: NavItem[] }
-```
-
-```ts
-// config/navigation.config.ts
-export const navigationConfig: NavGroup[] = [
-  {
-    id: 'main',
-    title: 'Main',
-    items: [
-      { id: 'dashboard', title: 'Dashboard', path: paths.dashboard, icon: 'LayoutDashboard' },
-      {
-        id: 'students',
-        title: 'Students',
-        icon: 'Users',
-        status: 'planned',
-        children: [
-          { id: 'students-all', title: 'All students', path: '/students' },
-          { id: 'students-new', title: 'Add student', path: '/students/new' },
-        ],
-      },
-    ],
-  },
-];
-```
+Navigation config shape: `types/navigation.types.ts` (`NavItem`, `NavGroup`), data in `config/navigation.config.ts` (module 2).
 
 ## 8. Navbar System
 
@@ -237,7 +198,7 @@ export const navigationConfig: NavGroup[] = [
 - [ ] No content overflow at 320 px width
 - [ ] Semantic HTML, labels for every control, `aria-*` only where HTML is not enough
 - [ ] Visible focus (ring token) everywhere; skip link; focus moved on route change
-- [ ] Dialogs / menus: focus trap, Esc, return focus (Radix)
+- [x] Dialogs / menus: focus trap, Esc, return focus *(own primitives, module 4)*
 - [ ] Status never by color alone (icon / text)
 - [ ] `prefers-reduced-motion` respected
 - [ ] Contrast ≥ 4.5:1 (text), ≥ 3:1 (UI, focus) in every theme
@@ -372,10 +333,10 @@ Level 1 is done when all of these pass **without editing any component**:
 | 1 | 1. Project setup & code quality | Critical | `npm run verify` green, CI running |
 | 2 | 2. Configuration system ✅ | Critical | All config files typed and used; `project:init` |
 | 3 | 3. Theme & design tokens ✅ | Critical | Modes, presets, appearance, no flash |
-| 4 | 4. UI components (core: button, input, field, card, badge, alert, dialog, dropdown, tooltip, toaster) | Critical | Kitchen-sink page |
-| 5 | 5. Routing | Critical | Data router, paths, lazy pages, error pages |
-| 6 | 6. Layouts | Critical | App / auth / public layouts |
-| 7 | 7. Sidebar | Critical | Config-driven, collapsible, mobile drawer |
+| 4 | 4. UI components ✅ (core: button, input, field, card, badge, alert, dialog, dropdown, tooltip, toaster) | Critical | Kitchen-sink page |
+| 5 | 5. Routing ✅ | Critical | Data router, paths, lazy pages, error pages |
+| 6 | 6. Layouts ✅ | Critical | App / auth / public layouts |
+| 7 | 7. Sidebar ✅ | Critical | Config-driven, collapsible, mobile drawer |
 | 8 | 8. Navbar | Critical | Configurable actions, responsive |
 | 9 | 9. Responsive & accessibility | Critical | Breakpoint and keyboard pass |
 | 10 | 10. Page & feedback components | High | Page scaffolding, states, global pages |

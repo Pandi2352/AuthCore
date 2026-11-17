@@ -11,3 +11,6 @@ interface ImportMeta {
 
 /** package.json version, injected by vite.config.ts (`define`). Read through `env.appVersion`. */
 declare const __APP_VERSION__: string;
+
+/** true in the dev server, false in builds (vite.config.ts `define`). Dev-only code only. */
+declare const __DEV_BUILD__: boolean;

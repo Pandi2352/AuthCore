@@ -1,21 +1,7 @@
 import { env } from '@/config';
-import type { ApiErrorResponse, ApiResponse } from '@/types/api';
 
-export class ApiError extends Error {
-  statusCode: number;
-  code: string;
-  errors?: Array<{ field?: string; message: string }>;
-  raw: ApiErrorResponse;
-
-  constructor(response: ApiErrorResponse) {
-    super(response.message || 'An unexpected error occurred');
-    this.name = 'ApiError';
-    this.statusCode = response.statusCode;
-    this.code = response.code;
-    this.errors = response.errors;
-    this.raw = response;
-  }
-}
+import { ApiError } from './api-error';
+import type { ApiErrorResponse, ApiResponse } from './types';
 
 type RefreshCallback = (token: string | null) => void;
 

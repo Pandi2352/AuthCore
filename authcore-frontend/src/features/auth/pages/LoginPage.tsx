@@ -1,18 +1,17 @@
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { Alert } from '@/components/common/Alert';
-import { Button } from '@/components/common/Button';
-import { Card } from '@/components/common/Card';
-import { Input } from '@/components/common/Input';
+import { Alert, Button, Card, Input } from '@/components/ui';
 import { appConfig, featuresConfig, paths } from '@/config';
-import { useAuth } from '@/context/AuthContext';
-import { ApiError } from '@/lib/api-client';
+import { useAuth } from '@/features/auth/session/useAuth';
+import { ApiError } from '@/lib/api';
+import { safeReturnTo } from '@/lib/utils';
 
-export const Login: React.FC = () => {
+export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -40,7 +39,7 @@ export const Login: React.FC = () => {
           state: { message: 'You must change your password before continuing.' },
         });
       } else {
-        navigate(paths.dashboard);
+        navigate(safeReturnTo(searchParams.get('returnTo'), paths.dashboard), { replace: true });
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -60,23 +59,20 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-background py-12 sm:px-6 lg:px-8">
-      <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary text-2xl font-black text-primary-foreground">
-          {appConfig.name.charAt(0)}
-        </div>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+    <div className="w-full">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Sign in to {appConfig.name}
-        </h2>
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Reusable authentication & access management
         </p>
       </div>
 
-      <div className="mt-8 px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
-        <Card className="border-border">
+      <div className="mt-8">
+        <Card>
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
+            {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
 
             <Input
               label="Email or Username"
@@ -129,7 +125,7 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            <Button type="submit" variant="primary" className="w-full py-2.5" isLoading={isLoading}>
+            <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
               <LogIn className="mr-2 h-4 w-4" />
               Sign In
             </Button>

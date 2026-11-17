@@ -1,31 +1,19 @@
-import { Loader2 } from 'lucide-react';
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useSearchParams } from 'react-router-dom';
 
 import { paths } from '@/config';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth';
+import { safeReturnTo } from '@/lib/utils';
 
-interface GuestRouteProps {
-  children: React.ReactNode;
-}
+import { FullPageLoader } from '../components/FullPageLoader';
 
-export const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
+/** Signed-in users opening /login, /register … go to returnTo (same-origin only) or home. */
+export function RequireGuest() {
   const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  if (isLoading) return <FullPageLoader />;
   if (isAuthenticated) {
-    const from =
-      (location.state as { from?: { pathname: string } })?.from?.pathname || paths.dashboard;
-    return <Navigate to={from} replace />;
+    return <Navigate to={safeReturnTo(searchParams.get('returnTo'), paths.dashboard)} replace />;
   }
-
-  return <>{children}</>;
-};
+  return <Outlet />;
+}

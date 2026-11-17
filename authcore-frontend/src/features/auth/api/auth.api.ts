@@ -1,4 +1,3 @@
-import { apiClient } from '@/lib/api-client';
 import type {
   ChangePasswordPayload,
   ChangePasswordResponse,
@@ -14,10 +13,11 @@ import type {
   VerifyEmailOtpPayload,
   VerifyResetTokenPayload,
   VerifyResetTokenResponse,
-} from '@/types/auth';
-import type { User } from '@/types/user';
+} from '@/features/auth/types/auth.types';
+import type { User } from '@/features/auth/types/user.types';
+import { apiClient } from '@/lib/api';
 
-export const authService = {
+export const authApi = {
   async login(payload: LoginCredentials) {
     const res = await apiClient.post<LoginResponse>('/auth/login', payload);
     if (res.data.accessToken) {
@@ -113,5 +113,16 @@ export const authService = {
       violations: Array<{ rule: string; message: string }>;
     }>('/password-policies/validate', { password, email, username });
     return res.data;
+  },
+
+  /** Reopen a self-closed account (public flow). */
+  async requestRecovery(payload: { email: string }) {
+    const res = await apiClient.post<null>('/account/recovery/request', payload);
+    return res;
+  },
+
+  async confirmRecovery(payload: { email: string; code: string }) {
+    const res = await apiClient.post<null>('/account/recovery/confirm', payload);
+    return res;
   },
 };

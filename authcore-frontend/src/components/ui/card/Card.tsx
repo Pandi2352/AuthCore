@@ -1,41 +1,93 @@
-import React from 'react';
+import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 
-import { cn } from '@/lib/utils';
+import { useOptionalTheme } from '@/app/theme';
+import { cn, variants } from '@/lib/utils';
 
-export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  title?: string;
-  subtitle?: string;
-  footer?: React.ReactNode;
+const cardVariants = variants({
+  base: 'flex flex-col overflow-hidden rounded-md text-surface-foreground',
+  variants: {
+    variant: {
+      bordered: 'border border-border bg-surface',
+      filled: 'border border-transparent bg-muted',
+      elevated: 'border border-border bg-surface shadow-card',
+      minimal: 'border border-transparent bg-transparent',
+    },
+  },
+  defaultVariants: { variant: 'bordered' },
+});
+
+export type CardVariant = 'bordered' | 'filled' | 'elevated' | 'minimal';
+
+export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
+  /** Default: theme appearance.cards. */
+  variant?: CardVariant;
+  /** Shortcuts for a header / footer without composing the parts. */
+  title?: ReactNode;
+  subtitle?: ReactNode;
+  /** Right side of the header (buttons, menu). */
+  actions?: ReactNode;
+  footer?: ReactNode;
 }
 
-export const Card: React.FC<CardProps> = ({
-  children,
-  className,
-  title,
-  subtitle,
-  footer,
-  ...props
-}) => {
+/**
+ * Surface for grouped content. Either compose <CardHeader>/<CardContent>/<CardFooter>, or
+ * pass title / subtitle / footer and children (wrapped in CardContent automatically).
+ */
+export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
+  { variant, title, subtitle, actions, footer, className, children, ...props },
+  ref,
+) {
+  const theme = useOptionalTheme();
+  const usesShortcuts = title !== undefined || subtitle !== undefined || footer !== undefined;
   return (
     <div
-      className={cn(
-        'overflow-hidden rounded-md border border-border bg-surface text-surface-foreground shadow-card',
+      ref={ref}
+      className={cardVariants({
+        variant: variant ?? theme?.appearance.cards ?? 'bordered',
         className,
-      )}
+      })}
       {...props}
     >
-      {(title || subtitle) && (
-        <div className="border-b border-border px-card py-4">
-          {title && <h3 className="text-lg font-semibold text-foreground">{title}</h3>}
-          {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
-        </div>
+      {(title || subtitle || actions) && (
+        <CardHeader className="border-b border-border">
+          <div className="min-w-0 flex-1">
+            {title && <CardTitle>{title}</CardTitle>}
+            {subtitle && <CardDescription>{subtitle}</CardDescription>}
+          </div>
+          {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+        </CardHeader>
       )}
-      <div className="p-card">{children}</div>
-      {footer && (
-        <div className="flex items-center justify-end gap-3 border-t border-border bg-muted px-card py-3.5">
-          {footer}
-        </div>
-      )}
+      {usesShortcuts ? <CardContent>{children}</CardContent> : children}
+      {footer && <CardFooter className="border-t border-border bg-muted/60">{footer}</CardFooter>}
     </div>
   );
-};
+});
+
+export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn('flex items-start gap-4 px-card py-4', className)} {...props} />;
+}
+
+export function CardTitle({ className, children, ...props }: HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h3
+      className={cn('text-base leading-tight font-semibold text-foreground', className)}
+      {...props}
+    >
+      {children}
+    </h3>
+  );
+}
+
+export function CardDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={cn('mt-1 text-sm text-muted-foreground', className)} {...props} />;
+}
+
+export function CardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn('flex-1 p-card', className)} {...props} />;
+}
+
+export function CardFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('flex items-center justify-end gap-3 px-card py-3', className)} {...props} />
+  );
+}

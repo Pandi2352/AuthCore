@@ -1,15 +1,12 @@
 import { Camera, Trash2, User as UserIcon } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import { Alert } from '@/components/common/Alert';
-import { Button } from '@/components/common/Button';
-import { Card } from '@/components/common/Card';
-import { Input } from '@/components/common/Input';
-import { useAuth } from '@/context/AuthContext';
-import { ApiError } from '@/lib/api-client';
-import { accountService } from '@/services/account.service';
+import { Alert, Button, Card, Input } from '@/components/ui';
+import { accountApi } from '@/features/account/api/account.api';
+import { useAuth } from '@/features/auth';
+import { ApiError } from '@/lib/api';
 
-export const Profile: React.FC = () => {
+export const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -27,7 +24,7 @@ export const Profile: React.FC = () => {
     let isActive = true;
     const load = async () => {
       try {
-        const data = await accountService.getProfile();
+        const data = await accountApi.getProfile();
         if (isActive) {
           setFormData({
             firstName: data.firstName || '',
@@ -52,7 +49,7 @@ export const Profile: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const updated = await accountService.updateProfile({
+      const updated = await accountApi.updateProfile({
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim() || null,
         username: formData.username.trim() || null,
@@ -75,7 +72,7 @@ export const Profile: React.FC = () => {
     setIsAvatarLoading(true);
 
     try {
-      await accountService.uploadAvatar(file);
+      await accountApi.uploadAvatar(file);
       setSuccess('Profile picture updated successfully');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to upload profile picture');
@@ -90,7 +87,7 @@ export const Profile: React.FC = () => {
     setIsAvatarLoading(true);
 
     try {
-      await accountService.deleteAvatar();
+      await accountApi.deleteAvatar();
       setSuccess('Profile picture removed');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to delete profile picture');
@@ -108,8 +105,8 @@ export const Profile: React.FC = () => {
         </p>
       </div>
 
-      {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
-      {success && <Alert type="success" message={success} onClose={() => setSuccess(null)} />}
+      {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
+      {success && <Alert variant="success" message={success} onClose={() => setSuccess(null)} />}
 
       {/* Avatar Card */}
       <Card title="Profile Picture">
@@ -194,7 +191,7 @@ export const Profile: React.FC = () => {
           />
 
           <div className="flex justify-end pt-2">
-            <Button type="submit" variant="primary" isLoading={isLoading}>
+            <Button type="submit" variant="solid" isLoading={isLoading}>
               Save Changes
             </Button>
           </div>

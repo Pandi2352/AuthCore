@@ -52,6 +52,19 @@ export const paths = {
     forbidden: '/403',
     notFound: '/404',
   },
+
+  /** Development-only pages (not routed in production builds). */
+  dev: {
+    ui: '/dev/ui',
+  },
+} as const;
+
+/**
+ * Route patterns with dynamic segments, for route definitions only. Links use the builders
+ * above (paths.admin.userDetail(id)); pages read params with useRequiredParam('id').
+ */
+export const routePatterns = {
+  adminUserDetail: '/admin/users/:id',
 } as const;
 
 /** Path with query parameters (undefined / empty values are left out). */

@@ -2,15 +2,12 @@ import { CheckCircle2, Mail, RefreshCw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { Alert } from '@/components/common/Alert';
-import { Button } from '@/components/common/Button';
-import { Card } from '@/components/common/Card';
-import { Input } from '@/components/common/Input';
+import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
-import { ApiError } from '@/lib/api-client';
-import { authService } from '@/services/auth.service';
+import { authApi } from '@/features/auth/api/auth.api';
+import { ApiError } from '@/lib/api';
 
-export const VerifyEmail: React.FC = () => {
+export const VerifyEmailPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -36,7 +33,7 @@ export const VerifyEmail: React.FC = () => {
         setIsVerifyingLink(true);
         setError(null);
         try {
-          await authService.verifyEmailLink({ token: tokenParam });
+          await authApi.verifyEmailLink({ token: tokenParam });
           setSuccess('Email successfully verified! You may now sign in.');
         } catch (err) {
           setError(err instanceof ApiError ? err.message : 'Invalid or expired verification link.');
@@ -64,7 +61,7 @@ export const VerifyEmail: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await authService.verifyEmailOtp({
+      await authApi.verifyEmailOtp({
         email: email.trim().toLowerCase(),
         code: code.trim(),
       });
@@ -84,7 +81,7 @@ export const VerifyEmail: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await authService.resendEmailVerification({
+      await authApi.resendEmailVerification({
         email: email.trim().toLowerCase(),
       });
       setSuccess('A new verification code has been dispatched to your email.');
@@ -100,8 +97,8 @@ export const VerifyEmail: React.FC = () => {
 
   if (isVerifyingLink) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Card className="w-full max-w-md space-y-3 p-8 text-center">
+      <div className="w-full">
+        <Card className="space-y-3 p-8 text-center">
           <RefreshCw className="mx-auto h-8 w-8 animate-spin text-primary" />
           <h3 className="text-lg font-bold text-foreground">Verifying your email...</h3>
           <p className="text-sm text-muted-foreground">Please wait a moment.</p>
@@ -111,30 +108,30 @@ export const VerifyEmail: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-background py-12 sm:px-6 lg:px-8">
-      <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="w-full">
+      <div className="text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary-soft text-primary">
           <Mail className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Verify your email
-        </h2>
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Confirm your email address to access your account
         </p>
       </div>
 
-      <div className="mt-8 px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
-        <Card className="border-border">
-          {error && <Alert type="error" message={error} className="mb-4" />}
-          {success && <Alert type="success" message={success} className="mb-4" />}
+      <div className="mt-8">
+        <Card>
+          {error && <Alert variant="danger" message={error} className="mb-4" />}
+          {success && <Alert variant="success" message={success} className="mb-4" />}
 
           {tokenParam && success ? (
             <div className="space-y-4 text-center">
               <CheckCircle2 className="mx-auto h-12 w-12 text-success" />
               <p className="text-sm text-muted-foreground">Your account is ready.</p>
               <Link to={paths.auth.login}>
-                <Button variant="primary" className="w-full">
+                <Button variant="solid" className="w-full">
                   Sign In
                 </Button>
               </Link>
@@ -161,12 +158,7 @@ export const VerifyEmail: React.FC = () => {
                 className="text-center font-mono text-lg tracking-widest"
               />
 
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full py-2.5"
-                isLoading={isLoading}
-              >
+              <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
                 Verify Code
               </Button>
 

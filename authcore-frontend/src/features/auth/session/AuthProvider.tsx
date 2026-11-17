@@ -1,37 +1,21 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { apiClient } from '@/lib/api-client';
-import { accessControlService } from '@/services/access-control.service';
-import { authService } from '@/services/auth.service';
-import type { EffectiveAccess } from '@/types/access-control';
+import { accessApi } from '@/features/auth/api/access.api';
+import { authApi } from '@/features/auth/api/auth.api';
+import type { EffectiveAccess } from '@/features/auth/types/access.types';
 import type {
   LoginCredentials,
   LoginResponse,
   RegisterPayload,
   RegisterResponse,
-} from '@/types/auth';
-import type { User } from '@/types/user';
+} from '@/features/auth/types/auth.types';
+import type { User } from '@/features/auth/types/user.types';
+import { apiClient } from '@/lib/api';
 
-export interface AuthContextType {
-  user: User | null;
-  accessToken: string | null;
-  effectiveAccess: EffectiveAccess | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<LoginResponse>;
-  register: (payload: RegisterPayload) => Promise<RegisterResponse>;
-  logout: () => Promise<void>;
-  logoutAll: (keepCurrentSession?: boolean) => Promise<void>;
-  refreshSession: () => Promise<void>;
-  updateUser: (user: Partial<User>) => void;
-  refreshEffectiveAccess: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext, type AuthContextType } from './auth-context';
 
 /** Registration doesn't touch the session: no state needed. */
-const register = (payload: RegisterPayload): Promise<RegisterResponse> =>
-  authService.register(payload);
+const register = (payload: RegisterPayload): Promise<RegisterResponse> => authApi.register(payload);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -41,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchEffectiveAccess = useCallback(async () => {
     try {
-      const access = await accessControlService.getMyAccess();
+      const access = await accessApi.getMyAccess();
       setEffectiveAccess(access);
     } catch {
       // Non-fatal if access control endpoint is not enabled or user lacks permissions
@@ -58,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshSession = useCallback(async () => {
     try {
-      const data = await authService.refresh();
+      const data = await authApi.refresh();
       setUser(data.user);
       setAccessToken(data.accessToken);
       apiClient.setAccessToken(data.accessToken);
@@ -86,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(
     async (credentials: LoginCredentials): Promise<LoginResponse> => {
-      const data = await authService.login(credentials);
+      const data = await authApi.login(credentials);
       setUser(data.user);
       setAccessToken(data.accessToken);
       apiClient.setAccessToken(data.accessToken);
@@ -98,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async (): Promise<void> => {
     try {
-      await authService.logout();
+      await authApi.logout();
     } finally {
       logoutLocally();
     }
@@ -107,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logoutAll = useCallback(
     async (keepCurrentSession = false): Promise<void> => {
       try {
-        await authService.logoutAll(keepCurrentSession);
+        await authApi.logoutAll(keepCurrentSession);
       } finally {
         if (!keepCurrentSession) {
           logoutLocally();
@@ -151,12 +135,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

@@ -1,18 +1,15 @@
 import { Laptop, LogOut, Smartphone, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import { Alert } from '@/components/common/Alert';
-import { Badge } from '@/components/common/Badge';
-import { Button } from '@/components/common/Button';
-import { Card } from '@/components/common/Card';
+import { Alert, Badge, Button, Card } from '@/components/ui';
 import { paths } from '@/config';
-import { useAuth } from '@/context/AuthContext';
-import { ApiError } from '@/lib/api-client';
-import { formatDate } from '@/lib/utils';
-import { accountService } from '@/services/account.service';
-import type { Session } from '@/types/session';
+import { accountApi } from '@/features/account/api/account.api';
+import type { Session } from '@/features/account/types/account.types';
+import { useAuth } from '@/features/auth';
+import { ApiError } from '@/lib/api';
+import { formatDate } from '@/lib/format';
 
-export const Sessions: React.FC = () => {
+export const SessionsPage: React.FC = () => {
   const { logoutAll } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,7 +20,7 @@ export const Sessions: React.FC = () => {
     let isActive = true;
     const load = async () => {
       try {
-        const data = await accountService.getSessions();
+        const data = await accountApi.getSessions();
         if (isActive) setSessions(data);
       } catch (err) {
         if (isActive) setError(err instanceof ApiError ? err.message : 'Failed to load sessions');
@@ -40,7 +37,7 @@ export const Sessions: React.FC = () => {
   const handleRevokeSession = async (sessionId: string) => {
     setError(null);
     try {
-      const res = await accountService.revokeSession(sessionId);
+      const res = await accountApi.revokeSession(sessionId);
       if (res.isCurrentSession) {
         window.location.href = paths.auth.login;
         return;
@@ -81,8 +78,8 @@ export const Sessions: React.FC = () => {
         )}
       </div>
 
-      {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
-      {success && <Alert type="success" message={success} onClose={() => setSuccess(null)} />}
+      {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
+      {success && <Alert variant="success" message={success} onClose={() => setSuccess(null)} />}
 
       <Card title={`Logged In Devices (${sessions.length})`}>
         {isLoading ? (
@@ -112,8 +109,8 @@ export const Sessions: React.FC = () => {
                       <span className="text-sm font-semibold text-foreground">
                         {session.deviceName || `${session.browser} on ${session.os}`}
                       </span>
-                      {session.isCurrent && <Badge variant="success">Current Device</Badge>}
-                      {session.isPersistent && <Badge variant="neutral">Remember Me</Badge>}
+                      {session.isCurrent && <Badge tone="success">Current Device</Badge>}
+                      {session.isPersistent && <Badge tone="neutral">Remember Me</Badge>}
                     </div>
 
                     <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

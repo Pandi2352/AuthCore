@@ -1,4 +1,4 @@
-import type { User } from './user';
+import type { User } from './user.types';
 
 export type RegistrationNextStep =
   'VERIFY_EMAIL_OTP' | 'VERIFY_EMAIL_LINK' | 'AWAIT_APPROVAL' | 'LOGIN';

@@ -4,6 +4,7 @@
 @import './themes.css';
 @import './appearance.css';
 @import './base.css';
+@import './utilities.css';
 
 /* Dark mode follows the user's choice (data-mode on <html>), not only the OS. */
 @custom-variant dark (&:where([data-mode='dark'], [data-mode='dark'] *));

@@ -1,4 +1,4 @@
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/session/useAuth';
 
 export function usePermissions() {
   const { effectiveAccess, user } = useAuth();

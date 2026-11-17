@@ -24,7 +24,7 @@ export const themeConfig: ThemeConfig = {
   userCustomizable: {
     mode: true,
     preset: true,
-    appearance: ['radius', 'density'], // + 'sidebar' once the sidebar exists (module 7)
+    appearance: ['radius', 'density', 'sidebar'],
   },
   presets: ['default', 'emerald', 'violet', 'orange', 'brand'],
 };

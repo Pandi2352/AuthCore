@@ -1,7 +1,7 @@
-import { Card } from '@/components/common/Card';
 import { ThemeCustomizer } from '@/components/common/ThemeCustomizer';
+import { Card } from '@/components/ui';
 
-export function Appearance() {
+export function AppearanceSettingsPage() {
   return (
     <div className="space-y-6">
       <div>

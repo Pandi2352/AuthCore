@@ -1,15 +1,13 @@
 import { CheckCircle2, XCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import { Alert } from '@/components/common/Alert';
-import { Badge } from '@/components/common/Badge';
-import { Card } from '@/components/common/Card';
-import { ApiError } from '@/lib/api-client';
-import { formatDate } from '@/lib/utils';
-import { accountService } from '@/services/account.service';
-import type { UserActivityEntry } from '@/types/session';
+import { Alert, Badge, Card } from '@/components/ui';
+import { accountApi } from '@/features/account/api/account.api';
+import type { UserActivityEntry } from '@/features/account/types/account.types';
+import { ApiError } from '@/lib/api';
+import { formatDate } from '@/lib/format';
 
-export const Activity: React.FC = () => {
+export const ActivityPage: React.FC = () => {
   const [activities, setActivities] = useState<UserActivityEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +17,7 @@ export const Activity: React.FC = () => {
     let isActive = true;
     const load = async () => {
       try {
-        const data = await accountService.getActivity(filterEvent || undefined);
+        const data = await accountApi.getActivity(filterEvent || undefined);
         if (isActive) setActivities(data);
       } catch (err) {
         if (isActive) setError(err instanceof ApiError ? err.message : 'Failed to load activity');
@@ -60,7 +58,7 @@ export const Activity: React.FC = () => {
         </select>
       </div>
 
-      {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
+      {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
 
       <Card title="Audit History">
         {isLoading ? (
@@ -87,7 +85,7 @@ export const Activity: React.FC = () => {
                       <span className="text-sm font-semibold text-foreground">
                         {item.event.replace(/_/g, ' ')}
                       </span>
-                      <Badge variant={item.isSuccess ? 'success' : 'danger'}>
+                      <Badge tone={item.isSuccess ? 'success' : 'danger'}>
                         {item.isSuccess ? 'Success' : 'Failed'}
                       </Badge>
                     </div>
