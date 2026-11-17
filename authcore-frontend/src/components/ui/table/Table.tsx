@@ -27,7 +27,7 @@ export const Table = forwardRef<HTMLTableElement, TableProps>(function Table(
   return (
     <div
       className={cn(
-        'relative w-full scrollbar-thin overflow-auto rounded-md border border-border',
+        'relative w-full scrollbar-slim overflow-auto rounded-md border border-border',
         wrapperClassName,
       )}
       data-sticky-header={stickyHeader || undefined}

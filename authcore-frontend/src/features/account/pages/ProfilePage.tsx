@@ -116,7 +116,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <PageContainer width="narrow">
+    <PageContainer>
       <PageHeader title="Profile" description="Your name, photo and contact details." />
 
       <ErrorAlert

@@ -1,5 +1,3 @@
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
-
 import { Kbd, Tooltip } from '@/components/ui';
 import { layoutConfig } from '@/config';
 import { cn, isMacPlatform, modKeyLabel } from '@/lib/utils';
@@ -8,6 +6,7 @@ import { useVisibleNavigation } from './navigation-filter';
 import { useSidebarMode } from './sidebar-mode';
 import { sidebarItemSize, sidebarRowClass } from './sidebar.variants';
 import { SidebarItem } from './SidebarItem';
+import { SidebarToggleIcon } from './SidebarToggleIcon';
 import { useSidebar } from './useSidebar';
 
 /** Footer items (settings, help) + the collapse toggle (desktop). */
@@ -20,13 +19,6 @@ export function SidebarFooter() {
   const navbarHasToggle = layoutConfig.navbar.enabled && layoutConfig.navbar.showSidebarToggle;
   const showToggle = layoutConfig.sidebar.collapsible && !inDrawer && !navbarHasToggle;
   const label = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
-  const Icon = collapsed
-    ? onLeft
-      ? PanelLeftOpen
-      : PanelRightOpen
-    : onLeft
-      ? PanelLeftClose
-      : PanelRightClose;
 
   return (
     <div className="shrink-0 border-t border-sidebar-border px-2 py-2">
@@ -62,7 +54,11 @@ export function SidebarFooter() {
               collapsed && 'justify-center px-0',
             )}
           >
-            <Icon className="size-4.5 shrink-0" aria-hidden="true" />
+            <SidebarToggleIcon
+              collapsed={collapsed}
+              side={onLeft ? 'left' : 'right'}
+              className="size-4.5 shrink-0"
+            />
             {!collapsed && <span className="truncate">Collapse</span>}
           </button>
         </Tooltip>

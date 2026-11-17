@@ -19,10 +19,17 @@
   }
 }
 
-/* Thin, themed scrollbars for scroll containers (ScrollArea, sidebar, menus). */
-@utility scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
+/*
+ * Thin, themed scrollbars for scroll containers (ScrollArea, sidebar, menus). Chromium uses
+ * the ::-webkit-scrollbar styles from base.css (setting the standard properties here would
+ * switch them off); Firefox gets the standard ones.
+ */
+/* Named scrollbar-slim: Tailwind 4.3 has its own scrollbar-thin (scrollbar-width: thin). */
+@utility scrollbar-slim {
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
 }
 
 @keyframes progress-indeterminate {
@@ -60,5 +67,29 @@
 @keyframes appear {
   to {
     opacity: 1;
+  }
+}
+
+/* Tooltip entrance: short fade + 2px slide toward the trigger side. */
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    translate: var(--tooltip-from, 0 2px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@utility tooltip-in {
+  animation: tooltip-in 120ms ease-out;
+  &[data-side='bottom'] {
+    --tooltip-from: 0 -2px;
+  }
+  &[data-side='left'] {
+    --tooltip-from: 2px 0;
+  }
+  &[data-side='right'] {
+    --tooltip-from: -2px 0;
   }
 }

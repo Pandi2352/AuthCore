@@ -98,6 +98,8 @@ export interface LayoutConfig {
     /** Icon-only width in px. */
     collapsedWidth: number;
     collapsible: boolean;
+    /** Accordion: opening a submenu closes the other open ones. */
+    singleSubmenu: boolean;
     defaultCollapsed: boolean;
     /** sticky: scrolls with the page but stays in view; fixed: always pinned. */
     behavior: 'sticky' | 'fixed';

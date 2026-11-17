@@ -7,5 +7,6 @@ export { SidebarItem } from './SidebarItem';
 export { SidebarMobile } from './SidebarMobile';
 export { SidebarProvider } from './SidebarProvider';
 export { SidebarSubmenu } from './SidebarSubmenu';
+export { SidebarToggleIcon } from './SidebarToggleIcon';
 export { useSidebar } from './useSidebar';
 export { containsActive, isItemActive, useVisibleNavigation } from './navigation-filter';

@@ -55,10 +55,14 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
   const setExpanded = useCallback(
     (id: string, expanded: boolean) =>
-      setExpandedIds((ids) =>
-        expanded ? [...new Set([...ids, id])] : ids.filter((x) => x !== id),
-      ),
-    [setExpandedIds],
+      setExpandedIds((ids) => {
+        // Same array when nothing changes: no re-render, no storage write.
+        if (expanded === ids.includes(id) && !(expanded && sidebar.singleSubmenu && ids.length > 1))
+          return ids;
+        if (!expanded) return ids.filter((x) => x !== id);
+        return sidebar.singleSubmenu ? [id] : [...ids, id];
+      }),
+    [setExpandedIds, sidebar.singleSubmenu],
   );
 
   // Ctrl / Cmd + B toggles the sidebar (not while typing in a field).

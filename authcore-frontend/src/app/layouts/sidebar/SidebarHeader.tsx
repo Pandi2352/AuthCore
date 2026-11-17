@@ -12,7 +12,8 @@ export function SidebarHeader() {
   return (
     <div
       className={cn(
-        'flex h-(--navbar-height) shrink-0 items-center px-4',
+        // Same height as the navbar (border included), so both bottom borders form one line.
+        'flex h-(--navbar-height) shrink-0 items-center border-b border-sidebar-border px-4',
         collapsed && 'justify-center px-2',
       )}
     >

@@ -26,15 +26,12 @@ export function SidebarItem({ item, depth = 0 }: { item: NavItem; depth?: 0 | 1 
 
   const content: ReactNode = (
     <>
-      {depth === 0 ? (
-        <ItemIcon item={item} />
-      ) : (
+      {depth === 0 && <ItemIcon item={item} />}
+      {depth === 1 && active && (
+        // Accent on the submenu guide line, next to the current page.
         <span
-          className={cn(
-            'size-1.5 shrink-0 rounded-full',
-            active ? 'bg-sidebar-active-foreground' : 'bg-sidebar-muted/60',
-          )}
           aria-hidden="true"
+          className="absolute top-1.5 bottom-1.5 -left-[calc(0.5rem+1.5px)] w-0.5 rounded-md bg-sidebar-active-foreground"
         />
       )}
       <span className={cn('min-w-0 flex-1 truncate', iconOnly && 'sr-only')}>{item.title}</span>
@@ -55,7 +52,7 @@ export function SidebarItem({ item, depth = 0 }: { item: NavItem; depth?: 0 | 1 
     sidebarRowClass(active),
     sidebarItemSize[variant],
     iconOnly && 'justify-center px-0',
-    depth === 1 && !collapsed && 'pl-[2.35rem]',
+    depth === 1 && 'relative h-8 pl-2.5 text-[13px]',
   );
 
   let row: ReactNode;
@@ -96,7 +93,7 @@ export function SidebarItem({ item, depth = 0 }: { item: NavItem; depth?: 0 | 1 
   return (
     <li>
       {iconOnly ? (
-        <Tooltip content={item.title} side={tooltipSide} delay={0}>
+        <Tooltip content={item.title} side={tooltipSide}>
           {row as ReactElement}
         </Tooltip>
       ) : (

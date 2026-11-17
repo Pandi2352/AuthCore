@@ -113,7 +113,7 @@ export function TabsList({ className, onKeyDown, ...props }: HTMLAttributes<HTML
         'flex',
         orientation === 'vertical'
           ? 'w-48 shrink-0 flex-col gap-1'
-          : 'scrollbar-thin overflow-x-auto',
+          : 'scrollbar-slim overflow-x-auto',
         variant === 'underline' && orientation === 'horizontal' && 'gap-1 border-b border-border',
         variant === 'pills' && orientation === 'horizontal' && 'gap-1 rounded-md bg-muted p-1',
         className,

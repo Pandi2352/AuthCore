@@ -57,7 +57,7 @@ export const ActivityPage: React.FC = () => {
   };
 
   return (
-    <PageContainer width="narrow" className="max-w-4xl">
+    <PageContainer>
       <PageHeader
         title="Recent activity"
         description="Security audit trail of sign-ins, security updates and access changes."

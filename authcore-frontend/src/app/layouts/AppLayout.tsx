@@ -55,7 +55,7 @@ function AppShell() {
       {sidebar.enabled && (isDesktop ? <Sidebar /> : <SidebarMobile />)}
       <div
         ref={scrollRef}
-        className={cn('flex min-w-0 flex-1 flex-col', isFixed && 'scrollbar-thin overflow-y-auto')}
+        className={cn('flex min-w-0 flex-1 flex-col', isFixed && 'scrollbar-slim overflow-y-auto')}
       >
         {navbar.enabled && <Navbar />}
         <MainContent>

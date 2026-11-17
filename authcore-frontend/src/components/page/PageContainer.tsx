@@ -17,8 +17,10 @@ export interface PageContainerProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Page wrapper: consistent vertical rhythm between header and sections (density token) and
- * an optional narrower width. Outer width / padding come from the layout (MainContent).
+ * Page wrapper: consistent vertical rhythm between header and sections (density token).
+ * Width and padding belong to the layout (layout.config.ts → content, rendered by
+ * MainContent) — pages use the default so every page has the same width. `narrow` / `prose`
+ * are only for special cases (a long article), not for normal pages.
  */
 export function PageContainer({ width = 'default', className, ...props }: PageContainerProps) {
   return (

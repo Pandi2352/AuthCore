@@ -131,7 +131,7 @@ export function CommandPalette({
           id={listId}
           role="listbox"
           aria-label={label}
-          className="min-h-0 flex-1 scrollbar-thin overflow-y-auto p-2"
+          className="min-h-0 flex-1 scrollbar-slim overflow-y-auto p-2"
         >
           {flat.length === 0 && (
             <p className="px-2 py-10 text-center text-sm text-muted-foreground">{emptyText}</p>

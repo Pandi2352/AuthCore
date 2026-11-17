@@ -12,8 +12,20 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 The first structured version. Projects copied **before** Level 1 (flat `components/common`, `context/`, `services/`, `src/router/`) should not merge file by file: copy the new kit and move their business pages into `features/` (see [Migrating a pre-Level-1 copy](#migrating-a-pre-level-1-copy)).
 
+### Sidebar
+
+- **Changed:** collapsed-sidebar flyouts open on hover only after a 350 ms rest (not while passing over) and only one at a time.
+- **Changed (look):** the sidebar header has a bottom border on the same line as the navbar's; the sidebar toggle uses its own three-line icon (`SidebarToggleIcon`: long / muted medium / short, lengths swap when collapsed).
+- **Changed:** sidebar 240 px wide (was 264); one submenu open at a time (`layout.config.ts → sidebar.singleSubmenu`, default true).
+- **Changed:** tooltips — only one visible at a time, normal hover delay in the collapsed sidebar (moving along the icons stays quick), short fade-in, arrow pointing at the trigger.
+- **Fixed:** slim custom scrollbars now actually apply in Chrome / Edge (sidebar, content area, menus, tables). The utility is renamed `scrollbar-thin` → `scrollbar-slim` (Tailwind 4.3 has its own `scrollbar-thin`, which switched the custom styles off); the standard `scrollbar-*` properties are set for Firefox only.
+- **Fixed:** clicking a menu item sometimes didn't change the page. `usePermissions()` returned new functions every render, so the sidebar's "auto-expand the active branch" effect re-ran forever ("Maximum update depth exceeded") and froze rendering. `usePermissions` is now memoized, `setExpanded` keeps the same array when nothing changes, and the effect depends only on the active branch id.
+- **Changed (look):** expanded submenus animate open / closed, with a guide line and an accent bar on the current page; closed submenus are inert (not in the tab order).
+- **Changed:** collapsed sidebar — parent icons open their flyout on hover (mouse) as well as click / keyboard; the flyout has a section header and marks the current page.
+
 ### Forms and fields
 
+- **Changed (layout):** content is full width by default (`layout.config.ts → content.maxWidth: 'full'`); pages no longer narrow themselves (`<PageContainer>` without `width`). Set `maxWidth: 'container'` for a centered max width — one place for every page.
 - **Changed (look):** checkboxes are square (`rounded-none`); `check:architecture` now allows `rounded-none` alongside `rounded-md` / `rounded-full`.
 - _Additive:_ `features/auth/components/AuthCard` — welcome title and message inside the card (no icon tile), form, footer links. Every auth page uses it (friendlier copy, sentence-case buttons); the login page now shows the success message sent by register / reset / verify.
 - **Changed (look):** control height `h-control-md` is 44 px by default (comfortable: sm 36 / md 44 / lg 48; compact 32 / 38 / 44; spacious 40 / 48 / 56). Fields and form buttons share it — use the default size for both.

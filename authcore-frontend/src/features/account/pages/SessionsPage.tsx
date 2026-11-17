@@ -81,7 +81,7 @@ export const SessionsPage: React.FC = () => {
   };
 
   return (
-    <PageContainer width="narrow" className="max-w-4xl">
+    <PageContainer>
       <PageHeader
         title="Active sessions"
         description="Devices and browsers currently signed in to your account."

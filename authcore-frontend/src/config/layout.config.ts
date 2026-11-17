@@ -9,9 +9,10 @@ export const layoutConfig: LayoutConfig = {
   sidebar: {
     enabled: true,
     position: 'left',
-    width: 264,
+    width: 240,
     collapsedWidth: 72,
     collapsible: true,
+    singleSubmenu: true, // opening a submenu closes the others
     defaultCollapsed: false,
     behavior: 'sticky',
     mobileBreakpoint: 'lg',
@@ -31,7 +32,7 @@ export const layoutConfig: LayoutConfig = {
     overflowBelow: 'md',
   },
   content: {
-    maxWidth: 'container',
+    maxWidth: 'full', // 'full' | 'container' (centered, --content-max-width) | 'narrow'
     padding: 'comfortable',
   },
   auth: {

@@ -10,7 +10,7 @@ import { useSidebar } from './useSidebar';
 /** Visible rows in DOM order (skips collapsed submenus and disabled items). */
 const rows = (root: HTMLElement) =>
   Array.from(root.querySelectorAll<HTMLElement>('[data-sidebar-item]')).filter(
-    (el) => el.offsetParent !== null,
+    (el) => el.offsetParent !== null && !el.closest('[inert]'),
   );
 
 /**
@@ -23,14 +23,14 @@ export function SidebarContent({ className }: { className?: string }) {
   const { setExpanded } = useSidebar();
   const navRef = useRef<HTMLElement | null>(null);
 
-  // Auto-expand the branch that contains the current page.
+  // Auto-expand the branch that contains the current page (once per page change: the id is a
+  // string, so the effect doesn't re-run on unrelated re-renders).
+  const activeBranchId = groups
+    .flatMap((group) => group.items)
+    .find((item) => item.children?.length && containsActive(item, pathname))?.id;
   useEffect(() => {
-    for (const group of groups) {
-      for (const item of group.items) {
-        if (item.children?.length && containsActive(item, pathname)) setExpanded(item.id, true);
-      }
-    }
-  }, [pathname, groups, setExpanded]);
+    if (activeBranchId) setExpanded(activeBranchId, true);
+  }, [activeBranchId, setExpanded]);
 
   const onKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) || !navRef.current) return;
@@ -53,7 +53,7 @@ export function SidebarContent({ className }: { className?: string }) {
       aria-label="Main"
       onKeyDown={onKeyDown}
       className={cn(
-        'flex-1 scrollbar-thin space-y-1 overflow-x-hidden overflow-y-auto px-2 py-2',
+        'flex-1 scrollbar-slim space-y-1 overflow-x-hidden overflow-y-auto px-2 py-2',
         className,
       )}
     >

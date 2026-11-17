@@ -130,7 +130,7 @@ export const SecurityPage: React.FC = () => {
   };
 
   return (
-    <PageContainer width="narrow">
+    <PageContainer>
       <PageHeader title="Security" description="Manage your password and account status." />
 
       {initialAlert && <Alert variant="warning" message={initialAlert} className="mb-4" />}

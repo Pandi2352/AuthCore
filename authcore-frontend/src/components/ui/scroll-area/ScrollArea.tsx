@@ -21,7 +21,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
       ref={ref}
       tabIndex={0}
       className={cn(
-        'scrollbar-thin rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        'scrollbar-slim rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         orientation === 'vertical' && 'overflow-x-hidden overflow-y-auto',
         orientation === 'horizontal' && 'overflow-x-auto overflow-y-hidden',
         orientation === 'both' && 'overflow-auto',

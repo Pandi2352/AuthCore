@@ -59,19 +59,32 @@
     opacity: 1;
   }
 
-  /* Scrollbars follow the theme */
-  html {
-    scrollbar-color: var(--border-strong) transparent;
+  /*
+   * Slim custom scrollbars everywhere (page / content area, sidebar, menus, tables).
+   * Chromium ignores ::-webkit-scrollbar on elements with scrollbar-color / scrollbar-width,
+   * so the standard properties are only for browsers without ::-webkit-scrollbar (Firefox).
+   */
+  @supports not selector(::-webkit-scrollbar) {
+    html {
+      scrollbar-color: var(--border-strong) transparent;
+      scrollbar-width: thin;
+    }
   }
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-thumb {
     background-color: var(--border-strong);
     border: 2px solid transparent;
     border-radius: 9999px;
     background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
   ::-webkit-scrollbar-track {
     background: transparent;

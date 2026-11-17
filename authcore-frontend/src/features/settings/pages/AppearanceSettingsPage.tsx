@@ -3,7 +3,7 @@ import { PageContainer, PageHeader, PageSection } from '@/components/page';
 
 export function AppearanceSettingsPage() {
   return (
-    <PageContainer width="narrow">
+    <PageContainer>
       <PageHeader
         title="Appearance"
         description="Choose how the application looks on this device."

@@ -19,6 +19,16 @@ import { useFloating, type Align, type Side } from '../primitives/useFloating';
 /** After one tooltip closes, the next opens instantly for a moment (moving along a toolbar). */
 let lastClosedAt = 0;
 const SKIP_DELAY_MS = 300;
+/** Only one tooltip is visible at a time: opening one closes the previous immediately. */
+let closeCurrent: (() => void) | null = null;
+
+/** Arrow position per side (a small rotated square on the edge facing the trigger). */
+const ARROW: Record<Side, string> = {
+  top: 'bottom-[-4px] left-1/2 -translate-x-1/2',
+  bottom: 'top-[-4px] left-1/2 -translate-x-1/2',
+  left: 'right-[-4px] top-1/2 -translate-y-1/2',
+  right: 'left-[-4px] top-1/2 -translate-y-1/2',
+};
 
 export interface TooltipProps {
   content: ReactNode;
@@ -62,23 +72,39 @@ export function Tooltip({
     anchorRef.current = el;
   }, []);
   const clearTimer = useCallback(() => clearTimeout(timer.current), []);
+  const closeNow = useCallback(() => {
+    clearTimeout(timer.current);
+    setOpen(false);
+  }, []);
+  const openNow = useCallback(() => {
+    if (closeCurrent && closeCurrent !== closeNow) closeCurrent();
+    closeCurrent = closeNow;
+    setOpen(true);
+  }, [closeNow]);
   const show = useCallback(
     (immediate: boolean) => {
       clearTimer();
-      if (immediate || Date.now() - lastClosedAt < SKIP_DELAY_MS) setOpen(true);
-      else timer.current = setTimeout(() => setOpen(true), delay);
+      if (immediate || Date.now() - lastClosedAt < SKIP_DELAY_MS) openNow();
+      else timer.current = setTimeout(openNow, delay);
     },
-    [clearTimer, delay],
+    [clearTimer, delay, openNow],
   );
   const hide = useCallback(() => {
     clearTimer();
     timer.current = setTimeout(() => {
       setOpen(false);
+      if (closeCurrent === closeNow) closeCurrent = null;
       lastClosedAt = Date.now();
     }, 80);
-  }, [clearTimer]);
+  }, [clearTimer, closeNow]);
 
-  useEffect(() => clearTimer, [clearTimer]);
+  useEffect(
+    () => () => {
+      clearTimer();
+      if (closeCurrent === closeNow) closeCurrent = null;
+    },
+    [clearTimer, closeNow],
+  );
   useDismiss(open, () => setOpen(false), [anchorRef, floatingRef], {
     outsidePress: false,
     stacked: false,
@@ -118,11 +144,15 @@ export function Tooltip({
             onPointerEnter={clearTimer}
             onPointerLeave={hide}
             className={cn(
-              'pointer-events-auto max-w-xs rounded-md bg-foreground px-2.5 py-1.5 text-xs leading-snug font-medium text-background shadow-popover',
+              'pointer-events-auto max-w-xs tooltip-in rounded-md bg-foreground px-2.5 py-1.5 text-xs leading-snug font-medium text-background shadow-popover',
               className,
             )}
           >
             {content}
+            <span
+              aria-hidden="true"
+              className={cn('absolute size-2 rotate-45 bg-foreground', ARROW[placement])}
+            />
           </div>
         </Portal>
       )}

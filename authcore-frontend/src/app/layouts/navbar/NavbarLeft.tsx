@@ -1,4 +1,4 @@
-import { Menu, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { Logo } from '@/components/common/Logo';
@@ -7,7 +7,7 @@ import { appConfig, layoutConfig, paths } from '@/config';
 import { modKeyLabel } from '@/lib/utils';
 
 import { Breadcrumbs } from '../components/Breadcrumbs';
-import { useSidebar } from '../sidebar';
+import { SidebarToggleIcon, useSidebar } from '../sidebar';
 
 /** Sidebar toggle, logo (per layout.navbar.showLogo), breadcrumbs. */
 export function NavbarLeft() {
@@ -18,15 +18,6 @@ export function NavbarLeft() {
     navbar.showLogo === 'always' ||
     (navbar.showLogo === 'when-sidebar-hidden' && !sidebarVisible) ||
     (navbar.showLogo === 'when-sidebar-collapsed' && (!sidebarVisible || collapsed));
-
-  const onLeft = sidebar.position === 'left';
-  const CollapseIcon = collapsed
-    ? onLeft
-      ? PanelLeftOpen
-      : PanelRightOpen
-    : onLeft
-      ? PanelLeftClose
-      : PanelRightClose;
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -44,9 +35,9 @@ export function NavbarLeft() {
           aria-label={`${collapsed ? 'Expand' : 'Collapse'} sidebar (${modKeyLabel()} B)`}
           aria-expanded={!collapsed}
           aria-keyshortcuts="Control+B Meta+B"
-          icon={<CollapseIcon />}
+          icon={<SidebarToggleIcon collapsed={collapsed} side={sidebar.position} />}
           onClick={toggleCollapsed}
-          className="text-muted-foreground"
+          className="text-foreground [&_svg]:size-5"
         />
       )}
       {showLogo && (
