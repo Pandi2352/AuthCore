@@ -100,6 +100,7 @@ import {
 } from '@/components/ui';
 import { appConfig } from '@/config';
 
+import { HooksShowcase } from './HooksShowcase';
 import { PageFeedbackShowcase } from './PageFeedbackShowcase';
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
@@ -661,6 +662,9 @@ export function UiKitchenSinkPage() {
       </Section>
       <Section id="ks-page" title="Page and feedback components">
         <PageFeedbackShowcase />
+      </Section>
+      <Section id="ks-hooks" title="Hooks">
+        <HooksShowcase />
       </Section>
 
       <Section id="ks-table" title="Table and pagination">

@@ -223,7 +223,7 @@ src/
 │   ├── RouteErrorPage.tsx           errorElement: render / chunk-load errors
 │   ├── PlannedModulePage.tsx        "Not built yet" module overview (from navigation config)
 │   ├── PlannedFeaturePage.tsx       "Not built yet" page
-│   └── dev/                         UiKitchenSinkPage.tsx + PageFeedbackShowcase.tsx (development only)
+│   └── dev/                         UiKitchenSinkPage.tsx + PageFeedbackShowcase.tsx + HooksShowcase.tsx (development only)
 │
 ├── config/                          Everything a new project edits
 │   ├── app.config.ts                Name, short name, description, logos, favicon, company, support, links
@@ -240,18 +240,19 @@ src/
 │
 ├── hooks/                           Generic React hooks (no business logic)
 │   ├── useMediaQuery.ts             useMediaQuery, useBreakpoint, useCurrentBreakpoint, useIsTouch, usePrefersReducedMotion
-│   ├── useLocalStorage.ts
+│   ├── useLocalStorage.ts           Namespaced, validated, cross-tab (storageKey helper)
+│   ├── useEventListener.ts          Listener with cleanup + latest handler
 │   ├── useDisclosure.ts
 │   ├── useDebounce.ts               useDebouncedValue, useDebouncedCallback
 │   ├── useOnlineStatus.ts
 │   ├── useClickOutside.ts
-│   ├── useMounted.ts / usePrevious.ts
+│   ├── useMounted.ts / usePrevious.ts   useMounted, useIsMounted; usePrevious (state-based)
 │   ├── useDocumentTitle.ts
 │   ├── useCopyToClipboard.ts
 │   ├── useQueryParams.ts            Typed search-param state (filters, page, tab)
 │   ├── useRequiredParam.ts          Typed :id route params
-│   ├── useControllableState.ts / useFocusTrap.ts / useScrollLock.ts / usePersistentState.ts
-│   ├── usePagination.ts
+│   ├── useControllableState.ts / useFocusTrap.ts / useScrollLock.ts
+│   ├── usePagination.ts             usePagination (local), useUrlPagination (URL), computePagination
 │   └── index.ts
 │
 ├── lib/                             Plain TypeScript, no React

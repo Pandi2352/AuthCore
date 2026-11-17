@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { layoutConfig } from '@/config';
+import { useEventListener } from '@/hooks/useEventListener';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useBreakpoint } from '@/hooks/useMediaQuery';
-import { usePersistentState } from '@/hooks/usePersistentState';
 import { isModShortcut } from '@/lib/utils';
 
 import { SidebarContext, type SidebarContextValue } from './sidebar-context';
 
+const NO_IDS: string[] = [];
 const toBoolean = (value: unknown): boolean | null => (typeof value === 'boolean' ? value : null);
 const toIdList = (value: unknown): string[] | null =>
   Array.isArray(value) && value.every((v) => typeof v === 'string') ? (value as string[]) : null;
@@ -19,16 +21,16 @@ const toIdList = (value: unknown): string[] | null =>
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const { sidebar } = layoutConfig;
   const isDesktop = useBreakpoint(sidebar.mobileBreakpoint);
-  const [storedCollapsed, setStoredCollapsed] = usePersistentState(
+  const [storedCollapsed, setStoredCollapsed] = useLocalStorage(
     'sidebar-collapsed',
     sidebar.defaultCollapsed,
-    toBoolean,
+    {
+      validate: toBoolean,
+    },
   );
-  const [expandedIds, setExpandedIds] = usePersistentState<string[]>(
-    'sidebar-expanded',
-    [],
-    toIdList,
-  );
+  const [expandedIds, setExpandedIds] = useLocalStorage<string[]>('sidebar-expanded', NO_IDS, {
+    validate: toIdList,
+  });
   const collapsed = sidebar.collapsible && isDesktop && storedCollapsed;
   const { pathname } = useLocation();
   // The drawer belongs to the page it was opened on: navigating (or growing to desktop) closes it.
@@ -60,18 +62,18 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   );
 
   // Ctrl / Cmd + B toggles the sidebar (not while typing in a field).
-  useEffect(() => {
-    if (!sidebar.enabled) return;
-    const onKeyDown = (event: KeyboardEvent) => {
+  useEventListener(
+    'keydown',
+    (event) => {
       if (!isModShortcut(event, 'b')) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest('input, textarea, [contenteditable="true"]')) return;
       event.preventDefault();
       toggleCollapsed();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [sidebar.enabled, toggleCollapsed]);
+    },
+    window,
+    { enabled: sidebar.enabled },
+  );
 
   const value = useMemo<SidebarContextValue>(
     () => ({

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 import { featuresConfig } from '@/config';
+import { useEventListener } from '@/hooks/useEventListener';
 import { isModShortcut } from '@/lib/utils';
 
 import { AppCommandMenu } from './AppCommandMenu';
@@ -15,16 +16,16 @@ export function CommandMenuProvider({ children }: { children: ReactNode }) {
   const enabled = commandMenu || globalSearch;
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (!commandMenu) return;
-    const onKeyDown = (event: KeyboardEvent) => {
+  useEventListener(
+    'keydown',
+    (event) => {
       if (!isModShortcut(event, 'k')) return;
       event.preventDefault();
       setOpen((current) => !current);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [commandMenu]);
+    },
+    window,
+    { enabled: commandMenu },
+  );
 
   const value = useMemo(() => ({ enabled, open, setOpen }), [enabled, open]);
   return (

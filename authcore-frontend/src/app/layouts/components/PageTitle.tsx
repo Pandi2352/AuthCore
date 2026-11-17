@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useMatches } from 'react-router-dom';
 
-import { appConfig } from '@/config';
+import { formatDocumentTitle } from '@/hooks/useDocumentTitle';
 
 import { handleOf } from '../../routes/route-handle';
 
@@ -14,7 +14,7 @@ export function PageTitle() {
     .find(Boolean);
 
   useEffect(() => {
-    document.title = title ? `${title} · ${appConfig.name}` : appConfig.name;
+    document.title = formatDocumentTitle(title);
   }, [title]);
 
   return null;

@@ -224,18 +224,21 @@ Supporting code: `lib/api/get-error-message.ts` (`getErrorMessage`, `getRequestI
 
 ## 11. Hooks
 
-- [ ] `useTheme` (module 3), `useSidebar` (module 7)
-- [ ] `useMediaQuery`, `useBreakpoint`
-- [ ] `useLocalStorage` (namespaced, JSON-safe, cross-tab sync)
-- [ ] `useDisclosure` (open / close / toggle)
-- [ ] `useDebounce`, `useDebouncedCallback`
-- [ ] `useOnlineStatus`
-- [ ] `useClickOutside`
-- [ ] `useMounted`, `usePrevious`
-- [ ] `useDocumentTitle`
-- [ ] `useCopyToClipboard`
-- [ ] `useQueryParams` (typed search-param state)
-- [ ] `usePagination`
+Generic hooks in `src/hooks/` (export via `@/hooks`), all written for the React Compiler rules (no ref reads during render, effects only for subscriptions). Live demo: `/dev/ui` → "Hooks".
+
+- [x] `useTheme` (module 3, `app/theme`), `useSidebar` (module 7, `app/layouts/sidebar`)
+- [x] `useMediaQuery`, `useBreakpoint` *(+ `useCurrentBreakpoint`, `useIsTouch`, `usePrefersReducedMotion`; module 9)*
+- [x] `useLocalStorage(name, default, { validate, version })` *(key `<slug>:<name>:v<version>`, JSON-safe, never throws, cross-tab sync, returns `[value, set, remove]`; replaces the earlier `usePersistentState` — the sidebar uses it)*
+- [x] `useDisclosure` (open / close / toggle)
+- [x] `useDebounce` / `useDebouncedValue`, `useDebouncedCallback` (`run` / `cancel` / `flush`)
+- [x] `useOnlineStatus`
+- [x] `useClickOutside(refs, handler, enabled)` *(pointer-down, several refs so the trigger can toggle)* + `useEventListener` *(auto cleanup, latest handler; the Ctrl/Cmd+K and Ctrl/Cmd+B shortcuts use it)*
+- [x] `useMounted` (client-render flag), `useIsMounted` (for async work), `usePrevious` (state-based, compiler-safe)
+- [x] `useDocumentTitle` *(data-dependent titles, "Name · App"; static titles stay in route `handle.title`; shared `formatDocumentTitle`)*
+- [x] `useCopyToClipboard`
+- [x] `useQueryParams` (typed search-param state) + `useRequiredParam` (typed `:id`)
+- [x] `usePagination` (local) and `useUrlPagination` (`?page=&pageSize=`) *(page clamped to range, offset, from / to, next / previous / first / last; page size change → page 1; pure `computePagination`)*
+- [x] Internal building blocks also exported: `useControllableState`, `useFocusTrap`, `useScrollLock`
 
 ## 12. Utilities (`lib/`)
 
@@ -348,7 +351,7 @@ Level 1 is done when all of these pass **without editing any component**:
 | 8 | 8. Navbar ✅ | Critical | Configurable actions, responsive |
 | 9 | 9. Responsive & accessibility ✅ | Critical | Breakpoint and keyboard pass |
 | 10 | 10. Page & feedback components ✅ | High | Page scaffolding, states, global pages |
-| 11 | 11–12. Hooks & utilities | High | Reusable helpers |
+| 11 | 11–12. Hooks ✅ & utilities | High | Reusable helpers |
 | 12 | 13. API layer | High | Client, errors, upload / download |
 | 13 | 14. Error handling | High | Boundaries, chunk errors, offline |
 | 14 | 4. UI components (rest: table, tabs, pagination, avatar, sheet, select, …) | High | Complete design system |

@@ -10,6 +10,9 @@ export function useDebouncedValue<T>(value: T, delay = 300): T {
   return debounced;
 }
 
+/** Alias: the debounced value. */
+export const useDebounce = useDebouncedValue;
+
 /** A stable callback that runs `delay` ms after the last call; `.cancel()` / `.flush()` included. */
 export function useDebouncedCallback<A extends unknown[]>(
   callback: (...args: A) => void,
