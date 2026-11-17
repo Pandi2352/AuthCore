@@ -42,7 +42,7 @@ All tokens are CSS custom properties, registered in Tailwind v4's `@theme` so ut
 | `primary-hover`, `primary-soft`, `primary-soft-foreground` | Hover, soft buttons, selected rows |
 | `secondary` / `secondary-foreground` | Secondary actions |
 | `accent` / `accent-foreground` | Hover backgrounds of menu items |
-| `border`, `input`, `ring` | Borders, input borders, focus ring |
+| `border`, `input`, `field`, `ring` | Borders; `input` = checkbox / radio / switch outlines (3:1); `field` = softer text-field and outline-button borders (focus = primary, error = danger); focus ring |
 | `success`, `warning`, `danger`, `info` (+ `-foreground`, `-soft`) | Status, alerts, badges, toasts |
 | `overlay` | Dialog / drawer backdrop |
 | `sidebar`, `sidebar-foreground`, `sidebar-muted`, `sidebar-accent`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-active`, `sidebar-active-foreground` | Sidebar (can differ from the page, e.g. dark sidebar on a light app) |

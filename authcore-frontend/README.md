@@ -157,7 +157,7 @@ Enforced by `npm run check:architecture` where possible ([full list](../docs/fro
 1. **No hard-coded branding, navigation, colors or URLs** — from `config/` and tokens only.
 2. **No UI libraries.** Components are our own, in `components/ui`. Allowed helpers: `clsx`, `tailwind-merge`, `lucide-react`. New dependencies need a reason in [techstack.md](../docs/frontend/techstack.md).
 3. **No native `<select>`** — use `Select` / `Combobox` (keyboard, typeahead, theming).
-4. **Shape:** only `rounded-md` / `rounded-full`; only `shadow-card` / `shadow-popover`.
+4. **Shape:** only `rounded-md` / `rounded-full` (circles) / `rounded-none` (square controls such as checkboxes); only `shadow-card` / `shadow-popover`.
 5. **`cursor-pointer` on everything clickable** (buttons, menu items, triggers, clickable rows).
 6. **Network calls only through `lib/api`**, from `features/*/api/*.api.ts` — never `fetch` in a component.
 7. **Layers:** `components/` and `hooks/` contain no business logic; `lib/` contains no React; features don't import each other except through `features/auth` (its `index.ts`).
@@ -209,6 +209,19 @@ const onSubmit = async () => {
 
 <ErrorAlert error={error} fallback={fallback} fields={['name', 'email']} onClose={() => setError(null)} />
 <Input label="Email" error={fieldError('email')} … />
+```
+
+**Form validation (before the request):** every form uses `noValidate` (no browser popups) and `useFormValidation(values, rules)` with rules from `@/lib/validation` (`required`, `email`, `minLength`, `maxLength`, `pattern`, `matches`, `custom`; `emailRules`, `personNameRules`, `usernameRules`, `passwordRules`, `codeRules` mirror the backend limits). Errors appear under the fields after the first submit, the first invalid field gets focus, and each error clears as the user fixes it. Show the client error first, then the server's: `error={v.error('email') ?? fieldError('email')}`.
+
+```tsx
+const rules: FormRules<{ email: string }> = { email: emailRules() };
+const v = useFormValidation({ email }, rules);
+const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (!v.validate(e.currentTarget)) return;
+  …
+};
+<form noValidate onSubmit={onSubmit}>
 ```
 
 Cancelled requests and an expired session never show a message (the session end signs out with a toast). Loaders should pass an `AbortController` signal and abort on unmount.

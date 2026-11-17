@@ -13,7 +13,7 @@ import { useOptionalTheme } from '@/app/theme';
 import { useControllableState } from '@/hooks/useControllableState';
 import { cn } from '@/lib/utils';
 
-import { useFieldControlProps } from '../field';
+import { FieldShell, resolveInvalid, useFieldControlProps, type FieldShellProps } from '../field';
 import { controlVariants, type ControlSize, type ControlVariant } from '../input';
 import { composeRefs } from '../primitives/compose';
 import { createTypeahead, nextIndex } from '../primitives/list-navigation';
@@ -21,10 +21,13 @@ import { useDismiss } from '../primitives/useDismiss';
 import { ListboxPopup } from './listbox';
 import { flattenOptions, optionId, type SelectItems } from './listbox-utils';
 
-export interface SelectProps extends Omit<
-  ButtonHTMLAttributes<HTMLButtonElement>,
-  'value' | 'defaultValue' | 'onChange' | 'children'
-> {
+export interface SelectProps
+  extends
+    Omit<
+      ButtonHTMLAttributes<HTMLButtonElement>,
+      'value' | 'defaultValue' | 'onChange' | 'children'
+    >,
+    FieldShellProps {
   options: SelectItems;
   value?: string | null;
   defaultValue?: string | null;
@@ -47,7 +50,10 @@ export interface SelectProps extends Omit<
  * Keyboard: ↑/↓/Enter/Space open; ↑/↓/Home/End/PageUp/PageDown move; type to jump; Enter /
  * Space choose; Escape / Tab close. While closed, typing or ↑/↓ change the value directly.
  */
-export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select(
+const BareSelect = forwardRef<
+  HTMLButtonElement,
+  Omit<SelectProps, 'label' | 'hint' | 'error' | 'fieldClassName'>
+>(function BareSelect(
   {
     options,
     value,
@@ -65,6 +71,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
     disabled,
     onKeyDown,
     onBlur,
+    onClick,
     ...props
   },
   ref,
@@ -175,13 +182,18 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
         aria-activedescendant={open && activeIndex >= 0 ? optionId(listId, activeIndex) : undefined}
         aria-required={required || undefined}
         data-placeholder={selectedOption ? undefined : ''}
-        onClick={() => (open ? close() : openList('selected'))}
+        onClick={(event) => {
+          onClick?.(event);
+          if (event.defaultPrevented) return;
+          if (open) close();
+          else openList('selected');
+        }}
         onKeyDown={handleKeyDown}
         onBlur={onBlur}
         className={cn(
           controlVariants({ variant: look, size }),
           'flex cursor-pointer items-center gap-2 text-left',
-          open && 'border-ring ring-2 ring-ring/25',
+          open && 'border-primary',
           clearable && selectedOption && 'pr-14',
           className,
         )}
@@ -231,5 +243,29 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
         label={typeof props['aria-label'] === 'string' ? props['aria-label'] : undefined}
       />
     </div>
+  );
+});
+
+/**
+ * Select with the shared field props: pass label / hint / error / required from the
+ * parent for a complete field. Native props and events (onBlur, onFocus, onKeyDown, onClick,
+ * ref …) are forwarded and run before the built-in behavior.
+ */
+export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select(
+  { label, hint, error, fieldClassName, invalid, ...props },
+  ref,
+) {
+  return (
+    <FieldShell
+      label={label}
+      hint={hint}
+      error={error}
+      required={props.required}
+      disabled={props.disabled}
+      id={props.id}
+      fieldClassName={fieldClassName}
+    >
+      <BareSelect ref={ref} invalid={resolveInvalid(invalid, error)} {...props} />
+    </FieldShell>
   );
 });

@@ -1,13 +1,44 @@
-import { Lock } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { ErrorAlert } from '@/components/feedback';
-import { Alert, Button, Card, Input } from '@/components/ui';
+import { Alert, Button, Input } from '@/components/ui';
 import { paths } from '@/config';
 import { authApi } from '@/features/auth/api/auth.api';
+import { AuthCard } from '@/features/auth/components/AuthCard';
+import {
+  meetsPasswordRequirements,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+} from '@/features/auth/components/password-checks';
 import { PasswordRequirements } from '@/features/auth/components/PasswordRequirements';
 import { useApiError } from '@/hooks/useApiError';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import {
+  codeRules,
+  custom,
+  emailRules,
+  matches,
+  passwordRules,
+  required,
+  type FormRules,
+} from '@/lib/validation';
+
+const codeStepRules: FormRules<{ email: string; code: string }> = {
+  email: emailRules(),
+  code: codeRules({ min: 6, max: 6 }),
+};
+
+const passwordStepRules: FormRules<{ newPassword: string; confirmPassword: string }> = {
+  newPassword: [
+    ...passwordRules('Choose a new password'),
+    custom((value) => meetsPasswordRequirements(String(value)), PASSWORD_REQUIREMENTS_MESSAGE),
+  ],
+  confirmPassword: [
+    required('Confirm the new password'),
+    matches('newPassword', 'Passwords do not match'),
+  ],
+};
 
 export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,14 +58,17 @@ export const ResetPasswordPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const { error, fallback: errorFallback, setError, fieldError } = useApiError();
+  const codeStep = useFormValidation({ email, code }, codeStepRules);
+  const passwordStep = useFormValidation({ newPassword, confirmPassword }, passwordStepRules);
   const [successMessage, setSuccessMessage] = useState<string | null>(
     (location.state as { message?: string })?.message || null,
   );
 
-  // Step 1: Verify Code or Token
-  const handleVerifyCode = async (e: React.FormEvent) => {
+  // Step 1: Verify code or Token
+  const handleVerifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    if (!codeStep.validate(e.currentTarget)) return;
     setIsLoading(true);
 
     try {
@@ -53,13 +87,10 @@ export const ResetPasswordPage: React.FC = () => {
   };
 
   // Step 2: Set New Password
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
     setError(null);
+    if (!passwordStep.validate(e.currentTarget)) return;
     setIsLoading(true);
 
     try {
@@ -82,103 +113,92 @@ export const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full">
-      <div className="text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary-soft text-primary">
-          <Lock className="h-6 w-6" />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Set new password
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {isTokenVerified
-            ? 'Enter your new strong password'
-            : 'Enter the verification code sent to your email'}
+    <AuthCard
+      title={isTokenVerified ? 'Set a new password' : 'Check your email'}
+      description={
+        isTokenVerified
+          ? "Almost done — choose a strong password you haven't used before."
+          : 'Enter the 6-digit code we sent you to reset your password.'
+      }
+      footer={
+        <p>
+          <Link
+            to={paths.auth.login}
+            className="inline-flex items-center gap-1.5 font-semibold text-primary hover:underline"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Back to sign in
+          </Link>
         </p>
-      </div>
+      }
+    >
+      <ErrorAlert
+        error={error}
+        fallback={errorFallback}
+        fields={['email', 'code', 'newPassword', 'confirmPassword']}
+        className="mb-4"
+      />
+      {successMessage && <Alert variant="info" message={successMessage} className="mb-4" />}
 
-      <div className="mt-8">
-        <Card>
-          <ErrorAlert
-            error={error}
-            fallback={errorFallback}
-            fields={['email', 'code', 'newPassword', 'confirmPassword']}
-            className="mb-4"
+      {!isTokenVerified ? (
+        <form noValidate onSubmit={handleVerifyCode} className="space-y-4">
+          <Input
+            label="Email address"
+            error={codeStep.error('email') ?? fieldError('email')}
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your registered email"
           />
-          {successMessage && <Alert variant="info" message={successMessage} className="mb-4" />}
 
-          {!isTokenVerified ? (
-            <form onSubmit={handleVerifyCode} className="space-y-4">
-              <Input
-                label="Email"
-                error={fieldError('email')}
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="jane.doe@example.com"
-              />
+          <Input
+            label="Reset code"
+            error={codeStep.error('code') ?? fieldError('code')}
+            type="text"
+            required
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Enter the 6-digit code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            className="text-center font-mono text-lg tracking-widest placeholder:font-sans placeholder:text-sm placeholder:tracking-normal"
+          />
 
-              <Input
-                label="Reset Code"
-                error={fieldError('code')}
-                type="text"
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="6-digit code"
-                className="text-center font-mono text-lg tracking-widest"
-              />
+          <Button type="submit" fullWidth isLoading={isLoading}>
+            Verify code
+          </Button>
+        </form>
+      ) : (
+        <form noValidate onSubmit={handleResetPassword} className="space-y-4">
+          <Input
+            label="New password"
+            error={passwordStep.error('newPassword') ?? fieldError('newPassword')}
+            type="password"
+            required
+            placeholder="Create a new password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
 
-              <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
-                Verify Code
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <Input
-                label="New Password"
-                error={fieldError('newPassword')}
-                type="password"
-                required
-                placeholder="••••••••"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
+          <Input
+            label="Confirm new password"
+            error={passwordStep.error('confirmPassword') ?? fieldError('confirmPassword')}
+            type="password"
+            required
+            placeholder="Re-enter the new password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
 
-              <Input
-                label="Confirm New Password"
-                error={fieldError('confirmPassword')}
-                type="password"
-                required
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+          <PasswordRequirements password={newPassword} />
 
-              <PasswordRequirements password={newPassword} />
-
-              <Button
-                type="submit"
-                variant="solid"
-                className="mt-2 w-full py-2.5"
-                isLoading={isLoading}
-              >
-                Update Password
-              </Button>
-            </form>
-          )}
-
-          <div className="mt-6 border-t border-border pt-5 text-center text-sm text-muted-foreground">
-            <Link
-              to={paths.auth.login}
-              className="font-semibold text-primary hover:text-primary hover:underline"
-            >
-              Back to Sign In
-            </Link>
-          </div>
-        </Card>
-      </div>
-    </div>
+          <Button type="submit" fullWidth className="mt-2" isLoading={isLoading}>
+            Update password
+          </Button>
+        </form>
+      )}
+    </AuthCard>
   );
 };

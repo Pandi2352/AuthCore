@@ -10,7 +10,8 @@
 //      config → only types and other config; features → no other feature (except the auth public API), no app
 //   4. Colors: no Tailwind palette classes (bg-indigo-600 …) or hex values outside config / styles / theme runtime
 //   8. No native <select> (use Select / Combobox from components/ui: keyboard, theming, a11y)
-//   7. Shape: corners are rounded-md (rounded-full only for circles); shadows only through the
+//   7. Shape: corners are rounded-md (rounded-full only for circles, rounded-none for square
+//      controls such as checkboxes); shadows only through the
 //      theme tokens shadow-card / shadow-popover (off by default: theme.config.ts → shadows 'none')
 //   5. Project identity: the app name / slug from app.config.ts never hard-coded outside config/
 //   6. Routes: no inline path strings in to="/…", href="/…", navigate('/…') — use paths from config/paths.ts
@@ -36,7 +37,7 @@ const INLINE_ROUTE = /\b(?:to|href)="\/|\bnavigate\(\s*['"`]\/|location\.href\s*
 
 /** Rule 7: one corner radius and themed shadows only (docs/frontend/theme-system.md). */
 const SHAPE =
-  /(?<![\w-])(?:[a-z0-9-]+:)*(?:rounded(?:-(?:none|xs|sm|lg|xl|2xl|3xl))?|rounded-[trblsexy]{1,2}(?:-[a-z0-9]+)?|shadow(?:-(?:2xs|xs|sm|md|lg|xl|2xl|inner))?|inset-shadow-[a-z0-9]+|drop-shadow(?:-[a-z0-9]+)?)(?![\w-])/g;
+  /(?<![\w-])(?:[a-z0-9-]+:)*(?:rounded(?:-(?:xs|sm|lg|xl|2xl|3xl))?|rounded-[trblsexy]{1,2}(?:-[a-z0-9]+)?|shadow(?:-(?:2xs|xs|sm|md|lg|xl|2xl|inner))?|inset-shadow-[a-z0-9]+|drop-shadow(?:-[a-z0-9]+)?)(?![\w-])/g;
 
 /** Where literal colors are allowed (configuration and token definitions). */
 const COLOR_ALLOWED = [/^src\/config\//, /^src\/styles\//, /^src\/app\/theme\//];
@@ -209,7 +210,7 @@ for (const abs of walk(SRC)) {
     for (const m of text.matchAll(SHAPE)) {
       const cls = m[0].replace(/^(?:[a-z0-9-]+:)*/, '');
       errors.push(
-        `${file}:${lineOf(text, m.index)}  "${cls}": use rounded-md (rounded-full for circles) and shadow-card / shadow-popover`,
+        `${file}:${lineOf(text, m.index)}  "${cls}": use rounded-md (rounded-full for circles, rounded-none for square) and shadow-card / shadow-popover`,
       );
     }
   }

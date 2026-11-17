@@ -25,27 +25,27 @@
 /* ---------------------------------------------------------------- density */
 :root,
 [data-density='comfortable'] {
-  --control-h-sm: 2rem;
-  --control-h-md: 2.5rem;
-  --control-h-lg: 2.75rem;
+  --control-h-sm: 2.25rem;
+  --control-h-md: 2.75rem;
+  --control-h-lg: 3rem;
   --space-page: 1.5rem;
   --space-section: 1.5rem;
   --space-card: 1.5rem;
   --gap-form: 1rem;
 }
 [data-density='compact'] {
-  --control-h-sm: 1.75rem;
-  --control-h-md: 2.125rem;
-  --control-h-lg: 2.5rem;
+  --control-h-sm: 2rem;
+  --control-h-md: 2.375rem;
+  --control-h-lg: 2.75rem;
   --space-page: 1rem;
   --space-section: 1rem;
   --space-card: 1rem;
   --gap-form: 0.75rem;
 }
 [data-density='spacious'] {
-  --control-h-sm: 2.25rem;
-  --control-h-md: 2.75rem;
-  --control-h-lg: 3.25rem;
+  --control-h-sm: 2.5rem;
+  --control-h-md: 3rem;
+  --control-h-lg: 3.5rem;
   --space-page: 2rem;
   --space-section: 2rem;
   --space-card: 1.75rem;

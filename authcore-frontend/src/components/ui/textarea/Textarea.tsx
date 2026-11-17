@@ -9,12 +9,14 @@ import {
 import { useOptionalTheme } from '@/app/theme';
 import { cn } from '@/lib/utils';
 
-import { useFieldControlProps } from '../field';
+import { FieldShell, resolveInvalid, useFieldControlProps, type FieldShellProps } from '../field';
 import { controlVariants, type ControlVariant } from '../input';
 import { composeRefs } from '../primitives/compose';
 
-export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface TextareaProps
+  extends TextareaHTMLAttributes<HTMLTextAreaElement>, FieldShellProps {
   variant?: ControlVariant;
+  /** Force the invalid look (normally derived from `error`). */
   invalid?: boolean;
   /** Grow with the content (between `rows` and `maxRows`). */
   autoResize?: boolean;
@@ -23,7 +25,9 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
   showCount?: boolean;
 }
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+type BareTextareaProps = Omit<TextareaProps, 'label' | 'hint' | 'error' | 'fieldClassName'>;
+
+const BareTextarea = forwardRef<HTMLTextAreaElement, BareTextareaProps>(function BareTextarea(
   {
     variant,
     invalid,
@@ -53,6 +57,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   useLayoutEffect(resize, [resize, props.value]);
 
   const length = typeof props.value === 'string' ? props.value.length : undefined;
+  const atLimit =
+    props.maxLength !== undefined && length !== undefined && length >= props.maxLength;
   return (
     <div className="w-full">
       <textarea
@@ -72,10 +78,39 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
         {...a11y}
       />
       {showCount && props.maxLength !== undefined && length !== undefined && (
-        <p className="mt-1 text-right text-xs text-muted-foreground" aria-live="polite">
+        <p
+          className={cn(
+            'mt-1 text-right text-xs tabular-nums',
+            atLimit ? 'font-medium text-danger' : 'text-muted-foreground',
+          )}
+          aria-live="polite"
+        >
           {length} / {props.maxLength}
         </p>
       )}
     </div>
+  );
+});
+
+/**
+ * Multi-line text. Pass label / hint / error / required from the parent for a complete
+ * field; every native textarea prop and event goes to the <textarea>.
+ */
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+  { label, hint, error, fieldClassName, invalid, ...props },
+  ref,
+) {
+  return (
+    <FieldShell
+      label={label}
+      hint={hint}
+      error={error}
+      required={props.required}
+      disabled={props.disabled}
+      id={props.id}
+      fieldClassName={fieldClassName}
+    >
+      <BareTextarea ref={ref} invalid={resolveInvalid(invalid, error)} {...props} />
+    </FieldShell>
   );
 });

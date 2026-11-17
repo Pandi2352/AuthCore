@@ -12,6 +12,20 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 The first structured version. Projects copied **before** Level 1 (flat `components/common`, `context/`, `services/`, `src/router/`) should not merge file by file: copy the new kit and move their business pages into `features/` (see [Migrating a pre-Level-1 copy](#migrating-a-pre-level-1-copy)).
 
+### Forms and fields
+
+- **Changed (look):** checkboxes are square (`rounded-none`); `check:architecture` now allows `rounded-none` alongside `rounded-md` / `rounded-full`.
+- _Additive:_ `features/auth/components/AuthCard` — welcome title and message inside the card (no icon tile), form, footer links. Every auth page uses it (friendlier copy, sentence-case buttons); the login page now shows the success message sent by register / reset / verify.
+- **Changed (look):** control height `h-control-md` is 44 px by default (comfortable: sm 36 / md 44 / lg 48; compact 32 / 38 / 44; spacious 40 / 48 / 56). Fields and form buttons share it — use the default size for both.
+- **Changed (look):** text fields and outline buttons use a lighter border token `--field-border` (`border-field`); checkbox / radio / switch keep `--input`. Checked by `check:contrast` at 1.25:1 (focus and error borders stay ≥ 3:1).
+- **Changed:** auth pages have a top bar — logo on the left, theme toggle on the right; the form is centered below.
+- _Additive:_ every control (Input, PasswordInput, Textarea, Select, Combobox, Checkbox, Switch, RadioGroup) accepts `label`, `hint`, `error` (`string` = message, `true` = invalid only) and `required` from the parent (`FieldShell` / `field-props.ts`). `Field` takes `hint` (`description` still works).
+- **Fixed:** Select / Combobox no longer drop the built-in behavior when the parent passes `onClick` / `onBlur`; Switch labels now toggle the switch outside a `<Field>`.
+- **Changed (look):** focus border uses the theme `primary` color; error messages have an icon; placeholders describe the input; `PasswordRequirements` is a compact strength meter (`passwordStrength()`).
+- _Additive:_ `lib/validation` + `useFormValidation`: client validation with errors under each field (all auth and account forms use it). Forms use `noValidate`.
+- **Breaking (look):** focused fields show a border color only — no focus ring / glow.
+- **Breaking (behavior):** `Card` wraps plain children in a padded `CardContent` (new `contentClassName` prop). Cards that padded their content themselves should move those classes to `contentClassName`.
+
 ### Error handling (module 14)
 
 - _Additive:_ `lib/errors/` — `reportError` / `setErrorReporter` (no-op until a reporter is set), chunk-load "reload once" recovery, `installGlobalErrorHandlers()` (called in `main.tsx`).

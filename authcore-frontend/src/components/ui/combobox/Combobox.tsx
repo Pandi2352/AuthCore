@@ -13,7 +13,7 @@ import { useOptionalTheme } from '@/app/theme';
 import { useControllableState } from '@/hooks/useControllableState';
 import { cn } from '@/lib/utils';
 
-import { useFieldControlProps } from '../field';
+import { FieldShell, resolveInvalid, useFieldControlProps, type FieldShellProps } from '../field';
 import { controlVariants, type ControlSize, type ControlVariant } from '../input';
 import { composeRefs } from '../primitives/compose';
 import { nextIndex } from '../primitives/list-navigation';
@@ -21,10 +21,10 @@ import { useDismiss } from '../primitives/useDismiss';
 import { ListboxPopup } from '../select/listbox';
 import { flattenOptions, optionId, type SelectItems } from '../select/listbox-utils';
 
-export interface ComboboxProps extends Omit<
-  InputHTMLAttributes<HTMLInputElement>,
-  'value' | 'defaultValue' | 'onChange' | 'size'
-> {
+export interface ComboboxProps
+  extends
+    Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'defaultValue' | 'onChange' | 'size'>,
+    FieldShellProps {
   options: SelectItems;
   value?: string | null;
   defaultValue?: string | null;
@@ -44,7 +44,10 @@ export interface ComboboxProps extends Omit<
  * Searchable select: type to filter, ↑/↓ to move, Enter to choose, Escape to close
  * (a second Escape clears the text). Leaving the field restores the chosen label.
  */
-export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
+const BareCombobox = forwardRef<
+  HTMLInputElement,
+  Omit<ComboboxProps, 'label' | 'hint' | 'error' | 'fieldClassName'>
+>(function BareCombobox(
   {
     options,
     value,
@@ -60,6 +63,8 @@ export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Com
     placeholder = 'Search…',
     className,
     disabled,
+    onBlur,
+    onClick,
     ...props
   },
   ref,
@@ -138,13 +143,14 @@ export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Com
       aria-invalid={isInvalid || undefined}
       className={cn(
         controlVariants({ variant: look, size }),
-        'flex items-center gap-2 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25',
+        'flex items-center gap-2 focus-within:border-primary',
         disabled && 'cursor-not-allowed opacity-60',
         className,
       )}
     >
       <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       <input
+        {...props}
         ref={composeRefs(ref, inputRef)}
         type="text"
         role="combobox"
@@ -161,13 +167,15 @@ export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Com
           setOpen(true);
           setActiveIndex(0);
         }}
-        onClick={() => !open && setOpen(true)}
+        onClick={(event) => {
+          onClick?.(event);
+          if (!event.defaultPrevented && !open) setOpen(true);
+        }}
         onBlur={(event) => {
-          props.onBlur?.(event);
+          onBlur?.(event);
           if (!popupRef.current?.contains(event.relatedTarget as Node | null)) setQuery(null);
         }}
         className="h-full min-w-0 flex-1 cursor-text bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
-        {...props}
         {...a11y}
         onKeyDown={handleKeyDown}
       />
@@ -218,5 +226,29 @@ export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Com
         emptyText={emptyText}
       />
     </div>
+  );
+});
+
+/**
+ * Combobox with the shared field props: pass label / hint / error / required from the
+ * parent for a complete field. Native props and events (onBlur, onFocus, onKeyDown, onClick,
+ * ref …) are forwarded and run before the built-in behavior.
+ */
+export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
+  { label, hint, error, fieldClassName, invalid, ...props },
+  ref,
+) {
+  return (
+    <FieldShell
+      label={label}
+      hint={hint}
+      error={error}
+      required={props.required}
+      disabled={props.disabled}
+      id={props.id}
+      fieldClassName={fieldClassName}
+    >
+      <BareCombobox ref={ref} invalid={resolveInvalid(invalid, error)} {...props} />
+    </FieldShell>
   );
 });

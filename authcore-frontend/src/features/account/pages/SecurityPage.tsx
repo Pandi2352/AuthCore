@@ -8,8 +8,49 @@ import { PageContainer, PageHeader } from '@/components/page';
 import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
 import { accountApi } from '@/features/account/api/account.api';
-import { authApi, PasswordRequirements } from '@/features/auth';
+import {
+  authApi,
+  meetsPasswordRequirements,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+  PasswordRequirements,
+} from '@/features/auth';
 import { useApiError } from '@/hooks/useApiError';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import {
+  custom,
+  matches,
+  maxLength,
+  passwordRules,
+  required,
+  type FormRules,
+} from '@/lib/validation';
+
+interface ChangePasswordValues {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+const changePasswordRules: FormRules<ChangePasswordValues> = {
+  currentPassword: passwordRules('Enter your current password'),
+  newPassword: [
+    ...passwordRules('Choose a new password'),
+    custom((value) => meetsPasswordRequirements(String(value)), PASSWORD_REQUIREMENTS_MESSAGE),
+    custom(
+      (value, values) => value !== values.currentPassword,
+      'Choose a password different from the current one',
+    ),
+  ],
+  confirmPassword: [
+    required('Confirm the new password'),
+    matches('newPassword', 'Passwords do not match'),
+  ],
+};
+
+const deactivateRules: FormRules<{ deactivatePassword: string; deactivateReason: string }> = {
+  deactivatePassword: passwordRules('Enter your current password to confirm'),
+  deactivateReason: [maxLength(500)],
+};
 
 export const SecurityPage: React.FC = () => {
   const location = useLocation();
@@ -28,14 +69,20 @@ export const SecurityPage: React.FC = () => {
   const [deactivateReason, setDeactivateReason] = useState('');
   const [isDeactivating, setIsDeactivating] = useState(false);
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  const changeForm = useFormValidation(
+    { currentPassword, newPassword, confirmPassword },
+    changePasswordRules,
+  );
+  const deactivateForm = useFormValidation(
+    { deactivatePassword, deactivateReason },
+    deactivateRules,
+  );
+
+  const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
-      return;
-    }
     setError(null);
     setSuccess(null);
+    if (!changeForm.validate(e.currentTarget)) return;
     setIsLoading(true);
 
     try {
@@ -50,6 +97,7 @@ export const SecurityPage: React.FC = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      changeForm.reset();
     } catch (err) {
       setError(err, 'Failed to update password.');
     } finally {
@@ -59,9 +107,9 @@ export const SecurityPage: React.FC = () => {
 
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
 
-  const handleDeactivateSubmit = (e: React.FormEvent) => {
+  const handleDeactivateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (deactivatePassword) setConfirmDeactivate(true);
+    if (deactivateForm.validate(e.currentTarget)) setConfirmDeactivate(true);
   };
 
   const handleDeactivate = async () => {
@@ -96,36 +144,36 @@ export const SecurityPage: React.FC = () => {
 
       {/* Change Password Card */}
       <Card title="Change Password">
-        <form onSubmit={handlePasswordChange} className="space-y-4">
+        <form noValidate onSubmit={handlePasswordChange} className="space-y-4">
           <Input
             label="Current Password"
-            error={fieldError('currentPassword')}
+            error={changeForm.error('currentPassword') ?? fieldError('currentPassword')}
             type="password"
             required
             autoComplete="current-password"
-            placeholder="••••••••"
+            placeholder="Enter your current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
           />
 
           <Input
             label="New Password"
-            error={fieldError('newPassword')}
+            error={changeForm.error('newPassword') ?? fieldError('newPassword')}
             type="password"
             required
             autoComplete="new-password"
-            placeholder="••••••••"
+            placeholder="Create a new password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
 
           <Input
             label="Confirm New Password"
-            error={fieldError('confirmPassword')}
+            error={changeForm.error('confirmPassword') ?? fieldError('confirmPassword')}
             type="password"
             required
             autoComplete="new-password"
-            placeholder="••••••••"
+            placeholder="Re-enter the new password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
@@ -133,8 +181,7 @@ export const SecurityPage: React.FC = () => {
           <PasswordRequirements password={newPassword} />
 
           <div className="flex justify-end pt-2">
-            <Button type="submit" variant="solid" isLoading={isLoading}>
-              <KeyRound className="mr-2 h-4 w-4" />
+            <Button type="submit" variant="solid" leftIcon={<KeyRound />} isLoading={isLoading}>
               Update Password
             </Button>
           </div>
@@ -157,24 +204,32 @@ export const SecurityPage: React.FC = () => {
             </div>
           </div>
 
-          <form onSubmit={handleDeactivateSubmit} className="space-y-3 pt-2">
+          <form noValidate onSubmit={handleDeactivateSubmit} className="space-y-3 pt-2">
             <Input
               label="Confirm Current Password"
+              error={deactivateForm.error('deactivatePassword')}
+              autoComplete="current-password"
               type="password"
               required
-              placeholder="••••••••"
+              placeholder="Enter your current password"
               value={deactivatePassword}
               onChange={(e) => setDeactivatePassword(e.target.value)}
             />
             <Input
               label="Reason (optional)"
-              placeholder="e.g. Taking a break"
+              error={deactivateForm.error('deactivateReason')}
+              placeholder="Tell us why you are leaving"
               value={deactivateReason}
               onChange={(e) => setDeactivateReason(e.target.value)}
             />
             <div className="flex justify-end">
-              <Button type="submit" variant="destructive" size="sm" isLoading={isDeactivating}>
-                <Trash2 className="mr-1.5 h-4 w-4" />
+              <Button
+                type="submit"
+                variant="destructive"
+                size="sm"
+                leftIcon={<Trash2 />}
+                isLoading={isDeactivating}
+              >
                 Deactivate Account
               </Button>
             </div>

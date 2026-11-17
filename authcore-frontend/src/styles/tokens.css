@@ -29,6 +29,7 @@
   /* Lines */
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-field: var(--field-border);
   --color-ring: var(--ring);
 
   /* Status */

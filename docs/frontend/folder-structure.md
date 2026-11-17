@@ -259,6 +259,7 @@ src/
 │   ├── useQueryParams.ts            Typed search-param state (filters, page, tab)
 │   ├── useRequiredParam.ts          Typed :id route params
 │   ├── useApiError.ts               Form error state: keeps the ApiError, fieldError(name), ignores aborts
+│   ├── useFormValidation.ts         Client validation: errors under fields after the first submit, live after that
 │   ├── useControllableState.ts / useFocusTrap.ts / useScrollLock.ts
 │   ├── usePagination.ts             usePagination (local), useUrlPagination (URL), computePagination
 │   └── index.ts
@@ -287,7 +288,8 @@ src/
 │   │                                assert.ts (invariant, assertNever), platform.ts (⌘ / Ctrl)
 │   ├── storage.ts                   The only localStorage access: JSON-safe, never throws, cross-tab subscribe (keys `<slug>:<name>:v1`);
 │   │                                sessionFlag: per-tab sessionStorage flags
-│   ├── validation/                  Shared Zod helpers (email, password-policy rules), Level 2
+│   ├── validation/                  Own form validation (no library): rules.ts (required, email, min / maxLength,
+│   │                                pattern, matches, custom, validateValues), auth-rules.ts (backend DTO limits)
 │   └── constants/                   breakpoints.ts (= Tailwind), storage-keys.ts (key registry), http.ts,
 │                                    error-codes.ts (mirror of the backend enum, checked by check:error-codes)
 │

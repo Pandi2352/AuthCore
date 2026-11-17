@@ -116,6 +116,12 @@ let currentMode = 'light';
 // ---------------------------------------------------------------- pairs
 const TEXT = 4.5;
 const UI = 3;
+/**
+ * Text-field borders are deliberately soft (design decision): the field is also identified by
+ * its label and surface, and the focus (primary) and error (danger) borders meet 3:1. Keep
+ * them at least visibly distinct from the surface.
+ */
+const FIELD = 1.25;
 const PAIRS = [
   ['--foreground', '--background', TEXT],
   ['--foreground', '--surface', TEXT],
@@ -135,6 +141,8 @@ const PAIRS = [
   ['--input', '--surface', UI],
   ['--input', '--background', UI],
   ['--input', '--muted', UI],
+  ['--field-border', '--surface', FIELD],
+  ['--field-border', '--background', FIELD],
   ['--sidebar-foreground', '--sidebar', TEXT],
   ['--sidebar-muted', '--sidebar', TEXT],
   ['--sidebar-active-foreground', '--sidebar-active', TEXT],

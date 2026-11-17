@@ -1,20 +1,47 @@
 import { LogIn } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { ErrorAlert } from '@/components/feedback';
-import { Button, Card, Checkbox, Field, Input, PasswordInput } from '@/components/ui';
+import { Alert, Button, Checkbox, Field, Input, PasswordInput } from '@/components/ui';
 import { appConfig, featuresConfig, paths } from '@/config';
+import { AuthCard } from '@/features/auth/components/AuthCard';
 import { useAuth } from '@/features/auth/session/useAuth';
 import { useApiError } from '@/hooks/useApiError';
+import { useFormValidation } from '@/hooks/useFormValidation';
 import { ApiError } from '@/lib/api';
 import { ERROR_CODES } from '@/lib/constants';
 import { safeReturnTo } from '@/lib/utils';
+import { email, emailRules, passwordRules, required, type FormRules } from '@/lib/validation';
+
+const allowsUsername = featuresConfig.auth.loginIdentifiers.includes('username');
+const identifierLabel = allowsUsername ? 'Email or username' : 'Email';
+
+interface LoginValues {
+  identifier: string;
+  password: string;
+}
+
+const rules: FormRules<LoginValues> = {
+  // With usernames allowed, only a value containing @ must be a valid email.
+  identifier: allowsUsername
+    ? [
+        required('Enter your email or username'),
+        (value, values) => (values.identifier.includes('@') ? email()(value, values) : undefined),
+      ]
+    : emailRules('Enter your email address'),
+  password: passwordRules(),
+};
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  // Message from the page that sent the user here ("Password reset — please sign in").
+  const [notice, setNotice] = useState<string | null>(
+    (location.state as { message?: string } | null)?.message ?? null,
+  );
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -22,10 +49,12 @@ export const LoginPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const { error, fallback: errorFallback, setError, fieldError } = useApiError();
+  const validation = useFormValidation({ identifier, password }, rules);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    if (!validation.validate(e.currentTarget)) return;
     setIsLoading(true);
 
     try {
@@ -61,93 +90,93 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Sign in to {appConfig.name}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Reusable authentication & access management
-        </p>
-      </div>
-
-      <div className="mt-8">
-        <Card>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <ErrorAlert
-              error={error}
-              fallback={errorFallback}
-              fields={['email', 'username', 'password']}
-              onClose={() => setError(null)}
-            />
-
-            <Input
-              label="Email or Username"
-              error={fieldError('email') ?? fieldError('username')}
-              type="text"
-              required
-              autoComplete="username"
-              placeholder="e.g. jane.doe@example.com"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-            />
-
-            <div className="space-y-1">
-              <Field label="Password" required error={fieldError('password')}>
-                <PasswordInput
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </Field>
-
-              <div className="flex items-center justify-between pt-1">
-                <Checkbox
-                  label="Remember me (30 days)"
-                  checked={rememberMe}
-                  onCheckedChange={setRememberMe}
-                />
-
-                <Link
-                  to={paths.auth.forgotPassword}
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-            </div>
-
-            <Button type="submit" fullWidth size="lg" leftIcon={<LogIn />} isLoading={isLoading}>
-              Sign in
-            </Button>
-          </form>
-
+    <AuthCard
+      title="Welcome back"
+      description={`Sign in to your ${appConfig.name} account to continue.`}
+      footer={
+        <>
           {featuresConfig.auth.allowRegistration && (
-            <div className="mt-6 border-t border-border pt-5 text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Link
-                to={paths.auth.register}
-                className="font-semibold text-primary hover:text-primary hover:underline"
-              >
-                Sign up
+            <p>
+              New to {appConfig.name}?{' '}
+              <Link to={paths.auth.register} className="font-semibold text-primary hover:underline">
+                Create an account
               </Link>
-            </div>
+            </p>
           )}
-
           {featuresConfig.auth.enableSelfRecovery && (
-            <div className="mt-2 text-center text-xs text-muted-foreground">
-              Closed or deactivated account?{' '}
+            <p className="text-xs">
+              Closed or deactivated your account?{' '}
               <Link
                 to={paths.auth.recovery}
                 className="font-medium text-foreground hover:underline"
               >
-                Recover account
+                Recover it
               </Link>
-            </div>
+            </p>
           )}
-        </Card>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <form noValidate onSubmit={handleSubmit} className="space-y-5">
+        {notice && !error && (
+          <Alert variant="success" message={notice} onClose={() => setNotice(null)} />
+        )}
+        <ErrorAlert
+          error={error}
+          fallback={errorFallback}
+          fields={['email', 'username', 'password']}
+          onClose={() => setError(null)}
+        />
+
+        <Input
+          label={identifierLabel}
+          error={validation.error('identifier') ?? fieldError('email') ?? fieldError('username')}
+          type="text"
+          required
+          autoComplete="username"
+          placeholder={allowsUsername ? 'Enter your email or username' : 'Enter your email address'}
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+        />
+
+        <div className="space-y-3">
+          <Field
+            label="Password"
+            required
+            error={validation.error('password') ?? fieldError('password')}
+          >
+            <PasswordInput
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </Field>
+
+          <div className="flex items-center justify-between gap-3">
+            {featuresConfig.auth.enableRememberMe ? (
+              <Checkbox
+                label="Keep me signed in"
+                hint="For 30 days on this device"
+                checked={rememberMe}
+                onCheckedChange={setRememberMe}
+              />
+            ) : (
+              <span />
+            )}
+            <Link
+              to={paths.auth.forgotPassword}
+              className="shrink-0 self-start text-sm font-medium text-primary hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
+        </div>
+
+        <Button type="submit" fullWidth leftIcon={<LogIn />} isLoading={isLoading}>
+          Sign in
+        </Button>
+      </form>
+    </AuthCard>
   );
 };

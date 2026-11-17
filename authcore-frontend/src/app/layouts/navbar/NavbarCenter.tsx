@@ -18,7 +18,7 @@ export function NavbarCenter() {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-keyshortcuts={featuresConfig.ui.commandMenu ? 'Control+K Meta+K' : undefined}
-        className="flex h-control-sm w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="flex h-control-md w-full cursor-pointer items-center gap-2 rounded-md border border-field bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <Search className="size-4 shrink-0" aria-hidden="true" />
         <span className="flex-1 truncate text-left">Search…</span>

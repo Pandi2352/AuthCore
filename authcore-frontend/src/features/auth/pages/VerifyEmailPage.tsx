@@ -1,12 +1,21 @@
-import { CheckCircle2, Mail, RefreshCw } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { ErrorAlert } from '@/components/feedback';
-import { Alert, Button, Card, Input } from '@/components/ui';
+import { Alert, Button, Input, Spinner } from '@/components/ui';
 import { paths } from '@/config';
 import { authApi } from '@/features/auth/api/auth.api';
+import { AuthCard } from '@/features/auth/components/AuthCard';
 import { useApiError } from '@/hooks/useApiError';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { codeRules, emailRules, type FormRules } from '@/lib/validation';
+
+const otpRules: FormRules<{ email: string; code: string }> = {
+  email: emailRules(),
+  code: codeRules({ min: 6, max: 8 }),
+};
+const resendRules: FormRules<{ email: string }> = { email: emailRules() };
 
 export const VerifyEmailPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +30,8 @@ export const VerifyEmailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifyingLink, setIsVerifyingLink] = useState(false);
   const { error, fallback: errorFallback, setError, fieldError } = useApiError();
+  const otpForm = useFormValidation({ email, code }, otpRules);
+  const resendForm = useFormValidation({ email }, resendRules);
   const [success, setSuccess] = useState<string | null>(
     (location.state as { message?: string })?.message || null,
   );
@@ -55,10 +66,10 @@ export const VerifyEmailPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!email || !code) return;
     setError(null);
+    if (!otpForm.validate(e.currentTarget)) return;
     setIsLoading(true);
 
     try {
@@ -76,9 +87,10 @@ export const VerifyEmailPage: React.FC = () => {
     }
   };
 
-  const handleResend = async () => {
-    if (!email || resendCooldown > 0) return;
+  const handleResend = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (resendCooldown > 0) return;
     setError(null);
+    if (!resendForm.validate(e.currentTarget.form)) return;
     setIsLoading(true);
 
     try {
@@ -96,99 +108,88 @@ export const VerifyEmailPage: React.FC = () => {
 
   if (isVerifyingLink) {
     return (
-      <div className="w-full">
-        <Card contentClassName="space-y-3 p-8 text-center">
-          <RefreshCw className="mx-auto h-8 w-8 animate-spin text-primary" />
-          <h3 className="text-lg font-bold text-foreground">Verifying your email...</h3>
-          <p className="text-sm text-muted-foreground">Please wait a moment.</p>
-        </Card>
-      </div>
+      <AuthCard title="Verifying your email…" description="Hang tight — this only takes a moment.">
+        <div className="flex justify-center text-primary">
+          <Spinner size="lg" label="Verifying your email" />
+        </div>
+      </AuthCard>
+    );
+  }
+
+  if (tokenParam && success) {
+    return (
+      <AuthCard
+        title="You're all set!"
+        description="Your email is verified and your account is ready. Sign in to get started."
+      >
+        <Button fullWidth asChild>
+          <Link to={paths.auth.login}>Continue to sign in</Link>
+        </Button>
+      </AuthCard>
     );
   }
 
   return (
-    <div className="w-full">
-      <div className="text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary-soft text-primary">
-          <Mail className="h-6 w-6" />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Verify your email
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Confirm your email address to access your account
+    <AuthCard
+      title="Verify your email"
+      description="We sent a verification code to your inbox. Enter it below to activate your account."
+      footer={
+        <p>
+          <Link
+            to={paths.auth.login}
+            className="inline-flex items-center gap-1.5 font-semibold text-primary hover:underline"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Back to sign in
+          </Link>
         </p>
-      </div>
+      }
+    >
+      <form noValidate onSubmit={handleVerifyOtp} className="space-y-4">
+        {success && <Alert variant="success" message={success} />}
+        <ErrorAlert error={error} fallback={errorFallback} fields={['email', 'code']} />
 
-      <div className="mt-8">
-        <Card>
-          <ErrorAlert
-            error={error}
-            fallback={errorFallback}
-            fields={['email', 'code']}
-            className="mb-4"
-          />
-          {success && <Alert variant="success" message={success} className="mb-4" />}
+        <Input
+          label="Email address"
+          error={otpForm.error('email') ?? resendForm.error('email') ?? fieldError('email')}
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email address"
+        />
 
-          {tokenParam && success ? (
-            <div className="space-y-4 text-center">
-              <CheckCircle2 className="mx-auto h-12 w-12 text-success" />
-              <p className="text-sm text-muted-foreground">Your account is ready.</p>
-              <Link to={paths.auth.login}>
-                <Button variant="solid" className="w-full">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <Input
-                label="Email"
-                error={fieldError('email')}
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="jane.doe@example.com"
-              />
+        <Input
+          label="Verification code"
+          error={otpForm.error('code') ?? fieldError('code')}
+          type="text"
+          required
+          maxLength={8}
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="Enter the verification code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          className="text-center font-mono text-lg tracking-widest placeholder:font-sans placeholder:text-sm placeholder:tracking-normal"
+        />
 
-              <Input
-                label="6-Digit Verification Code"
-                error={fieldError('code')}
-                type="text"
-                required
-                maxLength={8}
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="123456"
-                className="text-center font-mono text-lg tracking-widest"
-              />
+        <Button type="submit" fullWidth isLoading={isLoading}>
+          Verify email
+        </Button>
 
-              <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
-                Verify Code
-              </Button>
-
-              <div className="flex items-center justify-between pt-2 text-xs">
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={!email || resendCooldown > 0 || isLoading}
-                  className="font-semibold text-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {resendCooldown > 0 ? `Resend available in ${resendCooldown}s` : 'Resend code'}
-                </button>
-
-                <Link
-                  to={paths.auth.login}
-                  className="text-muted-foreground hover:text-foreground hover:underline"
-                >
-                  Back to Sign In
-                </Link>
-              </div>
-            </form>
-          )}
-        </Card>
-      </div>
-    </div>
+        <p className="text-center text-sm text-muted-foreground">
+          Didn't get the code?{' '}
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resendCooldown > 0 || isLoading}
+            className="cursor-pointer font-semibold text-primary hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
+          >
+            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+          </button>
+        </p>
+      </form>
+    </AuthCard>
   );
 };

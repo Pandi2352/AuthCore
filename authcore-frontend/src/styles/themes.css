@@ -22,6 +22,9 @@
   --border-base: oklch(0.915 0.008 260);
   --border-strong: oklch(0.8 0.015 260);
   --input: oklch(0.62 0.025 260); /* 3:1 on surface / muted (WCAG 1.4.11) */
+  /* Text-field borders: lighter than --input (checkbox / radio / switch keep --input).
+     Focus (primary) and error (danger) borders still meet 3:1. */
+  --field-border: oklch(0.895 0.01 260);
   --overlay: oklch(0.2 0.02 265 / 0.5);
 
   /* Primary: default preset (blue) */
@@ -71,6 +74,7 @@
   --border-base: oklch(0.3 0.018 265);
   --border-strong: oklch(0.42 0.02 265);
   --input: oklch(0.56 0.02 265);
+  --field-border: oklch(0.335 0.016 265);
   --overlay: oklch(0 0 0 / 0.6);
 
   --primary: oklch(0.72 0.14 258);

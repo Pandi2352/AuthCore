@@ -44,21 +44,23 @@ setMode('dark'); // 'light' | 'dark' | 'system'`,
 
   'ks-forms': {
     when: [
-      'Input / PasswordInput / Textarea with label, hint and error props (they wrap themselves in a Field).',
-      'Field: label + description + error around any other control (Select, Combobox, RadioGroup).',
-      'Select: pick one of a fixed list (≤ ~15). Combobox: long or searchable lists, or options loaded while typing (onSearchChange + filterLocally={false}).',
+      'Every control (Input, PasswordInput, Textarea, Select, Combobox, Checkbox, Switch, RadioGroup) takes label, hint, error and required from the parent and renders the whole field: label with *, help text, red message with icon, aria wiring.',
+      'error: a string shows the message; true marks the field invalid without a message; undefined / false / "" = valid.',
+      'Select: a fixed list (≤ ~15). Combobox: long or searchable lists, or options loaded while typing (onSearchChange + filterLocally={false}).',
       'Checkbox: one yes / no inside a form. Switch: a setting that applies at once. RadioGroup: 2–5 visible choices.',
     ],
     rules: [
       'Never a native <select> (check:architecture fails) — use Select / Combobox.',
-      'Server validation errors: useApiError() → error={fieldError("email")} on the input, <ErrorAlert fields={[…]}> above the form.',
-      'Every control needs a visible label or an aria-label.',
+      'Focus = theme (primary) border only, no glow; invalid = red border, also while focused.',
+      'Placeholders say what to enter ("Enter your email address"), never sample names or ••••.',
+      'Forms: <form noValidate> + useFormValidation; error={v.error("email") ?? fieldError("email")} (client first, then server).',
+      'All native props and events (onChange, onBlur, onFocus, onKeyDown, onClick, ref) are forwarded and run before the built-in behavior.',
     ],
-    example: `<Input label="Email" type="email" required error={fieldError('email')} />
-<Field label="Country" error={fieldError('country')}>
-  <Select options={countries} value={country} onValueChange={setCountry} clearable />
-</Field>
-<Switch label="Notifications" checked={on} onCheckedChange={setOn} />`,
+    example: `<Input label="Email" type="email" required placeholder="Enter your email address"
+  error={v.error('email') ?? fieldError('email')} value={email} onChange={(e) => setEmail(e.target.value)} />
+<Select label="Country" required options={countries} value={country} onValueChange={setCountry}
+  error={v.error('country')} placeholder="Choose a country" />
+<Checkbox label="I accept the terms" required checked={ok} onCheckedChange={setOk} error={v.error('terms')} />`,
   },
 
   'ks-overlays': {

@@ -7,6 +7,14 @@ import { Alert, Button, Card, Input, Progress } from '@/components/ui';
 import { accountApi } from '@/features/account/api/account.api';
 import { useAuth } from '@/features/auth';
 import { useApiError } from '@/hooks/useApiError';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { personNameRules, usernameRules, type FormRules } from '@/lib/validation';
+
+const profileRules: FormRules<{ firstName: string; lastName: string; username: string }> = {
+  firstName: personNameRules('First name', true),
+  lastName: personNameRules('Last name', false),
+  username: usernameRules(false),
+};
 
 export const ProfilePage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -23,6 +31,7 @@ export const ProfilePage: React.FC = () => {
   const [uploadPercent, setUploadPercent] = useState<number | null>(null);
   const { error, fallback: errorFallback, setError, fieldError } = useApiError();
   const [success, setSuccess] = useState<string | null>(null);
+  const validation = useFormValidation(formData, profileRules);
 
   useEffect(() => {
     let isActive = true;
@@ -48,10 +57,11 @@ export const ProfilePage: React.FC = () => {
     };
   }, []);
 
-  const handleProfileSubmit = async (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    if (!validation.validate(e.currentTarget)) return;
     setIsLoading(true);
 
     try {
@@ -176,18 +186,20 @@ export const ProfilePage: React.FC = () => {
 
       {/* Basic Details Form */}
       <Card title="Personal Information">
-        <form onSubmit={handleProfileSubmit} className="space-y-4">
+        <form noValidate onSubmit={handleProfileSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="First name"
-              error={fieldError('firstName')}
+              placeholder="Enter your first name"
+              error={validation.error('firstName') ?? fieldError('firstName')}
               required
               value={formData.firstName}
               onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
             />
             <Input
               label="Last name"
-              error={fieldError('lastName')}
+              placeholder="Enter your last name"
+              error={validation.error('lastName') ?? fieldError('lastName')}
               value={formData.lastName}
               onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
             />
@@ -195,10 +207,11 @@ export const ProfilePage: React.FC = () => {
 
           <Input
             label="Username"
-            error={fieldError('username')}
+            placeholder="Choose a username"
+            error={validation.error('username') ?? fieldError('username')}
             value={formData.username}
             onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
-            hint="Lowercase letters, numbers, and dashes or dots"
+            hint="3–30 lowercase letters or numbers; . _ - allowed in the middle"
           />
 
           <Input

@@ -1,9 +1,16 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useId, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 import { useControllableState } from '@/hooks/useControllableState';
 import { cn } from '@/lib/utils';
 
-import { useFieldControlProps } from '../field';
+import {
+  fieldErrorMessage,
+  FieldMessage,
+  resolveInvalid,
+  useField,
+  useFieldControlProps,
+  type FieldError,
+} from '../field';
 
 export interface SwitchProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -14,7 +21,14 @@ export interface SwitchProps extends Omit<
   onCheckedChange?: (checked: boolean) => void;
   size?: 'sm' | 'md';
   label?: ReactNode;
+  /** Help text under the label (replaced by the error while there is one). */
+  hint?: ReactNode;
+  /** @deprecated use `hint`. */
   description?: ReactNode;
+  /** Message under the switch; `true` = invalid only. */
+  error?: FieldError;
+  invalid?: boolean;
+  required?: boolean;
   /** Submitted with forms as `name=on` when checked. */
   name?: string;
 }
@@ -33,7 +47,11 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
     onCheckedChange,
     size = 'md',
     label,
+    hint,
     description,
+    error,
+    invalid,
+    required,
     name,
     className,
     onClick,
@@ -46,7 +64,23 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
     defaultValue: defaultChecked,
     onChange: onCheckedChange,
   });
-  const { invalid: _i, required: _r, ...a11y } = useFieldControlProps(props);
+  const generated = useId();
+  const field = useField();
+  const id = props.id ?? field?.id ?? generated;
+  const help = hint ?? description;
+  const message = fieldErrorMessage(error);
+  const helpId = help && !message ? `${id}-hint` : undefined;
+  const errorId = message ? `${id}-error` : undefined;
+  const {
+    invalid: _i,
+    required: _r,
+    ...a11y
+  } = useFieldControlProps({
+    ...props,
+    id,
+    invalid: resolveInvalid(invalid, error),
+    'aria-describedby': cn(props['aria-describedby'], helpId, errorId) || undefined,
+  });
   void _i;
   void _r;
   const state = isOn ? 'checked' : 'unchecked';
@@ -65,12 +99,13 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
       className={cn(
         'touch-target inline-flex shrink-0 cursor-pointer items-center rounded-md border-2 border-transparent bg-input p-0 transition-colors',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-        'disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary',
+        'disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger data-[state=checked]:bg-primary',
         TRACK[size],
         className,
       )}
       {...props}
       {...a11y}
+      aria-required={required || undefined}
     >
       <span
         data-state={state}
@@ -83,19 +118,42 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
     </button>
   );
 
-  if (!label) return control;
+  const errorEl = message ? <FieldMessage id={errorId}>{message}</FieldMessage> : null;
+  if (!label) {
+    return errorEl ? (
+      <span className="inline-flex flex-col gap-1.5">
+        {control}
+        {errorEl}
+      </span>
+    ) : (
+      control
+    );
+  }
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="space-y-0.5">
-        <label
-          htmlFor={a11y.id}
-          className="block cursor-pointer text-sm leading-snug font-medium text-foreground"
-        >
-          {label}
-        </label>
-        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+    <div className="space-y-1.5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-0.5">
+          <label
+            htmlFor={id}
+            className="block cursor-pointer text-sm leading-snug font-medium text-foreground"
+          >
+            {label}
+            {required && (
+              <span className="ml-0.5 text-danger">
+                <span aria-hidden="true">*</span>
+                <span className="sr-only"> (required)</span>
+              </span>
+            )}
+          </label>
+          {help && !message && (
+            <p id={helpId} className="text-xs text-muted-foreground">
+              {help}
+            </p>
+          )}
+        </div>
+        {control}
       </div>
-      {control}
+      {errorEl}
     </div>
   );
 });

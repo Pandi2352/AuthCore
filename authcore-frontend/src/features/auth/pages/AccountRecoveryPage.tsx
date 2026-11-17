@@ -1,12 +1,21 @@
-import { RotateCcw } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { ErrorAlert } from '@/components/feedback';
-import { Alert, Button, Card, Input } from '@/components/ui';
+import { Alert, Button, Input } from '@/components/ui';
 import { paths } from '@/config';
 import { authApi } from '@/features/auth/api/auth.api';
+import { AuthCard } from '@/features/auth/components/AuthCard';
 import { useApiError } from '@/hooks/useApiError';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { codeRules, emailRules, type FormRules } from '@/lib/validation';
+
+const requestRules: FormRules<{ email: string }> = { email: emailRules() };
+const confirmRules: FormRules<{ email: string; code: string }> = {
+  email: emailRules(),
+  code: codeRules({ min: 6, max: 6 }),
+};
 
 export const AccountRecoveryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,12 +24,14 @@ export const AccountRecoveryPage: React.FC = () => {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { error, fallback: errorFallback, setError, fieldError } = useApiError();
+  const requestStep = useFormValidation({ email }, requestRules);
+  const confirmStep = useFormValidation({ email, code }, confirmRules);
   const [message, setMessage] = useState<string | null>(null);
 
-  const handleRequest = async (e: React.FormEvent) => {
+  const handleRequest = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!email) return;
     setError(null);
+    if (!requestStep.validate(e.currentTarget)) return;
     setIsLoading(true);
 
     try {
@@ -36,10 +47,10 @@ export const AccountRecoveryPage: React.FC = () => {
     }
   };
 
-  const handleConfirm = async (e: React.FormEvent) => {
+  const handleConfirm = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!email || !code) return;
     setError(null);
+    if (!confirmStep.validate(e.currentTarget)) return;
     setIsLoading(true);
 
     try {
@@ -60,83 +71,79 @@ export const AccountRecoveryPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full">
-      <div className="text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary-soft text-primary">
-          <RotateCcw className="h-6 w-6" />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Account Recovery
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Restore an account you previously deactivated or marked for deletion
+    <AuthCard
+      title={step === 'request' ? 'Recover your account' : 'Enter your recovery code'}
+      description={
+        step === 'request'
+          ? 'Closed or deactivated your account? We can bring it back — just confirm your email.'
+          : 'We sent a 6-digit code to your email. Enter it to reactivate your account.'
+      }
+      footer={
+        <p>
+          <Link
+            to={paths.auth.login}
+            className="inline-flex items-center gap-1.5 font-semibold text-primary hover:underline"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Back to sign in
+          </Link>
         </p>
-      </div>
+      }
+    >
+      <ErrorAlert
+        error={error}
+        fallback={errorFallback}
+        fields={['email', 'code']}
+        className="mb-4"
+      />
+      {message && <Alert variant="info" message={message} className="mb-4" />}
 
-      <div className="mt-8">
-        <Card>
-          <ErrorAlert
-            error={error}
-            fallback={errorFallback}
-            fields={['email', 'code']}
-            className="mb-4"
+      {step === 'request' ? (
+        <form noValidate onSubmit={handleRequest} className="space-y-4">
+          <Input
+            label="Email address"
+            error={requestStep.error('email') ?? fieldError('email')}
+            type="email"
+            required
+            placeholder="Enter your registered email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
-          {message && <Alert variant="info" message={message} className="mb-4" />}
 
-          {step === 'request' ? (
-            <form onSubmit={handleRequest} className="space-y-4">
-              <Input
-                label="Registered Email"
-                error={fieldError('email')}
-                type="email"
-                required
-                placeholder="jane.doe@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+          <Button type="submit" fullWidth isLoading={isLoading}>
+            Send recovery code
+          </Button>
+        </form>
+      ) : (
+        <form noValidate onSubmit={handleConfirm} className="space-y-4">
+          <Input
+            label="Email address"
+            error={confirmStep.error('email') ?? fieldError('email')}
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-              <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
-                Send Recovery Code
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleConfirm} className="space-y-4">
-              <Input
-                label="Registered Email"
-                error={fieldError('email')}
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+          <Input
+            label="Recovery code"
+            error={confirmStep.error('code') ?? fieldError('code')}
+            type="text"
+            required
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Enter the 6-digit code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            className="text-center font-mono text-lg tracking-widest placeholder:font-sans placeholder:text-sm placeholder:tracking-normal"
+          />
 
-              <Input
-                label="6-Digit Recovery Code"
-                error={fieldError('code')}
-                type="text"
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="123456"
-                className="text-center font-mono text-lg tracking-widest"
-              />
-
-              <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
-                Reactivate Account
-              </Button>
-            </form>
-          )}
-
-          <div className="mt-6 border-t border-border pt-5 text-center text-sm text-muted-foreground">
-            <Link
-              to={paths.auth.login}
-              className="font-semibold text-primary hover:text-primary hover:underline"
-            >
-              Back to Sign In
-            </Link>
-          </div>
-        </Card>
-      </div>
-    </div>
+          <Button type="submit" fullWidth isLoading={isLoading}>
+            Reactivate account
+          </Button>
+        </form>
+      )}
+    </AuthCard>
   );
 };

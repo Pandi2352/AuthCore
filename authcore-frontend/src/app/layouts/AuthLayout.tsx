@@ -43,25 +43,14 @@ function LegalLinks() {
 
 /**
  * Sign-in / sign-up pages. layout.config.ts → auth.variant:
- * "centered" (card in the middle) or "split" (brand panel / image + form).
+ * "centered" (form in the middle) or "split" (brand panel / image + form).
+ * A top bar holds the logo (left) and the theme toggle (right); the form is centered below.
  */
 export function AuthLayout() {
   const { variant, sideImage } = layoutConfig.auth;
-  const form = (
-    <div className="flex w-full flex-col items-center gap-8">
-      <Logo className={cn(variant === 'split' && 'lg:hidden')} />
-      <main id="main-content" tabIndex={-1} className="w-full max-w-md outline-none">
-        <Outlet />
-      </main>
-      <LegalLinks />
-    </div>
-  );
 
   return (
-    <div className="relative flex min-h-dvh bg-background text-foreground">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
+    <div className="flex min-h-dvh bg-background text-foreground">
       {variant === 'split' && (
         <aside
           aria-hidden={sideImage ? undefined : true}
@@ -84,7 +73,21 @@ export function AuthLayout() {
           )}
         </aside>
       )}
-      <div className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6">{form}</div>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          {/* Split layout on large screens: the brand panel already shows the name. */}
+          <Logo className={cn(variant === 'split' && 'lg:invisible')} />
+          <ThemeToggle />
+        </header>
+
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 pt-4 pb-10 sm:px-6">
+          <main id="main-content" tabIndex={-1} className="w-full max-w-md outline-none">
+            <Outlet />
+          </main>
+          <LegalLinks />
+        </div>
+      </div>
     </div>
   );
 }

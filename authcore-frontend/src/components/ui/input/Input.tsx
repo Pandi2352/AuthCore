@@ -4,114 +4,113 @@ import { forwardRef, useState, type InputHTMLAttributes, type ReactNode } from '
 import { useOptionalTheme } from '@/app/theme';
 import { cn } from '@/lib/utils';
 
-import { Field, useField, useFieldControlProps } from '../field';
+import { FieldShell, resolveInvalid, useFieldControlProps, type FieldShellProps } from '../field';
 import { controlVariants, type ControlSize, type ControlVariant } from './input.variants';
 
-export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'prefix'> {
+export interface InputProps
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'prefix'>, FieldShellProps {
   /** Default: theme appearance.inputs. */
   variant?: ControlVariant;
   size?: ControlSize;
+  /** Force the invalid look (normally derived from `error`). */
   invalid?: boolean;
   /** Element inside the field on the left / right (icon, unit, button). */
   prefix?: ReactNode;
   suffix?: ReactNode;
-  /** Shortcuts: wrap the input in a <Field> with this label / hint / error. */
-  label?: ReactNode;
-  hint?: ReactNode;
-  error?: ReactNode;
-  /** Classes for the outer element when prefix / suffix are used. */
+  /** Classes for the bordered box when prefix / suffix are used. */
   wrapperClassName?: string;
 }
 
-const BareInput = forwardRef<HTMLInputElement, Omit<InputProps, 'label' | 'hint' | 'error'>>(
-  function BareInput(
-    {
-      variant,
-      size = 'md',
-      invalid,
-      prefix,
-      suffix,
-      className,
-      wrapperClassName,
-      type = 'text',
-      ...props
-    },
-    ref,
-  ) {
-    const theme = useOptionalTheme();
-    const control = useFieldControlProps({ ...props, invalid });
-    const look = variant ?? theme?.appearance.inputs ?? 'outlined';
-    const { invalid: isInvalid, ...a11y } = control;
+type BareInputProps = Omit<InputProps, 'label' | 'hint' | 'error' | 'fieldClassName'>;
 
-    if (!prefix && !suffix) {
-      return (
-        <input
-          ref={ref}
-          type={type}
-          className={controlVariants({ variant: look, size, className })}
-          {...props}
-          {...a11y}
-        />
-      );
-    }
-
-    // InputGroup: the wrapper draws the border; the input is transparent inside it.
-    return (
-      <div
-        aria-invalid={isInvalid || undefined}
-        className={cn(
-          controlVariants({ variant: look, size }),
-          'flex items-center gap-2 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25',
-          look === 'filled' && 'focus-within:bg-surface',
-          props.disabled && 'cursor-not-allowed opacity-60',
-          wrapperClassName,
-        )}
-      >
-        {prefix && (
-          <span className="flex shrink-0 items-center text-muted-foreground [&_svg]:size-4">
-            {prefix}
-          </span>
-        )}
-        <input
-          ref={ref}
-          type={type}
-          className={cn(
-            'h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed',
-            className,
-          )}
-          {...props}
-          {...a11y}
-        />
-        {suffix && (
-          <span className="flex shrink-0 items-center text-muted-foreground [&_svg]:size-4">
-            {suffix}
-          </span>
-        )}
-      </div>
-    );
+const BareInput = forwardRef<HTMLInputElement, BareInputProps>(function BareInput(
+  {
+    variant,
+    size = 'md',
+    invalid,
+    prefix,
+    suffix,
+    className,
+    wrapperClassName,
+    type = 'text',
+    ...props
   },
-);
-
-/** Text input. With `label` / `hint` / `error` it renders a complete <Field>. */
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, hint, error, id, required, disabled, ...props },
   ref,
 ) {
-  const inField = useField() !== null;
-  if (inField || (label === undefined && hint === undefined && !error)) {
-    return <BareInput ref={ref} id={id} required={required} disabled={disabled} {...props} />;
+  const theme = useOptionalTheme();
+  const { invalid: isInvalid, ...a11y } = useFieldControlProps({ ...props, invalid });
+  const look = variant ?? theme?.appearance.inputs ?? 'outlined';
+
+  if (!prefix && !suffix) {
+    return (
+      <input
+        ref={ref}
+        type={type}
+        className={controlVariants({ variant: look, size, className })}
+        {...props}
+        {...a11y}
+      />
+    );
   }
+
+  // Input group: the wrapper draws the border (and the focus color); the input is transparent.
   return (
-    <Field
-      label={label}
-      description={hint}
-      error={error}
-      id={id}
-      required={required}
-      disabled={disabled}
+    <div
+      aria-invalid={isInvalid || undefined}
+      data-disabled={props.disabled || undefined}
+      className={cn(
+        controlVariants({ variant: look, size }),
+        'flex items-center gap-2 focus-within:border-primary',
+        look === 'filled' && 'focus-within:bg-surface',
+        props.disabled && 'cursor-not-allowed opacity-60',
+        wrapperClassName,
+      )}
     >
-      <BareInput ref={ref} {...props} />
-    </Field>
+      {prefix && (
+        <span className="flex shrink-0 items-center text-muted-foreground [&_svg]:size-4">
+          {prefix}
+        </span>
+      )}
+      <input
+        ref={ref}
+        type={type}
+        className={cn(
+          'h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed',
+          className,
+        )}
+        {...props}
+        {...a11y}
+      />
+      {suffix && (
+        <span className="flex shrink-0 items-center text-muted-foreground [&_svg]:size-4">
+          {suffix}
+        </span>
+      )}
+    </div>
+  );
+});
+
+/**
+ * Text input. Pass label / hint / error / required from the parent and it renders the whole
+ * field (label, control, help text or red message with aria wiring). Every native input prop
+ * and event (onChange, onBlur, onFocus, onKeyDown, ref …) goes to the <input>.
+ */
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, hint, error, fieldClassName, invalid, ...props },
+  ref,
+) {
+  return (
+    <FieldShell
+      label={label}
+      hint={hint}
+      error={error}
+      required={props.required}
+      disabled={props.disabled}
+      id={props.id}
+      fieldClassName={fieldClassName}
+    >
+      <BareInput ref={ref} invalid={resolveInvalid(invalid, error)} {...props} />
+    </FieldShell>
   );
 });
 
@@ -129,6 +128,8 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputProps, 'type
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
+            // Keep the caret in the input when toggling with the mouse.
+            onMouseDown={(event) => event.preventDefault()}
             className="touch-target -mr-1 inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             aria-label={visible ? 'Hide password' : 'Show password'}
             aria-pressed={visible}

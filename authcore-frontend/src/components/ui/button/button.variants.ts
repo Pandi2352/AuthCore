@@ -7,7 +7,7 @@ export const buttonVariants = variants({
       solid: 'bg-primary text-primary-foreground hover:bg-primary-hover',
       soft: 'bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft/70',
       outline:
-        'border-input bg-surface text-foreground hover:bg-accent hover:text-accent-foreground',
+        'border-field bg-surface text-foreground hover:bg-accent hover:text-accent-foreground',
       secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary-hover',
       ghost: 'text-foreground hover:bg-accent hover:text-accent-foreground',
       link: 'h-auto! px-0! text-primary underline-offset-4 hover:underline',
