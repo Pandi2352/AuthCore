@@ -64,7 +64,7 @@ function applyLayoutTokens(root: HTMLElement): void {
   ];
   root.style.setProperty('--sidebar-width', `${layoutConfig.sidebar.width}px`);
   root.style.setProperty('--sidebar-width-collapsed', `${layoutConfig.sidebar.collapsedWidth}px`);
-  root.style.setProperty('--navbar-height', `${layoutConfig.navbar.height}px`);
+  root.style.setProperty('--navbar-height-base', `${layoutConfig.navbar.height}px`);
   root.style.setProperty('--content-max-width', maxWidth);
 }
 

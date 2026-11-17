@@ -167,23 +167,15 @@ const failures = [];
 const skipped = new Set();
 let checked = 0;
 const combos = presets.flatMap((preset) =>
-  ['light', 'dark'].flatMap((mode) =>
-    preset === 'default'
-      ? [
-          { preset, mode, sidebar: 'classic' },
-          { preset, mode, sidebar: 'dark' },
-        ]
-      : [{ preset, mode, sidebar: 'classic' }],
-  ),
+  ['light', 'dark'].map((mode) => ({ preset, mode, sidebar: 'classic' })),
 );
 
 for (const { preset, mode, sidebar } of combos) {
   const attrs = { preset, mode, sidebar };
   const tokens = tokensFor(attrs);
   currentMode = mode;
-  const label = `${preset}/${mode}${sidebar === 'dark' ? ' (dark sidebar)' : ''}`;
+  const label = `${preset}/${mode}`;
   for (const [fg, bg, min] of PAIRS) {
-    if (sidebar === 'dark' && !fg.startsWith('--sidebar')) continue;
     const a = resolve(tokens, tokens[fg]);
     const b = resolve(tokens, tokens[bg]);
     if (!a || !b) {
@@ -196,6 +188,24 @@ for (const { preset, mode, sidebar } of combos) {
       `${label.padEnd(30)} ${fg} on ${bg}`.padEnd(80) + ` ${measured.toFixed(2)}:1 (min ${min})`;
     if (measured < min) failures.push(line);
     else if (isVerbose) console.log(`  ✓ ${line}`);
+  }
+
+  // Filled buttons: text is black(-ish) on light fills and white(-ish) on dark fills —
+  // whichever of the two reads better on this preset's primary color.
+  {
+    const fill = resolve(tokens, tokens['--primary']);
+    const text = resolve(tokens, tokens['--primary-foreground']);
+    if (fill && text) {
+      checked++;
+      const fillLum = luminance(fill);
+      const wantsDark = ratio(fillLum, 0) > ratio(fillLum, 1);
+      const isDark = luminance(text) < 0.2;
+      if (wantsDark !== isDark) {
+        failures.push(
+          `${label.padEnd(30)} --primary-foreground should be ${wantsDark ? 'dark (black)' : 'light (white)'} on this --primary`,
+        );
+      }
+    }
   }
 }
 

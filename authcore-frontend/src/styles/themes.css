@@ -186,6 +186,78 @@
   --primary-soft-foreground: oklch(0.87 0.07 12);
 }
 
+[data-preset='indigo'] {
+  --primary: oklch(0.5 0.2 277);
+  --primary-soft: oklch(0.96 0.025 277);
+  --primary-soft-foreground: oklch(0.42 0.18 277);
+}
+[data-preset='indigo'][data-mode='dark'] {
+  --primary: oklch(0.74 0.13 277);
+  --primary-foreground: oklch(0.18 0.04 277);
+  --primary-soft: oklch(0.29 0.07 277);
+  --primary-soft-foreground: oklch(0.87 0.07 277);
+}
+
+[data-preset='sky'] {
+  --primary: oklch(0.52 0.13 240);
+  --primary-soft: oklch(0.965 0.02 235);
+  --primary-soft-foreground: oklch(0.43 0.11 240);
+}
+[data-preset='sky'][data-mode='dark'] {
+  --primary: oklch(0.78 0.12 230);
+  --primary-foreground: oklch(0.18 0.04 235);
+  --primary-soft: oklch(0.28 0.05 235);
+  --primary-soft-foreground: oklch(0.88 0.07 230);
+}
+
+[data-preset='teal'] {
+  --primary: oklch(0.5 0.09 185);
+  --primary-soft: oklch(0.965 0.025 185);
+  --primary-soft-foreground: oklch(0.4 0.08 185);
+}
+[data-preset='teal'][data-mode='dark'] {
+  --primary: oklch(0.78 0.12 182);
+  --primary-foreground: oklch(0.18 0.04 185);
+  --primary-soft: oklch(0.27 0.045 185);
+  --primary-soft-foreground: oklch(0.88 0.08 182);
+}
+
+[data-preset='pink'] {
+  --primary: oklch(0.55 0.2 350);
+  --primary-soft: oklch(0.965 0.02 350);
+  --primary-soft-foreground: oklch(0.45 0.18 350);
+}
+[data-preset='pink'][data-mode='dark'] {
+  --primary: oklch(0.76 0.15 350);
+  --primary-foreground: oklch(0.18 0.04 350);
+  --primary-soft: oklch(0.29 0.06 350);
+  --primary-soft-foreground: oklch(0.88 0.07 350);
+}
+
+[data-preset='amber'] {
+  --primary: oklch(0.52 0.12 60);
+  --primary-soft: oklch(0.97 0.03 80);
+  --primary-soft-foreground: oklch(0.43 0.1 60);
+}
+[data-preset='amber'][data-mode='dark'] {
+  --primary: oklch(0.82 0.15 80);
+  --primary-foreground: oklch(0.2 0.05 70);
+  --primary-soft: oklch(0.29 0.05 75);
+  --primary-soft-foreground: oklch(0.9 0.09 85);
+}
+
+[data-preset='lime'] {
+  --primary: oklch(0.5 0.12 135);
+  --primary-soft: oklch(0.965 0.04 130);
+  --primary-soft-foreground: oklch(0.4 0.1 135);
+}
+[data-preset='lime'][data-mode='dark'] {
+  --primary: oklch(0.84 0.18 130);
+  --primary-foreground: oklch(0.2 0.05 135);
+  --primary-soft: oklch(0.28 0.05 130);
+  --primary-soft-foreground: oklch(0.9 0.1 128);
+}
+
 /*
  * Brand: the project color (app.config.ts → branding.primaryColor), set at runtime as
  * --brand-color / --brand-foreground (black or white, whichever reads better).
@@ -219,23 +291,15 @@
   --navbar-border: var(--border);
 }
 
-/* Sidebar style "dark": dark in every mode */
-[data-sidebar='dark'] {
-  --sidebar: oklch(0.2 0.02 265);
-  --sidebar-foreground: oklch(0.94 0.005 260);
-  --sidebar-muted: oklch(0.72 0.015 260);
-  --sidebar-accent: oklch(0.27 0.02 265);
-  --sidebar-accent-foreground: oklch(0.96 0.005 260);
-  --sidebar-border: oklch(0.28 0.02 265);
-  --sidebar-active: oklch(0.3 0.03 265);
-  --sidebar-active-foreground: oklch(0.98 0 0);
-  /* Navigation icon colors (appearance.icons = "color"); light shades for the dark sidebar. */
-  --nav-blue: oklch(0.74 0.14 255);
-  --nav-violet: oklch(0.74 0.15 295);
-  --nav-emerald: oklch(0.76 0.14 160);
-  --nav-amber: oklch(0.8 0.14 75);
-  --nav-rose: oklch(0.74 0.16 15);
-  --nav-cyan: oklch(0.78 0.11 210);
-  --nav-orange: oklch(0.76 0.14 50);
-  --nav-indigo: oklch(0.72 0.14 277);
+/*
+ * Inside the sidebar, page tokens follow the sidebar tokens (logo name, "Soon" badges,
+ * dividers): a project that gives the sidebar its own colors only changes --sidebar-*.
+ */
+[data-app-sidebar] {
+  --foreground: var(--sidebar-foreground);
+  --muted-foreground: var(--sidebar-muted);
+  --muted: var(--sidebar-accent);
+  --accent: var(--sidebar-accent);
+  --accent-foreground: var(--sidebar-accent-foreground);
+  --border: var(--sidebar-border);
 }

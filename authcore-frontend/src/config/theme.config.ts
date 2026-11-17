@@ -15,7 +15,7 @@ export const themeConfig: ThemeConfig = {
       shadows: 'none', // project default: flat, no shadows
       borders: 'subtle',
       sidebar: 'classic',
-      navbar: 'standard',
+      navbar: 'classic',
       cards: 'bordered',
       inputs: 'outlined',
       buttons: 'solid',
@@ -25,7 +25,21 @@ export const themeConfig: ThemeConfig = {
   userCustomizable: {
     mode: true,
     preset: true,
-    appearance: ['radius', 'density', 'sidebar', 'icons'],
+    appearance: ['radius', 'density', 'sidebar', 'navbar', 'icons'],
   },
-  presets: ['default', 'emerald', 'violet', 'orange', 'brand'],
+  presets: [
+    'default',
+    'indigo',
+    'violet',
+    'pink',
+    'rose',
+    'orange',
+    'amber',
+    'lime',
+    'emerald',
+    'teal',
+    'sky',
+    'slate',
+    'brand',
+  ],
 };

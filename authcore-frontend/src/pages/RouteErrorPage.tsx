@@ -1,4 +1,4 @@
-import { AlertTriangle, RefreshCw, RotateCw } from 'lucide-react';
+import { RefreshCw, RotateCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
   isRouteErrorResponse,
@@ -74,12 +74,13 @@ export function RouteErrorPage() {
   return (
     <StatusPage
       fullScreen
-      icon={<AlertTriangle aria-hidden="true" />}
-      title="Something went wrong"
-      description="An unexpected error occurred. Try again, or go back to the dashboard."
+      code="500"
+      title="Something went wrong!"
+      description="Oops! An unexpected error occurred while loading this page. Please try again or return to the dashboard."
       actions={
         <>
           <Button
+            size="md"
             leftIcon={<RotateCw />}
             // Navigating to the same location clears the route error and re-runs it.
             onClick={() =>
@@ -88,10 +89,10 @@ export function RouteErrorPage() {
           >
             Try again
           </Button>
-          <Button variant="outline" onClick={() => window.location.reload()}>
+          <Button variant="outline" size="md" onClick={() => window.location.reload()}>
             Reload page
           </Button>
-          <Button variant="ghost" asChild>
+          <Button variant="ghost" size="md" asChild>
             <Link to={paths.dashboard} reloadDocument>
               Go to dashboard
             </Link>

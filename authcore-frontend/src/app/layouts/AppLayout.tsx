@@ -4,6 +4,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/feedback';
 import { layoutConfig } from '@/config';
 import { cn } from '@/lib/utils';
+import { CrashPage } from '@/pages/CrashPage';
 
 import { CommandMenuProvider } from './command-menu/CommandMenuProvider';
 import { MainContent } from './components/MainContent';
@@ -18,6 +19,11 @@ import { Sidebar, SidebarMobile, SidebarProvider, useSidebar } from './sidebar';
  *   independently. "sticky": the page scrolls and the sidebar sticks to the top.
  * - Below the mobile breakpoint the sidebar is a drawer (navbar menu button).
  */
+/** Page-level crash: themed status page inside the layout (sidebar / navbar keep working). */
+const pageCrashFallback = ({ error, reset }: { error: Error; reset: () => void }) => (
+  <CrashPage error={error} reset={reset} />
+);
+
 export function AppLayout() {
   return (
     <SidebarProvider>
@@ -59,7 +65,7 @@ function AppShell() {
       >
         {navbar.enabled && <Navbar />}
         <MainContent>
-          <ErrorBoundary level="page" resetKeys={[pathname]}>
+          <ErrorBoundary level="page" resetKeys={[pathname]} fallback={pageCrashFallback}>
             <RouteAccessBoundary>
               <Outlet />
             </RouteAccessBoundary>

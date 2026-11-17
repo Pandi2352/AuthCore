@@ -43,6 +43,42 @@ export const themePresets: readonly ThemePreset[] = [
     swatch: { light: '#e11d48', dark: '#fb7185' },
   },
   {
+    id: 'indigo',
+    label: 'Indigo',
+    description: 'Deep, focused',
+    swatch: { light: '#4f46e5', dark: '#818cf8' },
+  },
+  {
+    id: 'sky',
+    label: 'Sky',
+    description: 'Fresh, calm',
+    swatch: { light: '#0369a1', dark: '#38bdf8' },
+  },
+  {
+    id: 'teal',
+    label: 'Teal',
+    description: 'Health, finance',
+    swatch: { light: '#0f766e', dark: '#2dd4bf' },
+  },
+  {
+    id: 'pink',
+    label: 'Pink',
+    description: 'Playful, creative',
+    swatch: { light: '#db2777', dark: '#f472b6' },
+  },
+  {
+    id: 'amber',
+    label: 'Amber',
+    description: 'Warm, energetic',
+    swatch: { light: '#b45309', dark: '#fbbf24' },
+  },
+  {
+    id: 'lime',
+    label: 'Lime',
+    description: 'Natural, growth',
+    swatch: { light: '#4d7c0f', dark: '#a3e635' },
+  },
+  {
     id: 'brand',
     label: 'Brand',
     description: 'The project color from app.config.ts (branding.primaryColor)',

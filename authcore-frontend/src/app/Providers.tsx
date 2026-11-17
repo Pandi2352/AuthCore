@@ -5,8 +5,14 @@ import { Toaster } from '@/components/ui';
 import { AuthProvider } from '@/features/auth';
 import { apiClient } from '@/lib/api';
 import { reportError } from '@/lib/errors';
+import { CrashPage } from '@/pages/CrashPage';
 
 import { ThemeProvider } from './theme';
+
+/** Last resort: full-screen themed status page (outside the router and providers). */
+const appCrashFallback = ({ error, reset }: { error: Error; reset: () => void }) => (
+  <CrashPage error={error} reset={reset} level="app" />
+);
 
 /**
  * App-wide providers, outermost first: ErrorBoundary (last-resort fallback for errors outside
@@ -24,7 +30,7 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <ErrorBoundary level="app">
+    <ErrorBoundary level="app" fallback={appCrashFallback}>
       <ThemeProvider>
         <AuthProvider>
           {children}

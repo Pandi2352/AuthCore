@@ -4,15 +4,28 @@ export type ColorMode = 'light' | 'dark' | 'system';
 export type ResolvedColorMode = 'light' | 'dark';
 
 export type ThemePresetId =
-  'default' | 'emerald' | 'violet' | 'orange' | 'slate' | 'rose' | 'brand';
+  | 'default'
+  | 'emerald'
+  | 'violet'
+  | 'orange'
+  | 'slate'
+  | 'rose'
+  | 'indigo'
+  | 'sky'
+  | 'teal'
+  | 'pink'
+  | 'amber'
+  | 'lime'
+  | 'brand';
 
 export type Radius = 'sharp' | 'small' | 'medium' | 'large' | 'pill';
 export type Density = 'compact' | 'comfortable' | 'spacious';
 export type FontOption = 'system' | 'inter' | 'custom';
 export type ShadowStyle = 'none' | 'subtle' | 'elevated';
 export type BorderStyle = 'none' | 'subtle' | 'strong';
-export type SidebarStyle = 'classic' | 'minimal' | 'floating' | 'compact' | 'dark';
-export type NavbarStyle = 'standard' | 'transparent' | 'bordered' | 'floating' | 'blurred';
+/** The same four looks for the sidebar and the navbar. */
+export type SidebarStyle = 'classic' | 'minimal' | 'floating' | 'compact';
+export type NavbarStyle = 'classic' | 'minimal' | 'floating' | 'compact';
 export type CardStyle = 'bordered' | 'filled' | 'elevated' | 'minimal';
 export type InputStyle = 'outlined' | 'filled' | 'underlined';
 export type ButtonStyle = 'solid' | 'soft' | 'outline';
@@ -69,8 +82,8 @@ export const APPEARANCE_VALUES: { readonly [K in AppearanceOption]: readonly App
   font: ['system', 'inter', 'custom'],
   shadows: ['none', 'subtle', 'elevated'],
   borders: ['none', 'subtle', 'strong'],
-  sidebar: ['classic', 'minimal', 'floating', 'compact', 'dark'],
-  navbar: ['standard', 'transparent', 'bordered', 'floating', 'blurred'],
+  sidebar: ['classic', 'minimal', 'floating', 'compact'],
+  navbar: ['classic', 'minimal', 'floating', 'compact'],
   cards: ['bordered', 'filled', 'elevated', 'minimal'],
   inputs: ['outlined', 'filled', 'underlined'],
   buttons: ['solid', 'soft', 'outline'],

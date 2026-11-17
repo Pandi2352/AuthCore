@@ -111,3 +111,10 @@
     --control-h-lg: 3rem;
   }
 }
+
+/* ---------------------------------------------------------------- navbar */
+/* Compact navbar: 12px shorter. The sidebar header uses --navbar-height too, so both
+   bottom borders stay on one line. */
+[data-navbar='compact'] {
+  --navbar-height: calc(var(--navbar-height-base) - 12px);
+}

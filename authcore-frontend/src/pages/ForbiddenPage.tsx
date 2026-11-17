@@ -1,40 +1,28 @@
-import { ShieldX } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui';
-import { appConfig, paths } from '@/config';
+import { paths } from '@/config';
 
 import { StatusPage } from './StatusPage';
 
 /** 403: signed in, but without the permission this page needs. */
 export function ForbiddenPage() {
+  const navigate = useNavigate();
   return (
     <StatusPage
-      icon={<ShieldX aria-hidden="true" />}
       code="403"
-      title="Access denied"
-      description={
-        <>
-          You don't have permission to view this page. If you need access, ask an administrator
-          {appConfig.branding.supportEmail ? (
-            <>
-              {' '}
-              or contact{' '}
-              <a
-                className="cursor-pointer text-primary underline-offset-4 hover:underline"
-                href={`mailto:${appConfig.branding.supportEmail}`}
-              >
-                {appConfig.branding.supportEmail}
-              </a>
-            </>
-          ) : null}
-          .
-        </>
-      }
+      title="Access denied!"
+      description="Oops! It looks like you don't have permission to access this page. Please check your credentials or contact an administrator."
       actions={
-        <Button asChild>
-          <Link to={paths.dashboard}>Back to dashboard</Link>
-        </Button>
+        <>
+          <Button asChild size="md">
+            <Link to={paths.dashboard}>Go to dashboard</Link>
+          </Button>
+          <Button variant="outline" size="md" leftIcon={<ArrowLeft />} onClick={() => navigate(-1)}>
+            Go back
+          </Button>
+        </>
       }
     />
   );

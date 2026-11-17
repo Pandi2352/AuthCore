@@ -20,6 +20,7 @@ export function Sidebar() {
   return (
     <aside
       aria-label="Sidebar"
+      data-app-sidebar=""
       data-collapsed={collapsed || undefined}
       style={{ zIndex: 'var(--z-sidebar)' }}
       className={cn(

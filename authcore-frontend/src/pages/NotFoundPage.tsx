@@ -1,4 +1,4 @@
-import { ArrowLeft, Compass } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui';
@@ -12,17 +12,16 @@ export function NotFoundPage({ embedded = false }: { embedded?: boolean }) {
   return (
     <StatusPage
       fullScreen={!embedded}
-      icon={<Compass aria-hidden="true" />}
       code="404"
-      title="Page not found"
-      description="The page you are looking for doesn't exist or has been moved."
+      title="Page not found!"
+      description="Oops! It looks like the page you're trying to reach is not available. Please check the URL or return to the homepage."
       actions={
         <>
-          <Button variant="outline" leftIcon={<ArrowLeft />} onClick={() => navigate(-1)}>
-            Go back
+          <Button asChild size="md">
+            <Link to={paths.root}>Go Homepage</Link>
           </Button>
-          <Button asChild>
-            <Link to={paths.root}>Go to home</Link>
+          <Button variant="outline" size="md" leftIcon={<ArrowLeft />} onClick={() => navigate(-1)}>
+            Go back
           </Button>
         </>
       }

@@ -67,6 +67,12 @@ export default defineConfig(({ command }) => ({
     // true only in the dev server: dev-only routes (/dev/ui) are removed from production builds
     __DEV_BUILD__: JSON.stringify(command === 'serve'),
   },
+  // Pre-bundle up front: Phosphor is only imported lazily (non-classic icon styles); found
+  // at runtime, Vite would bundle it separately and React could load twice
+  // ("Cannot read properties of null (reading 'useContext')").
+  optimizeDeps: {
+    include: ['@phosphor-icons/react'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

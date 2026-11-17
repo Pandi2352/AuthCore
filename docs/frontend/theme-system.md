@@ -11,7 +11,7 @@ How the starter kit changes its whole look without touching components.
 | Axis | Values | Stored as | Changes |
 | --- | --- | --- | --- |
 | **Color mode** | `light` · `dark` · `system` | `<html data-mode="light|dark">` (system resolved at runtime) | Background / foreground lightness |
-| **Preset** | `default` (blue) · `emerald` · `violet` · `orange` · `slate` · `rose` · custom brand | `<html data-preset="…">` | Brand and accent colors |
+| **Preset** | `default` (blue) · `indigo` · `violet` · `pink` · `rose` · `orange` · `amber` · `lime` · `emerald` · `teal` · `sky` · `slate` · custom brand | `<html data-preset="…">` | Brand and accent colors |
 | **Appearance** | radius, density, font, sidebar / navbar / card / input / button styles | `<html data-radius="…" data-density="…">` + layout config | Shape, spacing, component styles |
 
 They never depend on each other: any preset works in light and dark and with any appearance. Components only read **tokens**, so they don't know which preset, mode or style is active.
@@ -144,8 +144,8 @@ Each preset defines **every** color token for light and dark. `config/theme.pres
 | `font` | `system` · `inter` · `custom` | `--font-family-sans` (self-hosted fonts only) |
 | `shadows` | `none` · `subtle` · `elevated` | Card / popover shadows |
 | `borders` | `none` · `subtle` · `strong` | Border width / color strength |
-| `sidebar` | `classic` · `minimal` · `floating` · `compact` · `dark` (always dark, any mode) | `sidebar.variants.ts` + sidebar tokens |
-| `navbar` | `standard` · `transparent` · `bordered` · `floating` · `blurred` | `navbar.variants.ts` |
+| `sidebar` | `classic` · `minimal` · `floating` · `compact` | Sidebar look (the same four as the navbar) |
+| `navbar` | `classic` · `minimal` · `floating` · `compact` | Navbar look: classic (bar + border) · minimal (no background / border) · floating (separate rounded bar) · compact (12 px shorter; the sidebar header follows) |
 | `cards` | `bordered` · `filled` · `elevated` · `minimal` | Default `Card` variant |
 | `inputs` | `outlined` · `filled` · `underlined` | Default `Input` / `Select` / `Textarea` variant |
 | `buttons` | `solid` · `soft` · `outline` | Default `Button` variant for `intent="primary"` |
@@ -212,7 +212,7 @@ Sidebar and navbar have their own tokens (`--sidebar-*`, `--navbar-*`), so a pro
 ## Checklist
 
 - [x] Tokens defined in `tokens.css` and mapped in `@theme inline`.
-- [x] Presets `default`, `emerald`, `violet`, `orange` (+ `slate`, `rose`, `brand`) for light and dark.
+- [x] 13 presets for light and dark: `default`, `indigo`, `violet`, `pink`, `rose`, `orange`, `amber`, `lime`, `emerald`, `teal`, `sky`, `slate`, `brand`. Filled-button text is black on light fills and white on dark fills (enforced by `check:contrast`).
 - [x] Appearance attributes and their token values in `appearance.css`.
 - [x] `dark` custom variant on `[data-mode="dark"]`.
 - [x] `ThemeProvider`, `useTheme`, storage with validation and versioned key, cross-tab sync.

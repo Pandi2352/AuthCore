@@ -143,7 +143,8 @@
   /* Layout sizes: defaults; the ThemeProvider sets them from layout.config.ts */
   --sidebar-width: 264px;
   --sidebar-width-collapsed: 72px;
-  --navbar-height: 64px;
+  --navbar-height-base: 64px; /* layout.config.ts → navbar.height (set at runtime) */
+  --navbar-height: var(--navbar-height-base);
   --content-max-width: 80rem;
 
   --font-family-mono:

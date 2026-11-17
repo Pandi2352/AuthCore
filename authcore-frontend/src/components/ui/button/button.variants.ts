@@ -6,8 +6,9 @@ export const buttonVariants = variants({
     variant: {
       solid: 'bg-primary text-primary-foreground hover:bg-primary-hover',
       soft: 'bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft/70',
+      // Theme-colored: primary border + text, soft primary tint on hover.
       outline:
-        'border-field bg-surface text-foreground hover:bg-accent hover:text-accent-foreground',
+        'border-primary/45 bg-surface text-primary hover:border-primary hover:bg-primary-soft hover:text-primary-soft-foreground',
       secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary-hover',
       ghost: 'text-foreground hover:bg-accent hover:text-accent-foreground',
       link: 'h-auto! px-0! text-primary underline-offset-4 hover:underline',

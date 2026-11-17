@@ -18,6 +18,7 @@ export function SidebarMobile() {
         side={layoutConfig.sidebar.position}
         size="sm"
         aria-label="Navigation"
+        data-app-sidebar=""
         className="flex w-(--sidebar-width) flex-col bg-sidebar p-0 text-sidebar-foreground"
       >
         <SidebarModeContext.Provider value={DRAWER_MODE}>

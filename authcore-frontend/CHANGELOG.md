@@ -14,6 +14,13 @@ The first structured version. Projects copied **before** Level 1 (flat `componen
 
 ### Navbar and theme
 
+- **Breaking (theme values):** sidebar and navbar styles are the same four — `classic` · `minimal` · `floating` · `compact`. Removed: sidebar `dark`; navbar `standard` (→ `classic`), `transparent` (→ `minimal`), `bordered`, `blurred`. Stored preferences with removed values fall back to `classic`. Compact navbar: `--navbar-height` is 12 px shorter (layout token renamed `--navbar-height-base`). Navbar style is user-customizable. Inside the sidebar, page tokens follow `--sidebar-*`.
+- **Changed:** status pages inside the app are full-bleed — the background runs edge to edge (no padding, no border); crash screens (page and app error boundaries) use the same design (`pages/CrashPage.tsx`).
+- **Fixed:** "Cannot read properties of null (reading 'useContext')" after switching to a non-classic icon style in a running dev server — `@phosphor-icons/react` is pre-bundled (`optimizeDeps.include`). Restart the dev server once after pulling.
+- _Additive:_ 6 more color presets — `indigo`, `sky`, `teal`, `pink`, `amber`, `lime` (13 in total, all offered on the Appearance page).
+- **Changed (look):** outline buttons follow the theme color (primary border + text, soft primary hover).
+- **Rule:** filled-button text (`--primary-foreground`) is black(-ish) on light fills and white(-ish) on dark fills, whichever reads better — `check:contrast` now fails a preset / mode that gets it wrong.
+- **Changed:** status pages (403 / 404 / error / coming soon) are drawn with theme tokens only — no background images; they follow the color preset and light / dark mode (the forced-light `status-light-canvas` and the `public/brand/status-bg*.jpg` images are removed).
 - _Additive:_ full-screen action — `layout.config.ts → navbar.actions` 'fullscreen' (feature flag `ui.fullscreen`): navbar button (Full screen / Exit full screen), item in the "more" menu on small screens, command-menu action, custom-action command `toggleFullscreen`, hook `useFullscreen()`. Hidden where the browser doesn't allow full screen; follows Esc / F11.
 - **Fixed:** switching mode / preset / appearance applies instantly — color transitions are switched off for the one frame the theme changes (elements with `transition-colors` used to fade one by one).
 
