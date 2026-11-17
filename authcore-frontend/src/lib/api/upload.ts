@@ -2,7 +2,7 @@ import { CLIENT_ERROR_CODES } from '../constants/error-codes';
 import { HTTP_HEADERS, HTTP_STATUS } from '../constants/http';
 import { ApiError } from './api-error';
 import { apiClient } from './client';
-import { createRequestId, parseRetryAfter } from './request-utils';
+import { createRequestId, isOffline, parseRetryAfter } from './request-utils';
 import { isErrorEnvelope, isSuccessEnvelope } from './types';
 
 export interface UploadProgress {
@@ -64,6 +64,18 @@ function send<T>(
     form = new FormData();
     for (const [key, value] of Object.entries(fields)) form.append(key, value);
     form.append(fieldName, file, file instanceof File ? file.name : 'upload');
+  }
+
+  if (isOffline()) {
+    const offline = new ApiError({
+      status: 0,
+      code: CLIENT_ERROR_CODES.NETWORK_ERROR,
+      message: "You're offline.",
+      method,
+      path,
+    });
+    apiClient.notifyError(offline);
+    return Promise.reject(offline);
   }
 
   return new Promise<T>((resolve, reject) => {

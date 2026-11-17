@@ -4,7 +4,7 @@ import { CLIENT_ERROR_CODES } from '../constants/error-codes';
 import { HTTP_HEADERS, HTTP_STATUS, isServerError } from '../constants/http';
 import { buildQueryString, type QueryParams } from '../utils/url';
 import { ApiError } from './api-error';
-import { createRequestId, linkSignals, parseRetryAfter } from './request-utils';
+import { createRequestId, isOffline, linkSignals, parseRetryAfter } from './request-utils';
 import { isErrorEnvelope, isSuccessEnvelope, type Paginated, type PaginationMeta } from './types';
 
 // ---------------------------------------------------------------- public types
@@ -244,6 +244,20 @@ export class ApiClient {
     const token = auth && this.isApiUrl(path) ? (this.auth?.getAccessToken() ?? null) : null;
     if (token && !headers.has(HTTP_HEADERS.AUTHORIZATION)) {
       headers.set(HTTP_HEADERS.AUTHORIZATION, `Bearer ${token}`);
+    }
+
+    // Offline: fail fast instead of waiting for the network stack to give up.
+    if (isOffline()) {
+      throw this.fail(
+        new ApiError({
+          status: 0,
+          code: CLIENT_ERROR_CODES.NETWORK_ERROR,
+          message: "You're offline.",
+          requestId,
+          method,
+          path,
+        }),
+      );
     }
 
     const timeout = new AbortController();

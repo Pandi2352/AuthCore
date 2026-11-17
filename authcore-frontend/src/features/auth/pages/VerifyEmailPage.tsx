@@ -2,10 +2,11 @@ import { CheckCircle2, Mail, RefreshCw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
+import { ErrorAlert } from '@/components/feedback';
 import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
 import { authApi } from '@/features/auth/api/auth.api';
-import { ApiError } from '@/lib/api';
+import { useApiError } from '@/hooks/useApiError';
 
 export const VerifyEmailPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export const VerifyEmailPage: React.FC = () => {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifyingLink, setIsVerifyingLink] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, fallback: errorFallback, setError, fieldError } = useApiError();
   const [success, setSuccess] = useState<string | null>(
     (location.state as { message?: string })?.message || null,
   );
@@ -36,14 +37,14 @@ export const VerifyEmailPage: React.FC = () => {
           await authApi.verifyEmailLink({ token: tokenParam });
           setSuccess('Email successfully verified! You may now sign in.');
         } catch (err) {
-          setError(err instanceof ApiError ? err.message : 'Invalid or expired verification link.');
+          setError(err, 'Invalid or expired verification link.');
         } finally {
           setIsVerifyingLink(false);
         }
       };
       verifyLink();
     }
-  }, [tokenParam]);
+  }, [tokenParam, setError]);
 
   // Resend cooldown timer
   useEffect(() => {
@@ -69,7 +70,7 @@ export const VerifyEmailPage: React.FC = () => {
         state: { message: 'Email verified successfully! Please sign in.' },
       });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Invalid or expired verification code.');
+      setError(err, 'Invalid or expired verification code.');
     } finally {
       setIsLoading(false);
     }
@@ -87,9 +88,7 @@ export const VerifyEmailPage: React.FC = () => {
       setSuccess('A new verification code has been dispatched to your email.');
       setResendCooldown(60);
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : 'Unable to resend verification code right now.',
-      );
+      setError(err, 'Unable to resend verification code right now.');
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +122,12 @@ export const VerifyEmailPage: React.FC = () => {
 
       <div className="mt-8">
         <Card>
-          {error && <Alert variant="danger" message={error} className="mb-4" />}
+          <ErrorAlert
+            error={error}
+            fallback={errorFallback}
+            fields={['email', 'code']}
+            className="mb-4"
+          />
           {success && <Alert variant="success" message={success} className="mb-4" />}
 
           {tokenParam && success ? (
@@ -140,6 +144,7 @@ export const VerifyEmailPage: React.FC = () => {
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <Input
                 label="Email"
+                error={fieldError('email')}
                 type="email"
                 required
                 value={email}
@@ -149,6 +154,7 @@ export const VerifyEmailPage: React.FC = () => {
 
               <Input
                 label="6-Digit Verification Code"
+                error={fieldError('code')}
                 type="text"
                 required
                 maxLength={8}

@@ -2,9 +2,11 @@ import { LogIn } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { Alert, Button, Card, Checkbox, Field, Input, PasswordInput } from '@/components/ui';
+import { ErrorAlert } from '@/components/feedback';
+import { Button, Card, Checkbox, Field, Input, PasswordInput } from '@/components/ui';
 import { appConfig, featuresConfig, paths } from '@/config';
 import { useAuth } from '@/features/auth/session/useAuth';
+import { useApiError } from '@/hooks/useApiError';
 import { ApiError } from '@/lib/api';
 import { ERROR_CODES } from '@/lib/constants';
 import { safeReturnTo } from '@/lib/utils';
@@ -19,7 +21,7 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, fallback: errorFallback, setError, fieldError } = useApiError();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,9 +51,9 @@ export const LoginPage: React.FC = () => {
           });
           return;
         }
-        setError(err.message);
+        setError(err);
       } else {
-        setError('Unable to sign in. Please check your credentials and try again.');
+        setError(err, 'Unable to sign in. Please check your credentials and try again.');
       }
     } finally {
       setIsLoading(false);
@@ -72,10 +74,16 @@ export const LoginPage: React.FC = () => {
       <div className="mt-8">
         <Card>
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
+            <ErrorAlert
+              error={error}
+              fallback={errorFallback}
+              fields={['email', 'username', 'password']}
+              onClose={() => setError(null)}
+            />
 
             <Input
               label="Email or Username"
+              error={fieldError('email') ?? fieldError('username')}
               type="text"
               required
               autoComplete="username"
@@ -85,7 +93,7 @@ export const LoginPage: React.FC = () => {
             />
 
             <div className="space-y-1">
-              <Field label="Password" required>
+              <Field label="Password" required error={fieldError('password')}>
                 <PasswordInput
                   autoComplete="current-password"
                   placeholder="••••••••"

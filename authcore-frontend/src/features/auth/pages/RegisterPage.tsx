@@ -2,10 +2,12 @@ import { CheckCircle2, UserPlus } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { Alert, Button, Card, Input } from '@/components/ui';
+import { ErrorAlert } from '@/components/feedback';
+import { Button, Card, Input } from '@/components/ui';
 import { appConfig, paths } from '@/config';
 import { PasswordRequirements } from '@/features/auth/components/PasswordRequirements';
 import { useAuth } from '@/features/auth/session/useAuth';
+import { useApiError } from '@/hooks/useApiError';
 import { ApiError } from '@/lib/api';
 
 export const RegisterPage: React.FC = () => {
@@ -21,7 +23,7 @@ export const RegisterPage: React.FC = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, fallback: errorFallback, setError } = useApiError();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
@@ -75,14 +77,14 @@ export const RegisterPage: React.FC = () => {
       if (err instanceof ApiError) {
         if (err.errors && err.errors.length > 0) {
           const map: Record<string, string> = {};
-          err.errors.forEach((fieldError) => {
-            if (fieldError.field) map[fieldError.field] = fieldError.message;
+          err.errors.forEach((item) => {
+            if (item.field) map[item.field] = item.message;
           });
           setFieldErrors(map);
         }
-        setError(err.message);
+        setError(err);
       } else {
-        setError('Registration failed. Please verify your details and try again.');
+        setError(err, 'Registration failed. Please verify your details and try again.');
       }
     } finally {
       setIsLoading(false);
@@ -122,7 +124,12 @@ export const RegisterPage: React.FC = () => {
       <div className="mt-8">
         <Card>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
+            <ErrorAlert
+              error={error}
+              fallback={errorFallback}
+              fields={['firstName', 'lastName', 'email', 'username', 'password']}
+              onClose={() => setError(null)}
+            />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Input

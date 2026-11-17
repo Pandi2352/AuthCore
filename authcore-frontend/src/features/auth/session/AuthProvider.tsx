@@ -7,6 +7,7 @@ import React, {
   useSyncExternalStore,
 } from 'react';
 
+import { toast } from '@/components/ui';
 import { accessApi } from '@/features/auth/api/access.api';
 import { authApi } from '@/features/auth/api/auth.api';
 import type { EffectiveAccess } from '@/features/auth/types/access.types';
@@ -81,7 +82,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       },
     });
-    const offUnauthorized = apiClient.on('unauthorized', logoutLocally);
+    const offUnauthorized = apiClient.on('unauthorized', () => {
+      // Only when a signed-in session ended on its own (not on the sign-in pages).
+      if (tokenStore.get()) {
+        toast.info('Your session has expired. Please sign in again.', { id: 'session-expired' });
+      }
+      logoutLocally();
+    });
     const offForbidden = apiClient.on('forbidden', () => {
       if (!tokenStore.get()) return;
       if (Date.now() - lastAccessReload.current < ACCESS_RELOAD_MIN_INTERVAL_MS) return;

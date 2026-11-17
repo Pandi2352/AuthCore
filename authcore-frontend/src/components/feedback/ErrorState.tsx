@@ -1,4 +1,4 @@
-import { AlertTriangle, RotateCw, WifiOff } from 'lucide-react';
+import { AlertTriangle, RotateCw, SearchX, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 
 import { CopyButton } from '@/components/common/CopyButton';
@@ -8,6 +8,9 @@ import { ApiError, getErrorMessage, getRequestId } from '@/lib/api';
 import { ERROR_CODES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
+import { isSilentError } from './error-details';
+import { NoPermissionState } from './NoPermissionState';
+
 export interface ErrorStateProps {
   /** What was thrown (ApiError, Error, anything). */
   error: unknown;
@@ -15,21 +18,28 @@ export interface ErrorStateProps {
   /** Shows "Try again"; may return a promise (button spins until it settles). */
   onRetry?: () => void | Promise<unknown>;
   size?: 'compact' | 'default';
+  /** Title for a 404 ("User not found"); default "Not found". */
+  notFoundTitle?: string;
   className?: string;
 }
 
 /**
- * Failed to load: readable message (getErrorMessage), the request id to quote to support
- * (copyable), a retry button, technical details in development.
+ * Failed to load — the right state for the error:
+ * - 403 → "no access" (NoPermissionState), 404 → "not found", offline → offline message
+ * - anything else: readable message (getErrorMessage), request id for support (copyable),
+ *   retry button, technical details in development
+ * Cancelled requests and an expired session render nothing.
  */
 export function ErrorState({
   error,
   title,
   onRetry,
   size = 'default',
+  notFoundTitle = 'Not found',
   className,
 }: ErrorStateProps) {
   const [isRetrying, setIsRetrying] = useState(false);
+  const pad = size === 'compact' ? 'px-4 py-8' : 'px-4 py-16';
   const requestId = getRequestId(error);
   const isOffline = error instanceof ApiError && error.code === ERROR_CODES.NETWORK_ERROR;
   const Icon = isOffline ? WifiOff : AlertTriangle;
@@ -43,6 +53,33 @@ export function ErrorState({
       setIsRetrying(false);
     }
   };
+
+  if (isSilentError(error)) return null;
+  if (error instanceof ApiError && error.isForbidden) {
+    return <NoPermissionState className={className} />;
+  }
+  if (error instanceof ApiError && error.isNotFound) {
+    return (
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center gap-3 text-center',
+          pad,
+          className,
+        )}
+      >
+        <div
+          className="flex size-12 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-6"
+          aria-hidden="true"
+        >
+          <SearchX />
+        </div>
+        <p className="text-base font-semibold text-foreground">{notFoundTitle}</p>
+        <p className="max-w-md text-sm text-muted-foreground">
+          {getErrorMessage(error, 'It may have been deleted or moved.')}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -1,11 +1,12 @@
 import { Camera, Trash2, User as UserIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
+import { ErrorAlert, notifyError, notifySuccess } from '@/components/feedback';
 import { PageContainer, PageHeader } from '@/components/page';
 import { Alert, Button, Card, Input, Progress } from '@/components/ui';
 import { accountApi } from '@/features/account/api/account.api';
 import { useAuth } from '@/features/auth';
-import { ApiError, getErrorMessage } from '@/lib/api';
+import { useApiError } from '@/hooks/useApiError';
 
 export const ProfilePage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -20,7 +21,7 @@ export const ProfilePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAvatarLoading, setIsAvatarLoading] = useState(false);
   const [uploadPercent, setUploadPercent] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { error, fallback: errorFallback, setError, fieldError } = useApiError();
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export const ProfilePage: React.FC = () => {
       updateUser(updated);
       setSuccess('Profile updated successfully');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to update profile');
+      setError(err, 'Failed to update profile');
     } finally {
       setIsLoading(false);
     }
@@ -79,9 +80,9 @@ export const ProfilePage: React.FC = () => {
     try {
       setUploadPercent(0);
       await accountApi.uploadAvatar(file, { onProgress: (p) => setUploadPercent(p.percent) });
-      setSuccess('Profile picture updated successfully');
+      notifySuccess('Profile picture updated');
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to upload profile picture'));
+      notifyError(err, 'Failed to upload profile picture');
     } finally {
       setIsAvatarLoading(false);
       setUploadPercent(null);
@@ -96,9 +97,9 @@ export const ProfilePage: React.FC = () => {
 
     try {
       await accountApi.deleteAvatar();
-      setSuccess('Profile picture removed');
+      notifySuccess('Profile picture removed');
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to delete profile picture'));
+      notifyError(err, 'Failed to delete profile picture');
     } finally {
       setIsAvatarLoading(false);
     }
@@ -108,7 +109,12 @@ export const ProfilePage: React.FC = () => {
     <PageContainer width="narrow">
       <PageHeader title="Profile" description="Your name, photo and contact details." />
 
-      {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
+      <ErrorAlert
+        error={error}
+        fallback={errorFallback}
+        fields={['firstName', 'lastName', 'username']}
+        onClose={() => setError(null)}
+      />
       {success && <Alert variant="success" message={success} onClose={() => setSuccess(null)} />}
 
       {/* Avatar Card */}
@@ -174,12 +180,14 @@ export const ProfilePage: React.FC = () => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="First name"
+              error={fieldError('firstName')}
               required
               value={formData.firstName}
               onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
             />
             <Input
               label="Last name"
+              error={fieldError('lastName')}
               value={formData.lastName}
               onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
             />
@@ -187,6 +195,7 @@ export const ProfilePage: React.FC = () => {
 
           <Input
             label="Username"
+            error={fieldError('username')}
             value={formData.username}
             onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
             hint="Lowercase letters, numbers, and dashes or dots"

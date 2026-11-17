@@ -182,10 +182,13 @@ src/
 │   ├── feedback/                    States every page needs
 │   │   ├── LoadingState.tsx         Skeleton / spinner variants
 │   │   ├── EmptyState.tsx           Icon, title, description, action
-│   │   ├── ErrorState.tsx           From ApiError: message, request id, retry
+│   │   ├── ErrorState.tsx           Page-load errors: 403 → NoPermissionState, 404 → not found, else message + request id + retry
+│   │   ├── ErrorAlert.tsx           Form / action errors: message, field errors not shown inline, request id for 5xx
+│   │   ├── error-details.ts         describeError, showsReference, isSilentError (aborts, expired session)
+│   │   ├── notify.ts                notifyError / notifySuccess: action results as toasts
 │   │   ├── NoPermissionState.tsx    403 inside a page
 │   │   ├── OfflineBanner.tsx
-│   │   ├── ErrorBoundary.tsx
+│   │   ├── ErrorBoundary.tsx        level app | page (in AppLayout, resets on navigation) | widget; reports errors
 │   │   └── index.ts
 │   │
 │   └── form/                        Form glue (Level 2, with React Hook Form)
@@ -223,7 +226,7 @@ src/
 │   ├── StatusPage.tsx               Shared layout for 403 / 404 / error / planned pages
 │   ├── NotFoundPage.tsx             404
 │   ├── ForbiddenPage.tsx            403
-│   ├── RouteErrorPage.tsx           errorElement: render / chunk-load errors
+│   ├── RouteErrorPage.tsx           errorElement: 404, chunk-load (reload once), other errors (reported, Try again)
 │   ├── PlannedModulePage.tsx        "Not built yet" module overview (from navigation config)
 │   ├── PlannedFeaturePage.tsx       "Not built yet" page
 │   └── dev/                         UiKitchenSinkPage.tsx + PageFeedbackShowcase.tsx + HooksShowcase.tsx (development only)
@@ -254,6 +257,7 @@ src/
 │   ├── useCopyToClipboard.ts
 │   ├── useQueryParams.ts            Typed search-param state (filters, page, tab)
 │   ├── useRequiredParam.ts          Typed :id route params
+│   ├── useApiError.ts               Form error state: keeps the ApiError, fieldError(name), ignores aborts
 │   ├── useControllableState.ts / useFocusTrap.ts / useScrollLock.ts
 │   ├── usePagination.ts             usePagination (local), useUrlPagination (URL), computePagination
 │   └── index.ts
@@ -268,6 +272,11 @@ src/
 │   │   ├── upload.ts                XHR upload with progress (multipart)
 │   │   ├── download.ts              Blob download with filename from Content-Disposition
 │   │   └── types.ts                 ApiEnvelope<T>, Paginated<T>, PaginationMeta
+│   ├── errors/
+│   │   ├── report-error.ts          reportError / setErrorReporter (no-op now, Sentry in Level 3); skips 4xx / aborts / offline, dedupes
+│   │   ├── chunk-reload.ts          isChunkLoadError, reloadOnceForChunkError (sessionStorage guard, 1 min)
+│   │   ├── global-handlers.ts       installGlobalErrorHandlers: vite:preloadError, window error, unhandledrejection
+│   │   └── index.ts
 │   ├── query/                       Level 2
 │   │   ├── query-client.ts          TanStack Query defaults (retry rules by ApiError code)
 │   │   └── query-keys.ts            Key factory per feature
@@ -275,7 +284,8 @@ src/
 │   │                                locale.ts (user locale / time zone defaults)
 │   ├── utils/                       cn.ts, variants.ts (our cva), string.ts, url.ts (query strings, safeReturnTo),
 │   │                                assert.ts (invariant, assertNever), platform.ts (⌘ / Ctrl)
-│   ├── storage.ts                   The only localStorage access: JSON-safe, never throws, cross-tab subscribe (keys `<slug>:<name>:v1`)
+│   ├── storage.ts                   The only localStorage access: JSON-safe, never throws, cross-tab subscribe (keys `<slug>:<name>:v1`);
+│   │                                sessionFlag: per-tab sessionStorage flags
 │   ├── validation/                  Shared Zod helpers (email, password-policy rules), Level 2
 │   └── constants/                   breakpoints.ts (= Tailwind), storage-keys.ts (key registry), http.ts,
 │                                    error-codes.ts (mirror of the backend enum, checked by check:error-codes)

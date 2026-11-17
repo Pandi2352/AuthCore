@@ -45,6 +45,9 @@ export function getErrorMessage(
   fallback = 'Something went wrong. Please try again.',
 ): string {
   if (error instanceof ApiError) {
+    if (error.isNetworkError && typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return "You're offline. Check your connection and try again.";
+    }
     const known = BY_CODE[error.code];
     if (known) return known;
     if (isServerError(error.status)) {

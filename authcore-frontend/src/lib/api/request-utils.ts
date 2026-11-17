@@ -2,6 +2,10 @@
  * Small helpers for the API transports (fetch client, XHR upload, download).
  */
 
+/** The browser reports no network connection (navigator.onLine === false). */
+export const isOffline = (): boolean =>
+  typeof navigator !== 'undefined' && navigator.onLine === false;
+
 /** Id for X-Request-Id (accepted by the backend: [A-Za-z0-9._:-]{1,128}). */
 export function createRequestId(): string {
   const cryptoApi = globalThis.crypto;

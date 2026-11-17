@@ -58,3 +58,36 @@ export const storage = {
     return () => window.removeEventListener('storage', onStorage);
   },
 };
+
+function getSessionStore(): Storage | null {
+  try {
+    return typeof window === 'undefined' ? null : window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+/** Small per-tab flags in sessionStorage (e.g. "already reloaded for a chunk error"). Never throws. */
+export const sessionFlag = {
+  get(name: string): string | null {
+    try {
+      return getSessionStore()?.getItem(`flag:${name}`) ?? null;
+    } catch {
+      return null;
+    }
+  },
+  set(name: string, value: string): void {
+    try {
+      getSessionStore()?.setItem(`flag:${name}`, value);
+    } catch {
+      // storage unavailable: the guard just doesn't persist
+    }
+  },
+  remove(name: string): void {
+    try {
+      getSessionStore()?.removeItem(`flag:${name}`);
+    } catch {
+      // nothing to remove
+    }
+  },
+};

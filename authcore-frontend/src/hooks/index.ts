@@ -3,6 +3,7 @@
  * useTheme is in app/theme, useSidebar in app/layouts/sidebar, useAuth / usePermissions in
  * features/auth.
  */
+export { useApiError } from './useApiError';
 export { useClickOutside } from './useClickOutside';
 export { useControllableState } from './useControllableState';
 export { useCopyToClipboard } from './useCopyToClipboard';

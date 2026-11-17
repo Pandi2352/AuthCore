@@ -272,12 +272,28 @@ Plain TypeScript, no React (`lib/utils`, `lib/format`, `lib/constants`, `lib/sto
 
 ## 14. Error Handling
 
-- [ ] Global `ErrorBoundary` with reset; route `errorElement`s
-- [ ] Chunk-load error after deploy → reload once, then error page
-- [ ] API errors → toast for actions, `ErrorState` for page loads, field errors for forms
-- [ ] 401 → session handling (Level 2); 403 → `NoPermissionState` / `ForbiddenPage`; 404 → not-found state; 429 → "try again in N s"; 5xx → generic message + request id
-- [ ] Offline banner; requests fail fast while offline
-- [ ] Error-report hook (no-op now, Sentry in Level 3)
+- [x] Global `ErrorBoundary` with reset; route `errorElement`s
+  - Three levels: `app` (Providers, full screen + reload), `page` (AppLayout content area, sidebar / navbar stay usable, resets on navigation), `widget` (one card)
+  - `RouteErrorPage` on the root and each layout: 404 → NotFoundPage; other errors → "Try again" (re-runs the route without a reload), reload, dashboard, request id
+- [x] Chunk-load error after deploy → reload once, then error page
+  - `lib/errors/chunk-reload.ts`: detects Vite / Chrome / Firefox / Safari messages; sessionStorage guard (1 min) prevents reload loops
+  - Handled in `RouteErrorPage` (lazy routes) and globally (`vite:preloadError`, unhandled rejections); after the reload fails → "A new version is available"
+- [x] API errors → toast for actions, `ErrorState` for page loads, field errors for forms
+  - Actions: `notifyError(err, fallback)` / `notifySuccess` (Sessions revoke, avatar upload / delete, deactivation)
+  - Page loads: `<ErrorState error onRetry>` (Activity, Sessions)
+  - Forms: `useApiError()` + `<ErrorAlert fields={[…]}>` + `error={fieldError('email')}` on inputs (all auth pages, Profile, Security); field errors the form can't show stay listed in the alert
+  - Cancelled requests and an expired session never show a message
+- [x] 401 → session handling; 403 → `NoPermissionState` / `ForbiddenPage`; 404 → not-found state; 429 → "try again in N s"; 5xx → generic message + request id
+  - 401: client refreshes once, then `unauthorized` → local sign-out + "Your session has expired" toast (only when a session existed)
+  - 403: `ErrorState` renders `NoPermissionState`; route guards use `ForbiddenPage`; the client reloads effective access
+  - 404: `ErrorState` renders a not-found state (`notFoundTitle`); unknown routes → NotFoundPage
+  - 429: `getErrorMessage` adds "Try again in N" from Retry-After
+  - 5xx / unexpected responses: generic text + copyable reference (request id) in ErrorState, ErrorAlert and toasts
+- [x] Offline banner; requests fail fast while offline
+  - `navigator.onLine === false` → `apiClient` and `uploadFile` reject at once with `NETWORK_ERROR` ("You're offline…"), no fetch
+- [x] Error-report hook (no-op now, Sentry in Level 3)
+  - `lib/errors/report-error.ts`: `reportError(error, {source, extra})` / `setErrorReporter(fn)`; reports exceptions and 5xx only (no 4xx, aborts, offline), dedupes 10 s, never throws, logs in development
+  - Called from ErrorBoundary, RouteErrorPage, the apiClient `serverError` event (Providers) and `installGlobalErrorHandlers()` (main.tsx)
 
 ## 15. Manual Verification
 

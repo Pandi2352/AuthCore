@@ -2,10 +2,11 @@ import { RotateCcw } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { ErrorAlert } from '@/components/feedback';
 import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
 import { authApi } from '@/features/auth/api/auth.api';
-import { ApiError } from '@/lib/api';
+import { useApiError } from '@/hooks/useApiError';
 
 export const AccountRecoveryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ export const AccountRecoveryPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, fallback: errorFallback, setError, fieldError } = useApiError();
   const [message, setMessage] = useState<string | null>(null);
 
   const handleRequest = async (e: React.FormEvent) => {
@@ -29,7 +30,7 @@ export const AccountRecoveryPage: React.FC = () => {
       );
       setStep('confirm');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Recovery request failed.');
+      setError(err, 'Recovery request failed.');
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +53,7 @@ export const AccountRecoveryPage: React.FC = () => {
         },
       });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Invalid or expired recovery code.');
+      setError(err, 'Invalid or expired recovery code.');
     } finally {
       setIsLoading(false);
     }
@@ -74,13 +75,19 @@ export const AccountRecoveryPage: React.FC = () => {
 
       <div className="mt-8">
         <Card>
-          {error && <Alert variant="danger" message={error} className="mb-4" />}
+          <ErrorAlert
+            error={error}
+            fallback={errorFallback}
+            fields={['email', 'code']}
+            className="mb-4"
+          />
           {message && <Alert variant="info" message={message} className="mb-4" />}
 
           {step === 'request' ? (
             <form onSubmit={handleRequest} className="space-y-4">
               <Input
                 label="Registered Email"
+                error={fieldError('email')}
                 type="email"
                 required
                 placeholder="jane.doe@example.com"
@@ -96,6 +103,7 @@ export const AccountRecoveryPage: React.FC = () => {
             <form onSubmit={handleConfirm} className="space-y-4">
               <Input
                 label="Registered Email"
+                error={fieldError('email')}
                 type="email"
                 required
                 value={email}
@@ -104,6 +112,7 @@ export const AccountRecoveryPage: React.FC = () => {
 
               <Input
                 label="6-Digit Recovery Code"
+                error={fieldError('code')}
                 type="text"
                 required
                 value={code}

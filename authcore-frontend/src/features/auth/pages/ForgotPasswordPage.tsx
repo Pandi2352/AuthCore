@@ -2,16 +2,17 @@ import { KeyRound } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { Alert, Button, Card, Input } from '@/components/ui';
+import { ErrorAlert } from '@/components/feedback';
+import { Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
 import { authApi } from '@/features/auth/api/auth.api';
-import { ApiError } from '@/lib/api';
+import { useApiError } from '@/hooks/useApiError';
 
 export const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, fallback: errorFallback, setError, fieldError } = useApiError();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,9 +29,7 @@ export const ForgotPasswordPage: React.FC = () => {
         },
       });
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : 'Unable to process your request. Please try again.',
-      );
+      setError(err, 'Unable to process your request. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -53,10 +52,16 @@ export const ForgotPasswordPage: React.FC = () => {
       <div className="mt-8">
         <Card>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
+            <ErrorAlert
+              error={error}
+              fallback={errorFallback}
+              fields={['email']}
+              onClose={() => setError(null)}
+            />
 
             <Input
               label="Email"
+              error={fieldError('email')}
               type="email"
               required
               autoComplete="email"

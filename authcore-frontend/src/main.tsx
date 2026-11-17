@@ -5,7 +5,10 @@ import './styles/index.css';
 
 import { App } from '@/app/App';
 import { env, getConfigProblems } from '@/config';
+import { installGlobalErrorHandlers } from '@/lib/errors';
 import { ConfigErrorPage } from '@/pages/ConfigErrorPage';
+
+installGlobalErrorHandlers();
 
 const configProblems = getConfigProblems();
 if (configProblems.length > 0) {

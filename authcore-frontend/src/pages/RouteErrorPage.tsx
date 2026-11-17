@@ -1,26 +1,57 @@
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { isRouteErrorResponse, Link, useRouteError } from 'react-router-dom';
+import { AlertTriangle, RefreshCw, RotateCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  isRouteErrorResponse,
+  Link,
+  useLocation,
+  useNavigate,
+  useRouteError,
+} from 'react-router-dom';
 
-import { Button } from '@/components/ui';
+import { CopyButton } from '@/components/common/CopyButton';
+import { Button, Spinner } from '@/components/ui';
 import { env, paths } from '@/config';
+import { getRequestId } from '@/lib/api';
+import { isChunkLoadError, reloadOnceForChunkError, reportError } from '@/lib/errors';
 
 import { NotFoundPage } from './NotFoundPage';
 import { StatusPage } from './StatusPage';
 
-/** A lazy chunk that no longer exists (new deployment while the tab was open). */
-const isChunkLoadError = (error: unknown): boolean =>
-  error instanceof Error &&
-  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Loading chunk \d+ failed/i.test(
-    error.message,
-  );
-
-/** errorElement for the root and each layout: render errors, chunk-load errors, 404 responses. */
+/**
+ * errorElement for the root and each layout:
+ * - 404 responses → NotFoundPage
+ * - chunk-load errors (new deployment while the tab was open) → reload once automatically,
+ *   then "a new version is available" if that didn't help
+ * - anything else → reported (reportError) and shown with "Try again" (re-runs the route,
+ *   no full reload), reload, dashboard, and the request id for API errors
+ */
 export function RouteErrorPage() {
   const error = useRouteError();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isChunk = isChunkLoadError(error);
+  // Decide once, while rendering the first time: reload (returns true) or show the page.
+  const [isReloading] = useState(() => isChunk && reloadOnceForChunkError());
+
+  useEffect(() => {
+    if (!isChunk && !(isRouteErrorResponse(error) && error.status === 404)) {
+      reportError(error, { source: 'route', extra: { path: location.pathname } });
+    }
+  }, [error, isChunk, location.pathname]);
 
   if (isRouteErrorResponse(error) && error.status === 404) return <NotFoundPage />;
 
-  if (isChunkLoadError(error)) {
+  if (isChunk) {
+    if (isReloading) {
+      return (
+        <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-background text-primary">
+          <Spinner size="lg" label={null} />
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            Loading the latest version…
+          </p>
+        </div>
+      );
+    }
     return (
       <StatusPage
         fullScreen
@@ -38,7 +69,7 @@ export function RouteErrorPage() {
       : isRouteErrorResponse(error)
         ? `${error.status} ${error.statusText}`
         : String(error);
-  if (env.isDevelopment) console.error(error);
+  const requestId = getRequestId(error);
 
   return (
     <StatusPage
@@ -48,10 +79,19 @@ export function RouteErrorPage() {
       description="An unexpected error occurred. Try again, or go back to the dashboard."
       actions={
         <>
-          <Button variant="outline" onClick={() => window.location.reload()}>
+          <Button
+            leftIcon={<RotateCw />}
+            // Navigating to the same location clears the route error and re-runs it.
+            onClick={() =>
+              navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true })
+            }
+          >
             Try again
           </Button>
-          <Button asChild>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Reload page
+          </Button>
+          <Button variant="ghost" asChild>
             <Link to={paths.dashboard} reloadDocument>
               Go to dashboard
             </Link>
@@ -59,6 +99,12 @@ export function RouteErrorPage() {
         </>
       }
     >
+      {requestId && (
+        <p className="mt-4 inline-flex items-center gap-1 text-xs text-muted-foreground">
+          Reference: <code className="font-mono">{requestId}</code>
+          <CopyButton value={requestId} label="Copy reference" size="sm" />
+        </p>
+      )}
       {env.isDevelopment && (
         <pre className="mt-6 max-w-2xl overflow-auto rounded-md border border-border bg-muted p-4 text-left font-mono text-xs text-danger">
           {message}

@@ -3,21 +3,25 @@ import React, { useEffect, useState } from 'react';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { DateTime } from '@/components/common/DateTime';
-import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  notifyError,
+  notifySuccess,
+} from '@/components/feedback';
 import { PageContainer, PageHeader } from '@/components/page';
-import { Alert, Badge, Button, Card } from '@/components/ui';
+import { Badge, Button, Card } from '@/components/ui';
 import { paths } from '@/config';
 import { accountApi } from '@/features/account/api/account.api';
 import type { Session } from '@/features/account/types/account.types';
 import { useAuth } from '@/features/auth';
-import { ApiError, isAbortError } from '@/lib/api';
+import { isAbortError } from '@/lib/api';
 
 export const SessionsPage: React.FC = () => {
   const { logoutAll } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
 
   useEffect(() => {
@@ -53,28 +57,26 @@ export const SessionsPage: React.FC = () => {
   };
 
   const handleRevokeSession = async (sessionId: string) => {
-    setError(null);
     try {
       const res = await accountApi.revokeSession(sessionId);
       if (res.isCurrentSession) {
         window.location.href = paths.auth.login;
         return;
       }
-      setSuccess('Session signed out successfully');
+      notifySuccess('Session signed out');
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to revoke session');
+      notifyError(err, 'Could not revoke the session');
     }
   };
 
   const handleSignOutOthers = async () => {
-    setError(null);
     try {
       await logoutAll(true);
-      setSuccess('All other sessions have been signed out');
+      notifySuccess('All other devices have been signed out');
       setSessions((prev) => prev.filter((session) => session.isCurrent));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to revoke other sessions');
+      notifyError(err, 'Could not sign out the other devices');
     }
   };
 
@@ -100,9 +102,6 @@ export const SessionsPage: React.FC = () => {
           )
         }
       />
-
-      {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
-      {success && <Alert variant="success" message={success} onClose={() => setSuccess(null)} />}
 
       <Card title={`Signed-in devices (${sessions.length})`}>
         {isLoading ? (

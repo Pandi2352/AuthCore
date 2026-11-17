@@ -2,11 +2,12 @@ import { Lock } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
+import { ErrorAlert } from '@/components/feedback';
 import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
 import { authApi } from '@/features/auth/api/auth.api';
 import { PasswordRequirements } from '@/features/auth/components/PasswordRequirements';
-import { ApiError } from '@/lib/api';
+import { useApiError } from '@/hooks/useApiError';
 
 export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export const ResetPasswordPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, fallback: errorFallback, setError, fieldError } = useApiError();
   const [successMessage, setSuccessMessage] = useState<string | null>(
     (location.state as { message?: string })?.message || null,
   );
@@ -45,7 +46,7 @@ export const ResetPasswordPage: React.FC = () => {
       setIsTokenVerified(true);
       setSuccessMessage('Code verified. You can now choose a new password.');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Invalid or expired reset code.');
+      setError(err, 'Invalid or expired reset code.');
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +75,7 @@ export const ResetPasswordPage: React.FC = () => {
         },
       });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to update password.');
+      setError(err, 'Failed to update password.');
     } finally {
       setIsLoading(false);
     }
@@ -98,13 +99,19 @@ export const ResetPasswordPage: React.FC = () => {
 
       <div className="mt-8">
         <Card>
-          {error && <Alert variant="danger" message={error} className="mb-4" />}
+          <ErrorAlert
+            error={error}
+            fallback={errorFallback}
+            fields={['email', 'code', 'newPassword', 'confirmPassword']}
+            className="mb-4"
+          />
           {successMessage && <Alert variant="info" message={successMessage} className="mb-4" />}
 
           {!isTokenVerified ? (
             <form onSubmit={handleVerifyCode} className="space-y-4">
               <Input
                 label="Email"
+                error={fieldError('email')}
                 type="email"
                 required
                 value={email}
@@ -114,6 +121,7 @@ export const ResetPasswordPage: React.FC = () => {
 
               <Input
                 label="Reset Code"
+                error={fieldError('code')}
                 type="text"
                 required
                 value={code}
@@ -130,6 +138,7 @@ export const ResetPasswordPage: React.FC = () => {
             <form onSubmit={handleResetPassword} className="space-y-4">
               <Input
                 label="New Password"
+                error={fieldError('newPassword')}
                 type="password"
                 required
                 placeholder="••••••••"
@@ -139,6 +148,7 @@ export const ResetPasswordPage: React.FC = () => {
 
               <Input
                 label="Confirm New Password"
+                error={fieldError('confirmPassword')}
                 type="password"
                 required
                 placeholder="••••••••"

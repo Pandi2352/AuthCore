@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
+import { ErrorBoundary } from '@/components/feedback';
 import { layoutConfig } from '@/config';
 import { cn } from '@/lib/utils';
 
@@ -58,9 +59,11 @@ function AppShell() {
       >
         {navbar.enabled && <Navbar />}
         <MainContent>
-          <RouteAccessBoundary>
-            <Outlet />
-          </RouteAccessBoundary>
+          <ErrorBoundary level="page" resetKeys={[pathname]}>
+            <RouteAccessBoundary>
+              <Outlet />
+            </RouteAccessBoundary>
+          </ErrorBoundary>
         </MainContent>
       </div>
     </div>

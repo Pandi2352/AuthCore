@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { ErrorAlert, notifyError } from '@/components/feedback';
 import { PageContainer, PageHeader } from '@/components/page';
 import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
 import { accountApi } from '@/features/account/api/account.api';
 import { authApi, PasswordRequirements } from '@/features/auth';
-import { ApiError } from '@/lib/api';
+import { useApiError } from '@/hooks/useApiError';
 
 export const SecurityPage: React.FC = () => {
   const location = useLocation();
@@ -19,7 +20,7 @@ export const SecurityPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, fallback: errorFallback, setError, fieldError } = useApiError();
   const [success, setSuccess] = useState<string | null>(null);
 
   // Deactivate
@@ -50,7 +51,7 @@ export const SecurityPage: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to update password.');
+      setError(err, 'Failed to update password.');
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +75,7 @@ export const SecurityPage: React.FC = () => {
       });
       window.location.href = paths.auth.login;
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Account deactivation failed.');
+      notifyError(err, 'Account deactivation failed.');
     } finally {
       setIsDeactivating(false);
     }
@@ -85,7 +86,12 @@ export const SecurityPage: React.FC = () => {
       <PageHeader title="Security" description="Manage your password and account status." />
 
       {initialAlert && <Alert variant="warning" message={initialAlert} className="mb-4" />}
-      {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
+      <ErrorAlert
+        error={error}
+        fallback={errorFallback}
+        fields={['currentPassword', 'newPassword', 'confirmPassword']}
+        onClose={() => setError(null)}
+      />
       {success && <Alert variant="success" message={success} onClose={() => setSuccess(null)} />}
 
       {/* Change Password Card */}
@@ -93,6 +99,7 @@ export const SecurityPage: React.FC = () => {
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <Input
             label="Current Password"
+            error={fieldError('currentPassword')}
             type="password"
             required
             autoComplete="current-password"
@@ -103,6 +110,7 @@ export const SecurityPage: React.FC = () => {
 
           <Input
             label="New Password"
+            error={fieldError('newPassword')}
             type="password"
             required
             autoComplete="new-password"
@@ -113,6 +121,7 @@ export const SecurityPage: React.FC = () => {
 
           <Input
             label="Confirm New Password"
+            error={fieldError('confirmPassword')}
             type="password"
             required
             autoComplete="new-password"
