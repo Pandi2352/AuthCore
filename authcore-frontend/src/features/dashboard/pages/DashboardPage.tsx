@@ -52,7 +52,7 @@ export const DashboardPage: React.FC = () => {
       {/* Account Info Cards */}
       <ResponsiveGrid cols={{ base: 1, md: 3 }} gap="lg">
         <ErrorBoundary>
-          <Card title="Identity Overview" className="space-y-3">
+          <Card title="Identity Overview" contentClassName="space-y-3">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between border-b border-border py-1">
                 <span className="text-muted-foreground">Email</span>
@@ -79,7 +79,7 @@ export const DashboardPage: React.FC = () => {
         </ErrorBoundary>
 
         <ErrorBoundary>
-          <Card title="Effective Access" className="space-y-3">
+          <Card title="Effective Access" contentClassName="space-y-3">
             <div className="space-y-2 text-sm">
               <div>
                 <span className="mb-1 block text-xs font-semibold tracking-wider text-muted-foreground uppercase">
@@ -121,7 +121,7 @@ export const DashboardPage: React.FC = () => {
         </ErrorBoundary>
 
         <ErrorBoundary>
-          <Card title="Quick Actions" className="space-y-2">
+          <Card title="Quick Actions" contentClassName="space-y-2">
             <Link
               to={paths.account.profile}
               className="flex items-center gap-3 rounded-md border border-transparent p-2.5 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent"

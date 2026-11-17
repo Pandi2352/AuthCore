@@ -95,7 +95,7 @@ export const RegisterPage: React.FC = () => {
     return (
       <div className="w-full">
         <div>
-          <Card className="space-y-4 p-8 text-center">
+          <Card contentClassName="space-y-4 p-8 text-center">
             <CheckCircle2 className="mx-auto h-12 w-12 text-success" />
             <h3 className="text-xl font-bold text-foreground">Check your inbox</h3>
             <p className="text-sm text-muted-foreground">{infoMessage}</p>
@@ -188,12 +188,13 @@ export const RegisterPage: React.FC = () => {
 
             <Button
               type="submit"
-              variant="solid"
-              className="mt-2 w-full py-2.5"
+              fullWidth
+              size="lg"
+              className="mt-2"
+              leftIcon={<UserPlus />}
               isLoading={isLoading}
             >
-              <UserPlus className="mr-2 h-4 w-4" />
-              Sign Up
+              Create account
             </Button>
           </form>
 

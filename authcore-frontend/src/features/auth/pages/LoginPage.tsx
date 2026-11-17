@@ -111,16 +111,15 @@ export const LoginPage: React.FC = () => {
 
                 <Link
                   to={paths.auth.forgotPassword}
-                  className="text-xs font-semibold text-primary hover:text-primary hover:underline"
+                  className="text-sm font-medium text-primary hover:underline"
                 >
                   Forgot password?
                 </Link>
               </div>
             </div>
 
-            <Button type="submit" variant="solid" className="w-full py-2.5" isLoading={isLoading}>
-              <LogIn className="mr-2 h-4 w-4" />
-              Sign In
+            <Button type="submit" fullWidth size="lg" leftIcon={<LogIn />} isLoading={isLoading}>
+              Sign in
             </Button>
           </form>
 

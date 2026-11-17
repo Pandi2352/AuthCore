@@ -97,7 +97,7 @@ export const VerifyEmailPage: React.FC = () => {
   if (isVerifyingLink) {
     return (
       <div className="w-full">
-        <Card className="space-y-3 p-8 text-center">
+        <Card contentClassName="space-y-3 p-8 text-center">
           <RefreshCw className="mx-auto h-8 w-8 animate-spin text-primary" />
           <h3 className="text-lg font-bold text-foreground">Verifying your email...</h3>
           <p className="text-sm text-muted-foreground">Please wait a moment.</p>

@@ -1,4 +1,4 @@
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { Children, forwardRef, isValidElement, type HTMLAttributes, type ReactNode } from 'react';
 
 import { useOptionalTheme } from '@/app/theme';
 import { cn, variants } from '@/lib/utils';
@@ -27,18 +27,24 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'>
   /** Right side of the header (buttons, menu). */
   actions?: ReactNode;
   footer?: ReactNode;
+  /** Classes for the padded content area (spacing, alignment) — not the card's outer box. */
+  contentClassName?: string;
 }
 
 /**
- * Surface for grouped content. Either compose <CardHeader>/<CardContent>/<CardFooter>, or
- * pass title / subtitle / footer and children (wrapped in CardContent automatically).
+ * Surface for grouped content.
+ * - Plain children are wrapped in a padded CardContent automatically (style it with
+ *   contentClassName); title / subtitle / actions / footer add the header and footer.
+ * - Or compose <CardHeader> / <CardContent> / <CardFooter> yourself (no automatic wrapper).
  */
 export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
-  { variant, title, subtitle, actions, footer, className, children, ...props },
+  { variant, title, subtitle, actions, footer, className, contentClassName, children, ...props },
   ref,
 ) {
   const theme = useOptionalTheme();
-  const usesShortcuts = title !== undefined || subtitle !== undefined || footer !== undefined;
+  const composed = Children.toArray(children).some(
+    (child) => isValidElement(child) && CARD_PARTS.has(child.type),
+  );
   return (
     <div
       ref={ref}
@@ -57,7 +63,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
           {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
         </CardHeader>
       )}
-      {usesShortcuts ? <CardContent>{children}</CardContent> : children}
+      {composed ? children : <CardContent className={contentClassName}>{children}</CardContent>}
       {footer && <CardFooter className="border-t border-border bg-muted/60">{footer}</CardFooter>}
     </div>
   );
@@ -91,3 +97,6 @@ export function CardFooter({ className, ...props }: HTMLAttributes<HTMLDivElemen
     <div className={cn('flex items-center justify-end gap-3 px-card py-3', className)} {...props} />
   );
 }
+
+/** Parts that mean "the caller lays the card out itself". */
+const CARD_PARTS = new Set<unknown>([CardHeader, CardContent, CardFooter]);
