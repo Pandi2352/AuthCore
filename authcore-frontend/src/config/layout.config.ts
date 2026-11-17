@@ -22,9 +22,13 @@ export const layoutConfig: LayoutConfig = {
     height: 64,
     sticky: true,
     showLogo: 'when-sidebar-hidden',
+    showSidebarToggle: true,
     showBreadcrumbs: true,
-    actions: ['search', 'themeToggle', 'notifications', 'userMenu'],
+    actions: ['search', 'commandMenu', 'notifications', 'themeToggle', 'userMenu'],
     customActions: [],
+    // Example: { id: 'docs', label: 'Documentation', icon: 'FileText', href: 'https://example.com/docs', external: true }
+    //          { id: 'palette', label: 'Command menu', icon: 'Search', command: 'openCommandMenu' }
+    overflowBelow: 'md',
   },
   content: {
     maxWidth: 'container',

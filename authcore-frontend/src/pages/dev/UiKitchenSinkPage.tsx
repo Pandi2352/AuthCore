@@ -38,6 +38,7 @@ import {
   CardTitle,
   Checkbox,
   Combobox,
+  CommandPalette,
   Dialog,
   DialogBody,
   DialogClose,
@@ -158,6 +159,7 @@ export function UiKitchenSinkPage() {
   const [pageSize, setPageSize] = useState(10);
   const [bio, setBio] = useState('');
   const [tab, setTab] = useState('overview');
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const rows = PEOPLE.toSorted((a, b) =>
     sort === 'desc' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name),
@@ -409,6 +411,48 @@ export function UiKitchenSinkPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button variant="outline" leftIcon={<Search />} onClick={() => setPaletteOpen(true)}>
+            Command palette
+          </Button>
+          <CommandPalette
+            open={paletteOpen}
+            onOpenChange={setPaletteOpen}
+            groups={[
+              {
+                id: 'people',
+                heading: 'People',
+                items: PEOPLE.map((p) => ({
+                  id: p.email,
+                  label: p.name,
+                  description: p.email,
+                  keywords: [p.role],
+                  icon: <UserRound />,
+                  onSelect: () => toast(`Opened ${p.name}`),
+                })),
+              },
+              {
+                id: 'actions',
+                heading: 'Actions',
+                items: [
+                  {
+                    id: 'invite',
+                    label: 'Invite user',
+                    icon: <Plus />,
+                    shortcut: 'I',
+                    onSelect: () => toast('Invite'),
+                  },
+                  {
+                    id: 'export',
+                    label: 'Export users',
+                    icon: <Download />,
+                    badge: 'Soon',
+                    disabled: true,
+                    onSelect: () => undefined,
+                  },
+                ],
+              },
+            ]}
+          />
 
           <Popover>
             <PopoverTrigger asChild>

@@ -27,7 +27,7 @@
 | Forms | `react-hook-form` + `@hookform/resolvers` | Level 2 · module 18 | Uncontrolled forms, field errors from the API |
 | Validation | `zod` | Level 2 · module 18 | Schemas shared by forms and API response parsing |
 | Tables | `@tanstack/react-table` | Level 2 · module 21 | Sorting, column visibility, selection for admin lists |
-| Command menu | Own implementation (planned) | Level 1 · module 8 (optional) | Global search / command palette |
+| Command menu | **Own** `CommandPalette` (`components/ui/command/`) | Level 1 · module 8 | Global search / command palette |
 | Dates | Built-in `Intl` (no library) | Level 1 · module 12 | Format in the user's locale and time zone |
 | i18n | `i18next` + `react-i18next` | Level 3 · module 27 | UI in en / ta / hi like the backend emails |
 | E2E tests | `@playwright/test` | Not planned (manual testing) | Only if the team later decides to automate tests |

@@ -2,7 +2,7 @@ import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from '
 
 import { Kbd, Tooltip } from '@/components/ui';
 import { layoutConfig } from '@/config';
-import { cn } from '@/lib/utils';
+import { cn, isMacPlatform, modKeyLabel } from '@/lib/utils';
 
 import { useVisibleNavigation } from './navigation-filter';
 import { useSidebarMode } from './sidebar-mode';
@@ -10,15 +10,15 @@ import { sidebarItemSize, sidebarRowClass } from './sidebar.variants';
 import { SidebarItem } from './SidebarItem';
 import { useSidebar } from './useSidebar';
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-
 /** Footer items (settings, help) + the collapse toggle (desktop). */
 export function SidebarFooter() {
   const { footer } = useVisibleNavigation();
   const { collapsed, setCollapsed } = useSidebar();
   const { inDrawer, variant, tooltipSide } = useSidebarMode();
   const onLeft = layoutConfig.sidebar.position === 'left';
-  const showToggle = layoutConfig.sidebar.collapsible && !inDrawer;
+  // The navbar has its own toggle when layout.navbar.showSidebarToggle is on.
+  const navbarHasToggle = layoutConfig.navbar.enabled && layoutConfig.navbar.showSidebarToggle;
+  const showToggle = layoutConfig.sidebar.collapsible && !inDrawer && !navbarHasToggle;
   const label = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
   const Icon = collapsed
     ? onLeft
@@ -44,7 +44,7 @@ export function SidebarFooter() {
             <span className="inline-flex items-center gap-2">
               {label}
               <span className="inline-flex gap-0.5">
-                <Kbd>{isMac ? '⌘' : 'Ctrl'}</Kbd>
+                <Kbd>{modKeyLabel()}</Kbd>
                 <Kbd>B</Kbd>
               </span>
             </span>
@@ -54,7 +54,7 @@ export function SidebarFooter() {
             type="button"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={label}
-            aria-keyshortcuts={isMac ? 'Meta+B' : 'Control+B'}
+            aria-keyshortcuts={isMacPlatform() ? 'Meta+B' : 'Control+B'}
             className={cn(
               sidebarRowClass(false),
               sidebarItemSize[variant],

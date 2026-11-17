@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { layoutConfig } from '@/config';
 import { useBreakpoint } from '@/hooks/useMediaQuery';
 import { usePersistentState } from '@/hooks/usePersistentState';
+import { isModShortcut } from '@/lib/utils';
 
 import { SidebarContext, type SidebarContextValue } from './sidebar-context';
 
@@ -62,13 +63,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!sidebar.enabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key.toLowerCase() !== 'b' ||
-        !(event.ctrlKey || event.metaKey) ||
-        event.altKey ||
-        event.shiftKey
-      )
-        return;
+      if (!isModShortcut(event, 'b')) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest('input, textarea, [contenteditable="true"]')) return;
       event.preventDefault();

@@ -88,7 +88,7 @@ Overlays:
 - [x] Sheet / Drawer *(left / right / top / bottom; used by the mobile sidebar)*
 - [x] DropdownMenu *(roving focus, typeahead, submenus (hover / → / Enter, ← / Escape back), checkbox / radio items, labels, separators, shortcuts, destructive items, `asChild` links)*
 - [x] Popover, Tooltip *(hover delay + skip delay, opens on keyboard focus, hoverable (WCAG 1.4.13), collision-aware)*
-- [ ] Command menu (optional) → module 8 (global search), own implementation
+- [x] Command menu *(`CommandPalette`, own implementation; app wiring in module 8)*
 
 Display:
 
@@ -174,19 +174,21 @@ Navigation config shape: `types/navigation.types.ts` (`NavItem`, `NavGroup`), da
 
 ## 8. Navbar System
 
-- [~] Navbar *(exists with links and user info; to split and make configurable)*
-- [ ] `Navbar`, `NavbarLeft`, `NavbarCenter`, `NavbarRight`, actions from `layout.config.ts`
-- [ ] Sidebar toggle (collapse on desktop, drawer on mobile)
-- [ ] Logo / title when the sidebar is hidden or collapsed (configurable)
-- [ ] Breadcrumbs (optional)
-- [ ] Global search / command menu slot (optional, `Ctrl/Cmd + K`)
-- [ ] Theme toggle
-- [ ] Notification slot (badge + popover; content from Level 2 / project)
-- [ ] User menu slot (avatar dropdown; Level 2)
-- [ ] Custom action buttons from config (icon, label, path / handler)
-- [ ] Variants: standard, transparent, bordered, floating, blurred; configurable height; sticky option
-- [ ] Responsive: actions collapse into an overflow menu on small screens
-- [ ] Works with every layout preset and theme
+Files: `app/layouts/navbar/`, `app/layouts/command-menu/`, `components/ui/command/`. Settings: `layout.config.ts → navbar`, flags in `features.config.ts → ui`.
+
+- [x] Navbar split and configurable *(old inline navbar replaced in module 6)*
+- [x] `Navbar`, `NavbarLeft`, `NavbarCenter`, `NavbarRight`; built-in actions and their order from `navbar.actions` (`search`, `commandMenu`, `notifications`, `themeToggle`, `userMenu`), each behind its feature flag
+- [x] Sidebar toggle (collapse on desktop, drawer on mobile) *(`navbar.showSidebarToggle`; then the sidebar footer hides its own toggle; `Ctrl / Cmd + B` everywhere)*
+- [x] Logo / title when the sidebar is hidden or collapsed *(`navbar.showLogo`: `always` / `never` / `when-sidebar-hidden` / `when-sidebar-collapsed`)*
+- [x] Breadcrumbs (optional) *(module 6; `features.ui.breadcrumbs` + `navbar.showBreadcrumbs`)*
+- [x] Global search / command menu (`Ctrl / Cmd + K`) — **own implementation, no cmdk** *(`CommandPalette` in the UI kit: combobox + grouped listbox, ranked multi-word search over label / description / keywords, ↑/↓, Enter, Escape. The app menu lists every page the user may open (same flag / permission filter as the sidebar) and actions: theme, toggle sidebar, sign out. Search box in the center on large screens, icon below `lg`)*
+- [x] Theme toggle
+- [x] Notification slot *(bell with unread count + popover: list, mark one / all read, empty state. Data from one hook, `navbar/notifications/use-notification-feed.ts` (empty by default) — Level 2 / the project returns the same `NotificationFeed` shape from the API)*
+- [x] User menu slot *(avatar dropdown: name, email, admin badge, profile, security, appearance, theme submenu, sign out)*
+- [x] Custom action buttons from config *(`navbar.customActions`: icon + label + `href` (internal / external) **or** `command`: `openCommandMenu` / `toggleSidebar` / `toggleTheme`; validated at startup)*
+- [x] Variants: standard, transparent, bordered, floating, blurred (theme `appearance.navbar`); configurable height; sticky option
+- [x] Responsive: below `navbar.overflowBelow` (md) the theme toggle and custom actions move into a "More" menu (theme as a radio submenu); search becomes an icon; notifications and user menu stay
+- [x] Works with every layout preset and theme (navbar tokens)
 
 ## 9. Responsive & Accessibility
 
@@ -337,7 +339,7 @@ Level 1 is done when all of these pass **without editing any component**:
 | 5 | 5. Routing ✅ | Critical | Data router, paths, lazy pages, error pages |
 | 6 | 6. Layouts ✅ | Critical | App / auth / public layouts |
 | 7 | 7. Sidebar ✅ | Critical | Config-driven, collapsible, mobile drawer |
-| 8 | 8. Navbar | Critical | Configurable actions, responsive |
+| 8 | 8. Navbar ✅ | Critical | Configurable actions, responsive |
 | 9 | 9. Responsive & accessibility | Critical | Breakpoint and keyboard pass |
 | 10 | 10. Page & feedback components | High | Page scaffolding, states, global pages |
 | 11 | 11–12. Hooks & utilities | High | Reusable helpers |

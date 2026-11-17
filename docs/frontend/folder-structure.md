@@ -78,6 +78,7 @@ src/
 │   │   │   ├── PageTitle.tsx        document.title from route handle.title + app name
 │   │   │   ├── RouteProgress.tsx    Top progress bar during navigation / lazy load
 │   │   │   └── SkipLink.tsx
+│   │   ├── command-menu/            CommandMenuProvider (Ctrl/Cmd+K), AppCommandMenu (pages + actions)
 │   │   ├── sidebar/
 │   │   │   ├── SidebarProvider.tsx  State: collapsed (persisted, Ctrl/Cmd+B), drawer, expanded submenus
 │   │   │   ├── sidebar-context.ts / sidebar-mode.ts / navigation-filter.ts (flags, permissions, active)
@@ -95,11 +96,13 @@ src/
 │   │   │   └── index.ts
 │   │   ├── navbar/
 │   │   │   ├── Navbar.tsx           Container; variant from layout config
-│   │   │   ├── NavbarLeft.tsx       Menu toggle, logo (when sidebar hidden), breadcrumbs
-│   │   │   ├── NavbarCenter.tsx     Global search slot (optional)
-│   │   │   ├── NavbarRight.tsx      Actions from config: theme, notifications, user menu, custom
-│   │   │   ├── UserMenu.tsx         Avatar dropdown (profile, security, sign out) — Level 2
-│   │   │   ├── navbar.variants.ts   standard | transparent | bordered | floating
+│   │   │   ├── NavbarLeft.tsx       Sidebar toggle (collapse / drawer), logo (showLogo rule), breadcrumbs
+│   │   │   ├── NavbarCenter.tsx     Search box → command menu (large screens)
+│   │   │   ├── NavbarRight.tsx      Actions from config + custom actions; "More" overflow menu on small screens
+│   │   │   ├── UserMenu.tsx         Avatar dropdown (profile, security, appearance, theme, sign out)
+│   │   │   ├── use-navbar-commands.ts openCommandMenu / toggleSidebar / toggleTheme (custom actions)
+│   │   │   ├── notifications/       NotificationsButton (bell + popover), use-notification-feed.ts (the data source)
+│   │   │   ├── navbar.variants.ts   standard | transparent | bordered | floating | blurred
 │   │   │   └── index.ts
 │   │   └── guards/                  Route guards used by routes/index.tsx (Level 2)
 │   │       ├── RequireAuth.tsx      Not signed in → /login?returnTo=…
@@ -147,7 +150,7 @@ src/
 │   │   ├── table/                   Table primitives (DataTable with TanStack Table in Level 2)
 │   │   ├── scroll-area/
 │   │   ├── kbd/
-│   │   ├── command/                 Command palette (optional, module 8, own code)
+│   │   ├── command/                 CommandPalette + filterCommandGroups (own code, no cmdk)
 │   │   ├── toaster/                 Own toast store (toast-store.ts) + <Toaster>
 │   │   ├── primitives/              Our a11y building blocks: Slot (asChild), Portal, useFloating,
 │   │   │                            useDismiss (layers), list-navigation (roving / typeahead), compose (refs / props)
@@ -271,6 +274,7 @@ src/
 ├── types/                           Shared types
 │   ├── navigation.types.ts
 │   ├── theme.types.ts
+│   ├── notification.types.ts        AppNotification, NotificationFeed (navbar bell)
 │   ├── config.types.ts
 │   ├── common.types.ts              Id, Nullable, Option, SortOrder, …
 │   └── env.d.ts                     ImportMetaEnv for every VITE_ variable
@@ -373,7 +377,7 @@ The current code is kept and moved; nothing is rewritten from scratch. **Status:
 | ~~`src/router/index.tsx`~~ | `src/app/router.tsx` + `src/app/routes/*.routes.tsx` | Done (module 5) |
 | ~~`src/config/project.ts`~~ | `config/app.config.ts` (identity, branding), `config/features.config.ts` (flags), `config/env.ts` (API URL) | Done (module 2) |
 | ~~`src/components/common/Layout.tsx`~~ | `app/layouts/AppLayout.tsx` | Done (module 6) |
-| ~~`src/components/common/Navbar.tsx`~~ | `app/layouts/navbar/*` | Done (left / right / user menu; rest in module 8) |
+| ~~`src/components/common/Navbar.tsx`~~ | `app/layouts/navbar/*` | Done (module 8) |
 | ~~`src/components/common/Button.tsx` …~~ | `components/ui/<name>/` | Done (module 4, own variants helper) |
 | ~~`src/components/auth/ProtectedRoute.tsx`~~ | `app/layouts/guards/RequireAuth.tsx` | `returnTo` support |
 | ~~`src/components/auth/GuestRoute.tsx`~~ | `app/layouts/guards/RequireGuest.tsx` | |

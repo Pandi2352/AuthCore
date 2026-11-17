@@ -8,9 +8,9 @@ export const featuresConfig: FeaturesConfig = {
   ui: {
     themeSwitcher: true,
     themeCustomizer: true,
-    globalSearch: false,
-    commandMenu: false,
-    notifications: false,
+    globalSearch: true,
+    commandMenu: true,
+    notifications: true,
     breadcrumbs: true,
   },
   auth: {

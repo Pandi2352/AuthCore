@@ -211,6 +211,14 @@ Then run `npm run check:contrast` (also part of `verify`). For a new color prese
 
 List your modules in `src/config/navigation.config.ts` (Leads, Contacts, Deals, Reports …), their URLs in `src/config/paths.ts`, and icons in `src/config/icons.ts`. The sidebar renders it (groups, submenus, icons, badges, feature flags, permissions); items with `status: 'planned'` get a "not built yet" page automatically until you add the real route in `src/app/routes/<area>.routes.tsx`.
 
+
+### 5.6 Navbar ✅
+
+`src/config/layout.config.ts → navbar`: which actions show and in what order (`search`, `commandMenu`, `notifications`, `themeToggle`, `userMenu`), your own buttons (`customActions`: a link or a built-in command), logo rule, sidebar toggle, height, sticky. Switch whole features off in `features.config.ts → ui` (`globalSearch`, `commandMenu`, `notifications`).
+
+- **Notifications:** connect your API in `src/app/layouts/navbar/notifications/use-notification-feed.ts` (return the same shape); until then the bell shows an empty state — set `ui.notifications: false` to hide it.
+- **Search:** the command menu lists your pages and common actions automatically; add groups (e.g. customers, orders from the API) in `src/app/layouts/command-menu/AppCommandMenu.tsx`.
+
 ---
 
 ## Step 6 — Connect the frontend to the backend ✅

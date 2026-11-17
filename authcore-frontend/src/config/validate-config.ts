@@ -26,6 +26,12 @@ export interface ConfigSet {
   presets: readonly ThemePreset[];
 }
 
+const NAVBAR_COMMANDS: ReadonlySet<string> = new Set([
+  'openCommandMenu',
+  'toggleSidebar',
+  'toggleTheme',
+]);
+
 const SLUG = /^[a-z][a-z0-9-]{1,30}[a-z0-9]$/;
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const LANGUAGE = /^[a-z]{2,3}(-[A-Z]{2})?$/;
@@ -153,7 +159,11 @@ function checkLayout(layout: LayoutConfig, problems: string[]): void {
     actionIds.add(action.id);
     if (!isIconName(action.icon))
       at(`navbar.customActions "${action.id}"`, `unknown icon "${action.icon}"`);
-    if (action.external ? !isHttpUrl(action.href) : !action.href.startsWith('/')) {
+    if (action.command !== undefined) {
+      if (!NAVBAR_COMMANDS.has(action.command)) {
+        at(`navbar.customActions "${action.id}"`, `unknown command "${action.command}"`);
+      }
+    } else if (action.external ? !isHttpUrl(action.href) : !action.href.startsWith('/')) {
       at(
         `navbar.customActions "${action.id}"`,
         'href must be "/…" or an http(s) URL when external',

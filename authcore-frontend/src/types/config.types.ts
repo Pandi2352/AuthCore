@@ -63,17 +63,30 @@ export type FeatureFlag = {
 // ---------------------------------------------------------------------------
 
 export type Breakpoint = 'sm' | 'md' | 'lg' | 'xl';
+/**
+ * Built-in navbar actions:
+ * - search: search box (center, wide screens) / icon (small screens) → opens the command menu
+ * - commandMenu: Ctrl / Cmd + K command menu (pages + actions); icon button when there is no search box
+ * - themeToggle, notifications (bell + popover), userMenu (avatar dropdown)
+ */
 export type NavbarActionId =
   'search' | 'commandMenu' | 'themeToggle' | 'notifications' | 'userMenu';
 
-export interface NavbarCustomAction {
+/** Built-in behaviours a custom action can trigger instead of a link. */
+export type NavbarCommand = 'openCommandMenu' | 'toggleSidebar' | 'toggleTheme';
+
+interface NavbarCustomActionBase {
   id: string;
   label: string;
   icon: IconName;
-  /** Internal path (config/paths.ts) or external https URL. */
-  href: string;
-  external?: boolean;
 }
+
+/** Custom navbar button: a link (internal path / external URL) or a built-in command. */
+export type NavbarCustomAction = NavbarCustomActionBase &
+  (
+    | { href: string; external?: boolean; command?: never }
+    | { command: NavbarCommand; href?: never; external?: never }
+  );
 
 export interface LayoutConfig {
   sidebar: {
@@ -96,11 +109,16 @@ export interface LayoutConfig {
     /** Height in px. */
     height: number;
     sticky: boolean;
-    showLogo: 'always' | 'never' | 'when-sidebar-hidden';
+    /** when-sidebar-collapsed: also while the sidebar is icon-only. */
+    showLogo: 'always' | 'never' | 'when-sidebar-hidden' | 'when-sidebar-collapsed';
+    /** Button that collapses the sidebar (desktop) / opens the drawer (mobile). */
+    showSidebarToggle: boolean;
     showBreadcrumbs: boolean;
     /** Built-in actions, in order (each still needs its feature flag where one exists). */
     actions: readonly NavbarActionId[];
     customActions: readonly NavbarCustomAction[];
+    /** Below this breakpoint, theme toggle and custom actions move into a "more" menu. */
+    overflowBelow: Breakpoint;
   };
   content: {
     maxWidth: 'full' | 'container' | 'narrow';

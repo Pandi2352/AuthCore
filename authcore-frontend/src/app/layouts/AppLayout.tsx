@@ -4,6 +4,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { layoutConfig } from '@/config';
 import { cn } from '@/lib/utils';
 
+import { CommandMenuProvider } from './command-menu/CommandMenuProvider';
 import { MainContent } from './components/MainContent';
 import { RouteAccessBoundary } from './components/RouteAccessBoundary';
 import { SkipLink } from './components/SkipLink';
@@ -19,8 +20,10 @@ import { Sidebar, SidebarMobile, SidebarProvider, useSidebar } from './sidebar';
 export function AppLayout() {
   return (
     <SidebarProvider>
-      <SkipLink />
-      <AppShell />
+      <CommandMenuProvider>
+        <SkipLink />
+        <AppShell />
+      </CommandMenuProvider>
     </SidebarProvider>
   );
 }

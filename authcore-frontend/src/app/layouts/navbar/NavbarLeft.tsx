@@ -1,23 +1,35 @@
-import { Menu } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { Logo } from '@/components/common/Logo';
 import { IconButton } from '@/components/ui';
 import { appConfig, layoutConfig, paths } from '@/config';
+import { modKeyLabel } from '@/lib/utils';
 
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { useSidebar } from '../sidebar';
 
-/** Menu button (mobile), logo when there is no sidebar, breadcrumbs. */
+/** Sidebar toggle, logo (per layout.navbar.showLogo), breadcrumbs. */
 export function NavbarLeft() {
-  const { isDesktop, mobileOpen, setMobileOpen } = useSidebar();
+  const { isDesktop, collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebar();
   const { sidebar, navbar } = layoutConfig;
   const sidebarVisible = sidebar.enabled && isDesktop;
   const showLogo =
-    navbar.showLogo === 'always' || (navbar.showLogo === 'when-sidebar-hidden' && !sidebarVisible);
+    navbar.showLogo === 'always' ||
+    (navbar.showLogo === 'when-sidebar-hidden' && !sidebarVisible) ||
+    (navbar.showLogo === 'when-sidebar-collapsed' && (!sidebarVisible || collapsed));
+
+  const onLeft = sidebar.position === 'left';
+  const CollapseIcon = collapsed
+    ? onLeft
+      ? PanelLeftOpen
+      : PanelRightOpen
+    : onLeft
+      ? PanelLeftClose
+      : PanelRightClose;
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-3">
+    <div className="flex min-w-0 flex-1 items-center gap-2">
       {sidebar.enabled && !isDesktop && (
         <IconButton
           aria-label="Open navigation"
@@ -27,16 +39,26 @@ export function NavbarLeft() {
           onClick={() => setMobileOpen(true)}
         />
       )}
+      {sidebarVisible && sidebar.collapsible && navbar.showSidebarToggle && (
+        <IconButton
+          aria-label={`${collapsed ? 'Expand' : 'Collapse'} sidebar (${modKeyLabel()} B)`}
+          aria-expanded={!collapsed}
+          aria-keyshortcuts="Control+B Meta+B"
+          icon={<CollapseIcon />}
+          onClick={toggleCollapsed}
+          className="text-muted-foreground"
+        />
+      )}
       {showLogo && (
         <Link
           to={paths.dashboard}
           aria-label={`${appConfig.name} home`}
-          className="shrink-0 cursor-pointer rounded-md"
+          className="shrink-0 cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Logo hideName={!isDesktop} />
         </Link>
       )}
-      <Breadcrumbs />
+      <Breadcrumbs className="ml-1" />
     </div>
   );
 }
