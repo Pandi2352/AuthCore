@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
 import packageJson from './package.json' with { type: 'json' };
+import { buildNoFlashScript } from './src/app/theme/theme-core.ts';
+import { themeRuntimeOptions } from './src/app/theme/theme-options.ts';
 import { appConfig } from './src/config/app.config.ts';
 
 const escapeHtml = (value: string): string =>
@@ -38,9 +40,28 @@ function appConfigHtml(): Plugin {
   };
 }
 
+/**
+ * Applies the stored theme (mode, preset, appearance) before the first paint, so dark mode
+ * never flashes white. With a Content-Security-Policy, allow this script by its hash.
+ */
+function themeNoFlash(): Plugin {
+  return {
+    name: 'theme-no-flash',
+    transformIndexHtml() {
+      return [
+        {
+          tag: 'script',
+          children: buildNoFlashScript(themeRuntimeOptions),
+          injectTo: 'head-prepend',
+        },
+      ];
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), appConfigHtml()],
+  plugins: [react(), tailwindcss(), appConfigHtml(), themeNoFlash()],
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },

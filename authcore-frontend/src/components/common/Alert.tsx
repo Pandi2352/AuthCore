@@ -21,23 +21,24 @@ export const Alert: React.FC<AlertProps> = ({
   onClose,
 }) => {
   const styles = {
-    info: 'bg-blue-50 border-blue-200 text-blue-900',
-    success: 'bg-emerald-50 border-emerald-200 text-emerald-900',
-    warning: 'bg-amber-50 border-amber-200 text-amber-900',
-    error: 'bg-rose-50 border-rose-200 text-rose-900',
+    info: 'border-info/25 bg-info-soft text-info-soft-foreground',
+    success: 'border-success/25 bg-success-soft text-success-soft-foreground',
+    warning: 'border-warning/25 bg-warning-soft text-warning-soft-foreground',
+    error: 'border-danger/25 bg-danger-soft text-danger-soft-foreground',
   };
 
   const icons = {
-    info: <Info className="h-5 w-5 shrink-0 text-blue-600" />,
-    success: <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />,
-    warning: <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />,
-    error: <AlertCircle className="h-5 w-5 shrink-0 text-rose-600" />,
+    info: <Info className="h-5 w-5 shrink-0" aria-hidden="true" />,
+    success: <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />,
+    warning: <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />,
+    error: <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />,
   };
 
   return (
     <div
+      role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
       className={cn(
-        'relative flex items-start gap-3 rounded-xl border p-4 text-sm',
+        'relative flex items-start gap-3 rounded-md border p-4 text-sm',
         styles[type],
         className,
       )}
@@ -51,7 +52,7 @@ export const Alert: React.FC<AlertProps> = ({
       {onClose && (
         <button
           onClick={onClose}
-          className="text-slate-400 transition-colors hover:text-slate-600"
+          className="rounded-md opacity-70 transition-opacity hover:opacity-100"
           aria-label="Close alert"
         >
           <X className="h-4 w-4" />

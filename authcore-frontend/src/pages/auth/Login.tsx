@@ -60,19 +60,21 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-slate-50 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col justify-center bg-background py-12 sm:px-6 lg:px-8">
       <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-2xl font-black text-white shadow-md">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary text-2xl font-black text-primary-foreground">
           {appConfig.name.charAt(0)}
         </div>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Sign in to {appConfig.name}
         </h2>
-        <p className="mt-2 text-sm text-slate-500">Reusable authentication & access management</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Reusable authentication & access management
+        </p>
       </div>
 
       <div className="mt-8 px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
-        <Card className="border-slate-200 shadow-lg">
+        <Card className="border-border">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
 
@@ -100,7 +102,7 @@ export const Login: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-[34px] right-3 text-slate-400 transition-colors hover:text-slate-600"
+                  className="absolute top-[34px] right-3 text-muted-foreground transition-colors hover:text-muted-foreground"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -108,19 +110,19 @@ export const Login: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <label className="flex cursor-pointer items-center text-sm text-slate-600">
+                <label className="flex cursor-pointer items-center text-sm text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    className="h-4 w-4 rounded-md border-input text-primary focus:ring-ring"
                   />
                   <span className="ml-2">Remember me (30 days)</span>
                 </label>
 
                 <Link
                   to={paths.auth.forgotPassword}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
+                  className="text-xs font-semibold text-primary hover:text-primary hover:underline"
                 >
                   Forgot password?
                 </Link>
@@ -134,11 +136,11 @@ export const Login: React.FC = () => {
           </form>
 
           {featuresConfig.auth.allowRegistration && (
-            <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-600">
+            <div className="mt-6 border-t border-border pt-5 text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
               <Link
                 to={paths.auth.register}
-                className="font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
+                className="font-semibold text-primary hover:text-primary hover:underline"
               >
                 Sign up
               </Link>
@@ -146,9 +148,12 @@ export const Login: React.FC = () => {
           )}
 
           {featuresConfig.auth.enableSelfRecovery && (
-            <div className="mt-2 text-center text-xs text-slate-500">
+            <div className="mt-2 text-center text-xs text-muted-foreground">
               Closed or deactivated account?{' '}
-              <Link to={paths.auth.recovery} className="font-medium text-slate-700 hover:underline">
+              <Link
+                to={paths.auth.recovery}
+                className="font-medium text-foreground hover:underline"
+              >
                 Recover account
               </Link>
             </div>

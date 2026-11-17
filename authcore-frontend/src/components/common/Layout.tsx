@@ -5,9 +5,9 @@ import { Navbar } from './Navbar';
 
 export const Layout: React.FC = () => {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <Navbar />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-(--content-max-width) flex-1 px-4 py-page sm:px-6 lg:px-8">
         <Outlet />
       </main>
     </div>

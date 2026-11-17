@@ -18,20 +18,20 @@ export const PasswordRequirements: React.FC<PasswordRequirementsProps> = ({ pass
   ];
 
   return (
-    <div className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
-      <p className="font-semibold text-slate-700">Password requirements:</p>
+    <div className="space-y-1.5 rounded-md border border-border bg-muted p-3 text-xs">
+      <p className="font-semibold text-foreground">Password requirements:</p>
       <div className="grid grid-cols-1 gap-1.5 pt-1 sm:grid-cols-2">
         {rules.map((rule) => (
           <div
             key={rule.label}
             className={`flex items-center gap-1.5 transition-colors ${
-              rule.valid ? 'font-medium text-emerald-700' : 'text-slate-500'
+              rule.valid ? 'font-medium text-success' : 'text-muted-foreground'
             }`}
           >
             {rule.valid ? (
-              <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+              <Check className="h-3.5 w-3.5 shrink-0" />
             ) : (
-              <X className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <X className="h-3.5 w-3.5 shrink-0" />
             )}
             <span>{rule.label}</span>
           </div>

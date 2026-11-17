@@ -2,6 +2,10 @@
 
 How the starter kit changes its whole look without touching components.
 
+> **Project defaults:** corners are `rounded-md` everywhere (`radius: 'medium'` = 6px) and there are **no shadows** (`shadows: 'none'`). Components use only `rounded-md` (`rounded-full` for circles: avatars, dots) and only the themed `shadow-card` / `shadow-popover`; `npm run check:architecture` rejects any other `rounded-*` / `shadow-*` class. A project that wants shadows changes one value in `theme.config.ts`.
+
+**Files:** tokens `src/styles/tokens.css` · values `themes.css` / `appearance.css` · element defaults `base.css` · runtime `src/app/theme/` (`theme-core.ts` pure logic shared with the no-flash script, `theme-options.ts`, `ThemeProvider.tsx`, `useTheme.ts`) · storage `src/lib/storage.ts` · UI `components/common/ThemeToggle.tsx`, `ThemeCustomizer.tsx`, page `pages/settings/Appearance.tsx`.
+
 ## Three independent axes
 
 | Axis | Values | Stored as | Changes |
@@ -51,10 +55,10 @@ Rule: **no palette classes** (`bg-indigo-600`, `text-slate-500`) and **no hex va
 
 | Group | Tokens | Driven by |
 | --- | --- | --- |
-| Radius | `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-xl`, `--radius-full` | `data-radius`: `sharp` (0) · `small` · `medium` · `large` · `pill` |
-| Density / spacing | `--control-h-sm/md/lg`, `--space-page`, `--space-section`, `--gap-form` | `data-density`: `compact` · `comfortable` · `spacious` |
+| Radius | `--radius-base` → `rounded-md`; the other steps scale from it | `data-radius`: `sharp` (0) · `small` (4px) · `medium` (6px, default) · `large` (8px) · `pill` (14px) |
+| Density / spacing | `h-control-sm/md/lg`, `p-page`, `p-card`, `gap-section`, `gap-form` | `data-density`: `compact` · `comfortable` · `spacious` |
 | Typography | `--font-sans`, `--font-mono`, `--text-base-size`, heading scale | `theme.config.ts` font option |
-| Shadows | `--shadow-sm/md/lg`, `--shadow-card`, `--shadow-popover` | `data-shadow`: `none` · `subtle` · `elevated` |
+| Shadows | `shadow-card`, `shadow-popover` (every Tailwind `shadow-*` step maps to the same setting) | `data-shadow`: `none` (default) · `subtle` · `elevated` |
 | Borders | `--border-width`, `--border-strength` | `data-borders`: `none` · `subtle` · `strong` |
 | Layout | `--sidebar-width`, `--sidebar-width-collapsed`, `--navbar-height`, `--content-max-width` | `layout.config.ts` |
 | Motion | `--duration-fast/normal`, `--ease-standard` | `0ms` under `prefers-reduced-motion` |
@@ -107,7 +111,9 @@ Rule: **no palette classes** (`bg-indigo-600`, `text-slate-500`) and **no hex va
 [data-preset="emerald"] { --primary: oklch(0.6 0.15 160); /* … */ }
 ```
 
-Derived shades (hover, soft) use `color-mix(in oklch, var(--primary) 85%, black)` so a custom brand color needs one value, not a full scale.
+Hover shades use `color-mix(in oklch, var(--primary) 86%, black)`. Every color that text sits on is a literal OKLCH value, so `npm run check:contrast` can verify it. Neutrals and status colors are shared; a preset only overrides the primary family (`--primary`, `--primary-foreground`, `--primary-soft`, `--primary-soft-foreground`) in light and dark.
+
+The **brand** preset takes `branding.primaryColor` from `app.config.ts`. At runtime it is darkened (light mode) or lightened (dark mode) only as much as needed to reach 4.5:1 against the page, and the text on it is black or white, whichever contrasts more. So any brand color works in both modes.
 
 ## Presets
 
@@ -162,7 +168,7 @@ export const themeConfig: ThemeConfig = {
       radius: 'medium',
       density: 'comfortable',
       font: 'system',
-      shadows: 'subtle',
+      shadows: 'none',
       borders: 'subtle',
       sidebar: 'classic',
       navbar: 'standard',
@@ -175,7 +181,7 @@ export const themeConfig: ThemeConfig = {
   userCustomizable: {
     mode: true,
     preset: true,
-    appearance: ['radius', 'density', 'sidebar'],
+    appearance: ['radius', 'density'], // + 'sidebar' once the sidebar exists (module 7)
   },
   /** Presets offered in the customizer (all registered presets if omitted). */
   presets: ['default', 'emerald', 'violet', 'orange', 'brand'],
@@ -188,14 +194,15 @@ Types are unions of literal strings (`type Radius = 'sharp' | 'small' | …`), s
 
 - Resolves `system` with `matchMedia('(prefers-color-scheme: dark)')` and listens for changes.
 - Applies `data-mode`, `data-preset`, `data-radius`, `data-density`, `data-shadow`, `data-borders`, `data-font` on `<html>`; sets `color-scheme` and `<meta name="theme-color">`.
-- Persists the user's choice in `localStorage` under `<slug>:theme:v1` (only the axes the project allows users to change).
+- Persists the user's choice through `lib/storage.ts` under `<slug>:theme:v1` (only the axes the project allows users to change; everything else always follows `theme.config.ts`).
 - Syncs across tabs (`storage` event).
 - Exposes `useTheme()` → `{ mode, resolvedMode, preset, appearance, setMode, setPreset, setAppearance, reset }`.
-- Pure helpers (`apply-theme.ts`, `theme-storage.ts`) keep the React part thin.
+- Pure helpers in `theme-core.ts` (`resolveThemeState`, `applyThemeToElement`) keep the React part thin.
+- Components outside `app/` may import only `@/app/theme` (the public index).
 
 ## No-flash loading
 
-The theme must be applied **before** React renders, or users see a white flash in dark mode. A tiny inline script in `index.html` (source in `app/theme/no-flash-script.ts`, injected at build) reads the stored choice, resolves `system`, and sets the `data-*` attributes on `<html>`. With a CSP, the script is allowed by its hash.
+The theme must be applied **before** React renders, or users see a white flash in dark mode. A small inline script (≈4 KB) is injected first in `<head>` at build by the `themeNoFlash` Vite plugin. It is built from the **same** `resolveThemeState` / `applyThemeToElement` functions the provider uses (`theme-core.ts`, serialized with `toString()`, so they must stay self-contained), reads the stored choice, resolves `system`, and sets the `data-*` attributes, `color-scheme` and the `theme-color` meta on `<html>`. With a CSP, the script is allowed by its hash.
 
 ## Sidebar and navbar styles
 
@@ -203,15 +210,15 @@ Sidebar and navbar have their own tokens (`--sidebar-*`, `--navbar-*`), so a pro
 
 ## Checklist
 
-- [ ] Tokens defined in `tokens.css` and mapped in `@theme inline`.
-- [ ] Presets `default`, `emerald`, `violet`, `orange` (+ `slate`, `rose`, `brand`) for light and dark.
-- [ ] Appearance attributes and their token values in `appearance.css`.
-- [ ] `dark` custom variant on `[data-mode="dark"]`.
-- [ ] `ThemeProvider`, `useTheme`, storage with validation and versioned key, cross-tab sync.
-- [ ] No-flash inline script; `color-scheme` and `theme-color` meta updated.
-- [ ] `ThemeToggle` (navbar) and `ThemeCustomizer` (settings + dev panel) respect `userCustomizable`.
-- [ ] Components use defaults from `useTheme().appearance` when no variant prop is passed.
-- [ ] Reduced-motion and focus-ring tokens in `base.css`.
-- [ ] `/dev/ui` kitchen-sink page shows every component; preset / mode / appearance switchers at the top.
-- [ ] Manual check: provider resolves system mode, persists, falls back on invalid stored values, applies attributes; kitchen-sink page reviewed in every preset × mode before each release.
-- [ ] Contrast check for every preset × mode (manual or a small script over the token values).
+- [x] Tokens defined in `tokens.css` and mapped in `@theme inline`.
+- [x] Presets `default`, `emerald`, `violet`, `orange` (+ `slate`, `rose`, `brand`) for light and dark.
+- [x] Appearance attributes and their token values in `appearance.css`.
+- [x] `dark` custom variant on `[data-mode="dark"]`.
+- [x] `ThemeProvider`, `useTheme`, storage with validation and versioned key, cross-tab sync.
+- [x] No-flash inline script; `color-scheme` and `theme-color` meta updated.
+- [x] `ThemeToggle` (navbar) and `ThemeCustomizer` (Appearance page) respect `userCustomizable`.
+- [ ] Components use defaults from `useTheme().appearance` when no variant prop is passed *(module 4, UI library)*.
+- [x] Reduced-motion and focus-ring styles in `base.css`.
+- [ ] `/dev/ui` kitchen-sink page shows every component; preset / mode / appearance switchers at the top *(module 4)*.
+- [ ] Manual check: provider resolves system mode, persists, falls back on invalid stored values, applies attributes; pages reviewed in every preset × mode before each release.
+- [x] Contrast check for every preset × mode (`npm run check:contrast`).

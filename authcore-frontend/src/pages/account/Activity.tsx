@@ -37,8 +37,8 @@ export const Activity: React.FC = () => {
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Recent Activity</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground">Recent Activity</h1>
+          <p className="text-sm text-muted-foreground">
             Security audit trail of logins, security updates, and access changes
           </p>
         </div>
@@ -49,7 +49,7 @@ export const Activity: React.FC = () => {
             setIsLoading(true);
             setFilterEvent(e.target.value);
           }}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          className="rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
         >
           <option value="">All Events</option>
           <option value="LOGIN">Sign In</option>
@@ -64,33 +64,35 @@ export const Activity: React.FC = () => {
 
       <Card title="Audit History">
         {isLoading ? (
-          <p className="py-4 text-center text-sm text-slate-500">Loading audit records...</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">Loading audit records...</p>
         ) : activities.length === 0 ? (
-          <p className="py-4 text-center text-sm text-slate-500">No activity records recorded.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            No activity records recorded.
+          </p>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border">
             {activities.map((item) => (
               <div key={item.id} className="flex items-start justify-between gap-4 py-3.5">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5">
                     {item.isSuccess ? (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                      <CheckCircle2 className="h-5 w-5 text-success" />
                     ) : (
-                      <XCircle className="h-5 w-5 text-rose-500" />
+                      <XCircle className="h-5 w-5 text-danger" />
                     )}
                   </div>
 
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-900">
+                      <span className="text-sm font-semibold text-foreground">
                         {item.event.replace(/_/g, ' ')}
                       </span>
-                      <Badge variant={item.isSuccess ? 'emerald' : 'rose'}>
+                      <Badge variant={item.isSuccess ? 'success' : 'danger'}>
                         {item.isSuccess ? 'Success' : 'Failed'}
                       </Badge>
                     </div>
 
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       <span>IP: {item.ipAddress}</span>
                       {item.browser && (
                         <span>
@@ -101,7 +103,7 @@ export const Activity: React.FC = () => {
                   </div>
                 </div>
 
-                <span className="shrink-0 text-xs text-slate-400">
+                <span className="shrink-0 text-xs text-muted-foreground">
                   {formatDate(item.timestamp)}
                 </span>
               </div>

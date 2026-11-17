@@ -102,8 +102,10 @@ export const Profile: React.FC = () => {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Profile Settings</h1>
-        <p className="text-sm text-slate-500">Manage your account profile and public information</p>
+        <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage your account profile and public information
+        </p>
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
@@ -112,7 +114,7 @@ export const Profile: React.FC = () => {
       {/* Avatar Card */}
       <Card title="Profile Picture">
         <div className="flex flex-col items-center gap-6 sm:flex-row">
-          <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-indigo-100 bg-slate-100 text-slate-400 shadow-inner">
+          <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-primary/25 bg-muted text-muted-foreground">
             <UserIcon className="h-12 w-12" />
           </div>
 
@@ -148,11 +150,11 @@ export const Profile: React.FC = () => {
                 onClick={handleDeleteAvatar}
                 disabled={isAvatarLoading}
               >
-                <Trash2 className="mr-1.5 h-4 w-4 text-rose-500" />
+                <Trash2 className="mr-1.5 h-4 w-4 text-danger" />
                 Remove
               </Button>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               JPEG, PNG or WebP, up to 2MB. Square crop recommended.
             </p>
           </div>

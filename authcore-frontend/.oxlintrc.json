@@ -91,6 +91,12 @@
       "rules": {
         "react/only-export-components": "off"
       }
+    },
+    {
+      "files": ["src/app/theme/theme-core.ts"],
+      "rules": {
+        "unicorn/consistent-function-scoping": "off"
+      }
     }
   ],
   "ignorePatterns": ["dist", "node_modules", "coverage"]

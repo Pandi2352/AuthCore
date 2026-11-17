@@ -4,7 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { GuestRoute } from '@/components/auth/GuestRoute';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Layout } from '@/components/common/Layout';
-import { paths } from '@/config';
+import { featuresConfig, paths } from '@/config';
 import { Activity } from '@/pages/account/Activity';
 import { Profile } from '@/pages/account/Profile';
 import { Security } from '@/pages/account/Security';
@@ -17,6 +17,7 @@ import { ResetPassword } from '@/pages/auth/ResetPassword';
 import { VerifyEmail } from '@/pages/auth/VerifyEmail';
 import { Dashboard } from '@/pages/dashboard/Dashboard';
 import { NotFound } from '@/pages/NotFound';
+import { Appearance } from '@/pages/settings/Appearance';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -73,6 +74,9 @@ export const AppRouter: React.FC = () => {
         <Route path={paths.account.security} element={<Security />} />
         <Route path={paths.account.sessions} element={<Sessions />} />
         <Route path={paths.account.activity} element={<Activity />} />
+        {featuresConfig.ui.themeCustomizer && (
+          <Route path={paths.settings.appearance} element={<Appearance />} />
+        )}
       </Route>
 
       {/* 404 Catch-All */}

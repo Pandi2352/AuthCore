@@ -154,6 +154,13 @@ export const navigationFooterConfig: NavGroup = {
   id: 'footer',
   items: [
     {
+      id: 'settings-appearance',
+      title: 'Appearance',
+      path: paths.settings.appearance,
+      icon: 'Palette',
+      featureFlag: 'ui.themeCustomizer',
+    },
+    {
       id: 'settings',
       title: 'Settings',
       path: paths.settings.general,

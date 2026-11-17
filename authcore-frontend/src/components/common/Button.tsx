@@ -19,21 +19,20 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center font-medium transition-colors rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50';
 
   const variants = {
-    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500 shadow-sm',
-    secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-800 focus:ring-slate-400',
-    outline:
-      'border border-slate-300 hover:bg-slate-50 text-slate-700 focus:ring-indigo-500 bg-white',
-    danger: 'bg-rose-600 hover:bg-rose-700 text-white focus:ring-rose-500 shadow-sm',
-    ghost: 'hover:bg-slate-100 text-slate-600 hover:text-slate-900 focus:ring-slate-400',
+    primary: 'bg-primary text-primary-foreground hover:bg-primary-hover',
+    secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary-hover',
+    outline: 'border border-input bg-surface text-foreground hover:bg-accent',
+    danger: 'bg-danger text-danger-foreground hover:bg-danger-hover',
+    ghost: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
   };
 
   const sizes = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-2.5 text-base',
+    sm: 'h-control-sm px-3 text-xs',
+    md: 'h-control-md px-4 text-sm',
+    lg: 'h-control-lg px-6 text-base',
   };
 
   return (
@@ -42,7 +41,7 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled || isLoading}
       {...props}
     >
-      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {isLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
       {children}
     </button>
   );

@@ -100,39 +100,39 @@ export const VerifyEmail: React.FC = () => {
 
   if (isVerifyingLink) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Card className="w-full max-w-md space-y-3 p-8 text-center">
-          <RefreshCw className="mx-auto h-8 w-8 animate-spin text-indigo-600" />
-          <h3 className="text-lg font-bold text-slate-900">Verifying your email...</h3>
-          <p className="text-sm text-slate-500">Please wait a moment.</p>
+          <RefreshCw className="mx-auto h-8 w-8 animate-spin text-primary" />
+          <h3 className="text-lg font-bold text-foreground">Verifying your email...</h3>
+          <p className="text-sm text-muted-foreground">Please wait a moment.</p>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-slate-50 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col justify-center bg-background py-12 sm:px-6 lg:px-8">
       <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 shadow-sm">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary-soft text-primary">
           <Mail className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Verify your email
         </h2>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-muted-foreground">
           Confirm your email address to access your account
         </p>
       </div>
 
       <div className="mt-8 px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
-        <Card className="border-slate-200 shadow-lg">
+        <Card className="border-border">
           {error && <Alert type="error" message={error} className="mb-4" />}
           {success && <Alert type="success" message={success} className="mb-4" />}
 
           {tokenParam && success ? (
             <div className="space-y-4 text-center">
-              <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
-              <p className="text-sm text-slate-600">Your account is ready.</p>
+              <CheckCircle2 className="mx-auto h-12 w-12 text-success" />
+              <p className="text-sm text-muted-foreground">Your account is ready.</p>
               <Link to={paths.auth.login}>
                 <Button variant="primary" className="w-full">
                   Sign In
@@ -175,14 +175,14 @@ export const VerifyEmail: React.FC = () => {
                   type="button"
                   onClick={handleResend}
                   disabled={!email || resendCooldown > 0 || isLoading}
-                  className="font-semibold text-indigo-600 hover:text-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="font-semibold text-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {resendCooldown > 0 ? `Resend available in ${resendCooldown}s` : 'Resend code'}
                 </button>
 
                 <Link
                   to={paths.auth.login}
-                  className="text-slate-500 hover:text-slate-800 hover:underline"
+                  className="text-muted-foreground hover:text-foreground hover:underline"
                 >
                   Back to Sign In
                 </Link>

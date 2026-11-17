@@ -84,15 +84,15 @@ export const ResetPassword: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-slate-50 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col justify-center bg-background py-12 sm:px-6 lg:px-8">
       <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 shadow-sm">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-primary-soft text-primary">
           <Lock className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Set new password
         </h2>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-muted-foreground">
           {isTokenVerified
             ? 'Enter your new strong password'
             : 'Enter the verification code sent to your email'}
@@ -100,7 +100,7 @@ export const ResetPassword: React.FC = () => {
       </div>
 
       <div className="mt-8 px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
-        <Card className="border-slate-200 shadow-lg">
+        <Card className="border-border">
           {error && <Alert type="error" message={error} className="mb-4" />}
           {successMessage && <Alert type="info" message={successMessage} className="mb-4" />}
 
@@ -167,10 +167,10 @@ export const ResetPassword: React.FC = () => {
             </form>
           )}
 
-          <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-600">
+          <div className="mt-6 border-t border-border pt-5 text-center text-sm text-muted-foreground">
             <Link
               to={paths.auth.login}
-              className="font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
+              className="font-semibold text-primary hover:text-primary hover:underline"
             >
               Back to Sign In
             </Link>

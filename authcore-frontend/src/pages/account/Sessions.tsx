@@ -67,8 +67,8 @@ export const Sessions: React.FC = () => {
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Active Sessions</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground">Active Sessions</h1>
+          <p className="text-sm text-muted-foreground">
             Devices and browsers currently logged into your account
           </p>
         </div>
@@ -86,18 +86,20 @@ export const Sessions: React.FC = () => {
 
       <Card title={`Logged In Devices (${sessions.length})`}>
         {isLoading ? (
-          <p className="py-4 text-center text-sm text-slate-500">Loading sessions...</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">Loading sessions...</p>
         ) : sessions.length === 0 ? (
-          <p className="py-4 text-center text-sm text-slate-500">No active sessions found.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            No active sessions found.
+          </p>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border">
             {sessions.map((session) => (
               <div
                 key={session.id}
                 className="flex flex-col justify-between gap-4 py-4 sm:flex-row sm:items-center"
               >
                 <div className="flex items-start gap-3.5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                     {session.deviceType === 'mobile' ? (
                       <Smartphone className="h-5 w-5" />
                     ) : (
@@ -107,14 +109,14 @@ export const Sessions: React.FC = () => {
 
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-900">
+                      <span className="text-sm font-semibold text-foreground">
                         {session.deviceName || `${session.browser} on ${session.os}`}
                       </span>
-                      {session.isCurrent && <Badge variant="emerald">Current Device</Badge>}
-                      {session.isPersistent && <Badge variant="slate">Remember Me</Badge>}
+                      {session.isCurrent && <Badge variant="success">Current Device</Badge>}
+                      {session.isPersistent && <Badge variant="neutral">Remember Me</Badge>}
                     </div>
 
-                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>IP: {session.lastIpAddress || session.ipAddress}</span>
                       <span>Signed in: {formatDate(session.signedInAt)}</span>
                       <span>Last active: {formatDate(session.lastUsedAt)}</span>
@@ -127,7 +129,7 @@ export const Sessions: React.FC = () => {
                     variant={session.isCurrent ? 'outline' : 'ghost'}
                     size="sm"
                     onClick={() => handleRevokeSession(session.id)}
-                    className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                    className="text-danger hover:bg-danger-soft hover:text-danger"
                   >
                     <Trash2 className="mr-1.5 h-4 w-4" />
                     {session.isCurrent ? 'Sign Out Here' : 'Revoke'}

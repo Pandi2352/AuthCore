@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // Architecture rules the linter can't express (part of `npm run verify`).
 //
-//   node scripts/check-architecture.mjs           rules as errors, colors as warnings
-//   node scripts/check-architecture.mjs --strict  colors as errors too (after the theme module)
+//   node scripts/check-architecture.mjs
 //
 // Rules (docs/frontend/folder-structure.md):
 //   1. import.meta.env only in src/config/env.ts
 //   2. fetch / XMLHttpRequest only in the API layer (src/lib/api/, src/lib/api-client.ts)
 //   3. Layer boundaries: lib → no React / UI; hooks → no UI / features; components → no features / app / pages;
 //      config → only types and other config; features → no other feature (except the auth public API), no app
-//   4. Colors: no Tailwind palette classes (bg-indigo-600 …) or hex values outside config / styles
+//   4. Colors: no Tailwind palette classes (bg-indigo-600 …) or hex values outside config / styles / theme runtime
+//   7. Shape: corners are rounded-md (rounded-full only for circles); shadows only through the
+//      theme tokens shadow-card / shadow-popover (off by default: theme.config.ts → shadows 'none')
 //   5. Project identity: the app name / slug from app.config.ts never hard-coded outside config/
 //   6. Routes: no inline path strings in to="/…", href="/…", navigate('/…') — use paths from config/paths.ts
 import fs from 'node:fs';
@@ -17,7 +18,6 @@ import path from 'node:path';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SRC = path.join(ROOT, 'src');
-const isStrict = process.argv.includes('--strict');
 
 const ENV_READER = 'src/config/env.ts';
 const API_LAYER = [/^src\/lib\/api\//, /^src\/lib\/api-client\.ts$/];
@@ -33,8 +33,12 @@ const IDENTITY_RE = IDENTITY.length
 /** Inline internal routes (rule 6). */
 const INLINE_ROUTE = /\b(?:to|href)="\/|\bnavigate\(\s*['"`]\/|location\.href\s*=\s*['"`]\//g;
 
+/** Rule 7: one corner radius and themed shadows only (docs/frontend/theme-system.md). */
+const SHAPE =
+  /(?<![\w-])(?:[a-z0-9-]+:)*(?:rounded(?:-(?:none|xs|sm|lg|xl|2xl|3xl))?|rounded-[trblsexy]{1,2}(?:-[a-z0-9]+)?|shadow(?:-(?:2xs|xs|sm|md|lg|xl|2xl|inner))?|inset-shadow-[a-z0-9]+|drop-shadow(?:-[a-z0-9]+)?)(?![\w-])/g;
+
 /** Where literal colors are allowed (configuration and token definitions). */
-const COLOR_ALLOWED = [/^src\/config\//, /^src\/styles\//, /^src\/index\.css$/];
+const COLOR_ALLOWED = [/^src\/config\//, /^src\/styles\//, /^src\/app\/theme\//];
 
 const PALETTE =
   /\b(?:bg|text|border|ring|from|to|via|fill|stroke|outline|divide|placeholder|shadow|accent|caret|decoration)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|white|black)(?:-\d{2,3})?(?:\/\d{1,3})?\b/g;
@@ -56,8 +60,8 @@ const BOUNDARIES = [
   },
   {
     from: /^src\/components\//,
-    deny: [/^src\/(features|app|pages)\//],
-    why: 'components/ are business-free: no features, app wiring or pages',
+    deny: [/^src\/(features|pages)\//, /^src\/app\/(?!theme$)/],
+    why: "components/ are business-free: no features, app wiring or pages (only '@/app/theme')",
   },
   {
     from: /^src\/config\//,
@@ -199,6 +203,15 @@ for (const abs of walk(SRC)) {
     }
   }
 
+  // 7. Shape (class strings in components only)
+  if (!isCss) {
+    for (const m of text.matchAll(SHAPE)) {
+      const cls = m[0].replace(/^(?:[a-z0-9-]+:)*/, '');
+      errors.push(
+        `${file}:${lineOf(text, m.index)}  "${cls}": use rounded-md (rounded-full for circles) and shadow-card / shadow-popover`,
+      );
+    }
+  }
   // 4. Literal colors
   if (!COLOR_ALLOWED.some((re) => re.test(file))) {
     for (const re of isCss ? [HEX] : [PALETTE, HEX]) {
@@ -214,19 +227,11 @@ if (errors.length > 0) {
   for (const e of errors) console.error(`  ✖ ${e}`);
 }
 if (colorFindings.length > 0) {
-  const files = new Set(colorFindings.map((f) => f.split(':')[0]));
-  const label = isStrict ? '✖' : '⚠';
-  console[isStrict ? 'error' : 'warn'](
-    `\n${label} ${colorFindings.length} hard-coded color(s) in ${files.size} file(s): use design tokens (docs/frontend/theme-system.md).` +
-      (isStrict
-        ? ''
-        : ' Warning until the theme module replaces them; --strict makes it an error.'),
+  console.error(
+    `\n✖ ${colorFindings.length} hard-coded color(s): use design tokens (bg-primary, text-muted-foreground …; docs/frontend/theme-system.md)`,
   );
-  if (isStrict || process.argv.includes('--verbose')) {
-    for (const f of colorFindings) console.error(`    ${f}`);
-  }
+  for (const f of colorFindings) console.error(`    ${f}`);
 }
-const hasFailed = errors.length > 0 || (isStrict && colorFindings.length > 0);
-if (!hasFailed)
-  console.log(`✔ Architecture rules passed${colorFindings.length ? ' (with color warnings)' : ''}`);
+const hasFailed = errors.length > 0 || colorFindings.length > 0;
+if (!hasFailed) console.log('✔ Architecture rules passed');
 process.exit(hasFailed ? 1 : 0);

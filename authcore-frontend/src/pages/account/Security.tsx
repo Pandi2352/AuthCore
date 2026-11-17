@@ -80,8 +80,8 @@ export const Security: React.FC = () => {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Security & Credentials</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-foreground">Security & Credentials</h1>
+        <p className="text-sm text-muted-foreground">
           Manage your password, authentication policies, and account status
         </p>
       </div>
@@ -135,13 +135,15 @@ export const Security: React.FC = () => {
       </Card>
 
       {/* Danger Zone */}
-      <Card title="Danger Zone" className="border-rose-200 bg-rose-50/20">
+      <Card title="Danger Zone" className="border-danger/25 bg-danger-soft/40">
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-danger" />
             <div>
-              <h4 className="text-sm font-semibold text-rose-900">Deactivate your account</h4>
-              <p className="mt-0.5 text-xs text-rose-700">
+              <h4 className="text-sm font-semibold text-danger-soft-foreground">
+                Deactivate your account
+              </h4>
+              <p className="mt-0.5 text-xs text-danger">
                 Deactivating your account will instantly sign you out from all devices. You can
                 recover your account anytime using the account recovery page.
               </p>

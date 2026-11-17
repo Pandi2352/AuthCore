@@ -16,8 +16,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:architecture": "node scripts/check-architecture.mjs",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run check:architecture && vite build",
-    "project:init": "node scripts/project-init.mjs"
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run check:architecture && npm run check:contrast && vite build",
+    "project:init": "node scripts/project-init.mjs",
+    "check:contrast": "node scripts/check-contrast.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

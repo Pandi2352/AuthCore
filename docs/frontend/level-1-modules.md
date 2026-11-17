@@ -26,7 +26,7 @@ Details: [project-setup-checklist.md](./project-setup-checklist.md), sections 1�
 - [x] oxlint full rule set *(plugins react (incl. hooks), typescript, import, jsx-a11y, unicorn, promise, oxc; correctness = error, suspicious / perf = warn, `--deny-warnings` in `lint`; existing findings fixed)*
 - [x] Prettier (+ Tailwind class sorting), `.editorconfig`, `.gitattributes`, `.nvmrc` *(Prettier 3, `prettier-plugin-tailwindcss` (also inside `cn` / `clsx` / `cva`), 100-column lines, LF; Node 20.19.4 + `engines`)*
 - [x] Import ordering *(`@ianvs/prettier-plugin-sort-imports`: Node built-ins → packages → `@/` → relative)*
-- [x] Architecture checks *(`scripts/check-architecture.mjs`: env access, network calls, layer boundaries, feature isolation as errors; hard-coded colors as warnings (281 today) until the theme module, then `--strict`)*
+- [x] Architecture checks *(`scripts/check-architecture.mjs`: env access, network calls, layer boundaries, feature isolation, hard-coded colors (since module 3), project name / inline routes (module 2), corner radius / shadows (module 3))*
 - [x] Scripts *(`typecheck`, `lint`, `lint:fix`, `format`, `format:check`, `check:architecture`, `verify`)*
 - [x] Remove template leftovers; `index.html` title / meta from config *(`App.css`, sample images, `icons.svg` removed; `%APP_*%` placeholders filled from `src/config/app.config.ts` by a Vite plugin)*
 - [x] CI workflow *(`.github/workflows/frontend-ci.yml`: `npm ci` → `npm run verify` → production audit → `dist` artifact)*
@@ -51,20 +51,20 @@ Everything a new project edits is in `src/config/` (import from `@/config`); the
 
 ## 3. Theme & Design Tokens
 
-Full design: [theme-system.md](./theme-system.md).
+Full design: [theme-system.md](./theme-system.md). **Project defaults: corners `rounded-md` everywhere, no shadows** (`theme.config.ts` → `radius: 'medium'`, `shadows: 'none'`; enforced by the architecture check).
 
-- [ ] Semantic color tokens (background, surface, muted, primary, secondary, accent, border, input, ring, success / warning / danger / info, overlay, sidebar-*, navbar-*)
-- [ ] Non-color tokens: radius, density / control heights, spacing, typography, shadows, borders, layout sizes, motion, z-index
-- [ ] Tokens registered in Tailwind v4 `@theme inline`; `dark` custom variant on `[data-mode="dark"]`
-- [ ] Color mode: light, dark, system (OS detection + live change listener)
-- [ ] Presets: default (blue), emerald, violet, orange (+ slate, rose, brand color from config) — light and dark each
-- [ ] Appearance: radius, density, font, shadows, borders, sidebar / navbar / card / input / button styles
-- [ ] `ThemeProvider`, `useTheme()`; persisted (versioned key), validated, cross-tab sync
-- [ ] No theme flash on load (inline script); `color-scheme` + `theme-color` meta
-- [ ] `ThemeToggle`, `ThemeCustomizer` (respect `userCustomizable`)
-- [ ] Reduced motion, focus ring, scrollbar styles in `base.css`
-- [ ] Contrast check for every preset × mode
-- [ ] Replace every palette class / hex color in the current code with tokens
+- [x] Semantic color tokens *(background, foreground, surface, muted, accent, primary (+ hover, soft), secondary, border, input, ring, success / warning / danger / info (+ foreground, soft), overlay, sidebar-*, navbar-*, chart-1…5 in `styles/themes.css`)*
+- [x] Non-color tokens *(radius scale from one `--radius-base`; control heights `h-control-sm/md/lg`; spacing `p-page`, `p-card`, `gap-form`, `gap-section`; font families; shadows `shadow-card` / `shadow-popover` (every `shadow-*` step follows the setting); border strength; layout sizes from `layout.config.ts`; motion durations; z-index scale)*
+- [x] Tokens registered in Tailwind v4 `@theme inline` (`styles/tokens.css`); `dark` custom variant on `[data-mode="dark"]`
+- [x] Color mode: light, dark, system *(`matchMedia` via `useSyncExternalStore`: follows OS changes live)*
+- [x] Presets: default (blue), emerald, violet, orange, slate, rose, brand — light and dark each *(brand: `branding.primaryColor`, darkened / lightened at runtime just enough for 4.5:1, black or white text picked automatically)*
+- [x] Appearance: radius, density, font, shadows, borders, sidebar / navbar / card / input / button styles *(all set as `data-*` on `<html>`; radius / density / font / shadows / borders have token values now; sidebar / navbar / card / input / button styles are read by those components in modules 4, 7, 8)*
+- [x] `ThemeProvider`, `useTheme()` *(`src/app/theme/`; stored in `<slug>:theme:v1` through `lib/storage.ts`, only the axes users may change; invalid stored values fall back to defaults; cross-tab sync via the `storage` event)*
+- [x] No theme flash on load *(inline script generated at build from `theme-core.ts`, the same functions the provider uses; sets `data-*`, `color-scheme`, `theme-color` meta)*
+- [x] `ThemeToggle` (navbar: light → dark → system) and `ThemeCustomizer` (Appearance page, `/settings/appearance`) *(respect `userCustomizable` and the `ui.themeSwitcher` / `ui.themeCustomizer` flags; native radio groups)*
+- [x] Reduced motion, focus ring, scrollbar, selection and placeholder styles in `styles/base.css`
+- [x] Contrast check for every preset × mode *(`npm run check:contrast`, part of `verify`: 408 text / ring pairs, WCAG 4.5:1 text, 3:1 ring; incl. the dark sidebar and the brand color)*
+- [x] Replace every palette class / hex color in the current code with tokens *(281 → 0; hard-coded colors are now errors; `Badge` variants are semantic: neutral / primary / success / warning / danger / info)*
 
 ## 4. UI Component Library (Design System)
 
@@ -371,7 +371,7 @@ Level 1 is done when all of these pass **without editing any component**:
 | --- | --- | --- | --- |
 | 1 | 1. Project setup & code quality | Critical | `npm run verify` green, CI running |
 | 2 | 2. Configuration system ✅ | Critical | All config files typed and used; `project:init` |
-| 3 | 3. Theme & design tokens | Critical | Modes, presets, appearance, no flash |
+| 3 | 3. Theme & design tokens ✅ | Critical | Modes, presets, appearance, no flash |
 | 4 | 4. UI components (core: button, input, field, card, badge, alert, dialog, dropdown, tooltip, toaster) | Critical | Kitchen-sink page |
 | 5 | 5. Routing | Critical | Data router, paths, lazy pages, error pages |
 | 6 | 6. Layouts | Critical | App / auth / public layouts |

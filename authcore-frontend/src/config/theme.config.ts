@@ -1,4 +1,4 @@
-import type { ThemeConfig } from '@/types/theme.types';
+import type { ThemeConfig } from '../types/theme.types.ts';
 
 /**
  * Default theme and what users may change. Applied by the ThemeProvider
@@ -12,7 +12,7 @@ export const themeConfig: ThemeConfig = {
       radius: 'medium',
       density: 'comfortable',
       font: 'system',
-      shadows: 'subtle',
+      shadows: 'none', // project default: flat, no shadows
       borders: 'subtle',
       sidebar: 'classic',
       navbar: 'standard',
@@ -24,7 +24,7 @@ export const themeConfig: ThemeConfig = {
   userCustomizable: {
     mode: true,
     preset: true,
-    appearance: ['radius', 'density', 'sidebar'],
+    appearance: ['radius', 'density'], // + 'sidebar' once the sidebar exists (module 7)
   },
   presets: ['default', 'emerald', 'violet', 'orange', 'brand'],
 };

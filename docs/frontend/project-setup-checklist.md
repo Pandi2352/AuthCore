@@ -82,7 +82,8 @@ What exists and what has to change before the starter kit is "foundation-ready":
   - [x] `fetch` / `XMLHttpRequest` only in the API layer (`src/lib/api/`, today `src/lib/api-client.ts`).
   - [x] `features/A` never imports `features/B/**` (only `@/features/auth` public index); features never import `app/`.
   - [x] `components/`, `hooks/`, `lib/` never import `features/`, `app/` or pages; `lib/` never imports React; `config/` only imports types and config.
-  - [~] No hex colors / palette classes outside `config/` and `styles/`. *(Reported as a warning: 281 in 22 files today; becomes an error with `--strict` once the theme module replaces them.)*
+  - [x] No hex colors / palette classes outside `config/`, `styles/` and the theme runtime *(error since module 3; was 281 in 22 files)*.
+  - [x] Only `rounded-md` (`rounded-full` for circles) and the themed `shadow-card` / `shadow-popover` *(module 3: project default is no shadows)*.
 - [ ] File naming check (components `PascalCase.tsx`, hooks `useCamelCase.ts`, other files kebab-case): applied when files move into the target structure.
 - [x] `npm run verify` = format check → lint → typecheck → architecture check → build. Must pass before every commit.
 
@@ -97,7 +98,8 @@ What exists and what has to change before the starter kit is "foundation-ready":
 | `lint:fix` | oxlint `--fix` | [x] |
 | `format` / `format:check` | Prettier write / check | [x] |
 | `typecheck` | Types only (`tsc -b`) | [x] |
-| `check:architecture` | Architecture rules (`--strict` after the theme module) | [x] |
+| `check:architecture` | Architecture rules (colors, shape, boundaries, env, network, identity, routes) | [x] |
+| `check:contrast` | WCAG contrast of every preset × mode (module 3) | [x] |
 | `verify` | Everything CI runs | [x] |
 | `analyze` | Bundle size report | [ ] (Level 3) |
 | `project:init` | Rename the starter for a new project (like the backend) | [ ] (Level 1 · module 2) |

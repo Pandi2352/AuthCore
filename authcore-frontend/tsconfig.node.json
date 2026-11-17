@@ -2,7 +2,7 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "es2023",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"],
     "types": ["node"],
     "skipLibCheck": true,
 
@@ -26,5 +26,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["vite.config.ts", "src/config/app.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "src/config/app.config.ts",
+    "src/config/theme.config.ts",
+    "src/app/theme/theme-core.ts",
+    "src/app/theme/theme-options.ts"
+  ]
 }

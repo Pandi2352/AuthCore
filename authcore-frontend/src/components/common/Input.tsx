@@ -15,7 +15,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-slate-700">
+          <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-foreground">
             {label}
           </label>
         )}
@@ -24,16 +24,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           type={type}
           className={cn(
-            'w-full rounded-lg border bg-white px-3.5 py-2 text-sm transition-colors placeholder:text-slate-400 focus:ring-2 focus:ring-offset-1 focus:outline-none',
+            'h-control-md w-full rounded-md border bg-surface px-3 text-sm text-foreground transition-colors placeholder:text-muted-foreground focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70',
             error
-              ? 'border-rose-400 text-rose-900 focus:border-rose-400 focus:ring-rose-400'
-              : 'border-slate-300 text-slate-900 focus:border-indigo-500 focus:ring-indigo-500',
+              ? 'border-danger focus:border-danger focus:ring-danger/25'
+              : 'border-input focus:border-ring focus:ring-ring/25',
             className,
           )}
+          aria-invalid={error ? true : undefined}
           {...props}
         />
-        {error && <p className="mt-1 text-xs text-rose-600">{error}</p>}
-        {hint && !error && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
+        {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+        {hint && !error && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
       </div>
     );
   },

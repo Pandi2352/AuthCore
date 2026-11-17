@@ -196,9 +196,16 @@ If a value is wrong, the app shows a **Configuration problems** page in developm
 
 Replace `public/favicon.svg`. Put logos in `public/brand/` (`logo.svg`, `logo-dark.svg`, `logo-mark.svg` for the collapsed sidebar) and reference them only from `app.config.ts` → `logos` (`light`, `dark`, `mark`); a different favicon file → `favicon`.
 
-### 5.4 Colors and look 🔜
+### 5.4 Colors and look ✅
 
-*Frontend module 3 (theme system):* choose a preset or set `brand` in `src/config/theme.config.ts` and the appearance (radius, density, sidebar / navbar style). Until then the color comes from `branding.primaryColor` and the existing components.
+In `src/config/theme.config.ts`:
+
+- `defaults.preset`: `'default'` (blue), `'emerald'`, `'violet'`, `'orange'`, `'slate'`, `'rose'`, or `'brand'` to use your `branding.primaryColor` (made readable in light and dark automatically).
+- `defaults.mode`: `'system'`, `'light'` or `'dark'`.
+- `defaults.appearance`: kit defaults are `radius: 'medium'` (rounded-md everywhere) and `shadows: 'none'`; change them here only if the product wants a different look.
+- `userCustomizable`: what users may change on the Appearance page (`presets` = which colors they can pick).
+
+Then run `npm run check:contrast` (also part of `verify`). For a new color preset, see [theme-system.md → Adding a preset](./frontend/theme-system.md#adding-a-preset).
 
 ### 5.5 Navigation (config ✅, sidebar 🔜)
 

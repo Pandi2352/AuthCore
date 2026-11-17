@@ -1,36 +1,35 @@
 import React from 'react';
 
 import { cn } from '@/lib/utils';
+import type { BadgeTone } from '@/types/config.types';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'slate' | 'blue' | 'emerald' | 'amber' | 'rose' | 'purple';
+  variant?: BadgeTone;
 }
+
+const variants: Record<BadgeTone, string> = {
+  neutral: 'border-border bg-muted text-muted-foreground',
+  primary: 'border-primary/25 bg-primary-soft text-primary-soft-foreground',
+  success: 'border-success/25 bg-success-soft text-success-soft-foreground',
+  warning: 'border-warning/25 bg-warning-soft text-warning-soft-foreground',
+  danger: 'border-danger/25 bg-danger-soft text-danger-soft-foreground',
+  info: 'border-info/25 bg-info-soft text-info-soft-foreground',
+};
 
 export const Badge: React.FC<BadgeProps> = ({
   children,
   className,
-  variant = 'slate',
+  variant = 'neutral',
   ...props
-}) => {
-  const variants = {
-    slate: 'bg-slate-100 text-slate-700 border-slate-200',
-    blue: 'bg-blue-50 text-blue-700 border-blue-200',
-    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    amber: 'bg-amber-50 text-amber-700 border-amber-200',
-    rose: 'bg-rose-50 text-rose-700 border-rose-200',
-    purple: 'bg-purple-50 text-purple-700 border-purple-200',
-  };
-
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
-        variants[variant],
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </span>
-  );
-};
+}) => (
+  <span
+    className={cn(
+      'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium',
+      variants[variant],
+      className,
+    )}
+    {...props}
+  >
+    {children}
+  </span>
+);

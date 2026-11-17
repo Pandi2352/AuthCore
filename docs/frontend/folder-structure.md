@@ -101,9 +101,9 @@ src/
 │       ├── ThemeProvider.tsx        Mode + preset + appearance; applies data-* attributes on <html>
 │       ├── theme-context.ts
 │       ├── useTheme.ts
-│       ├── apply-theme.ts           Pure: theme state → data attributes / CSS variables
-│       ├── theme-storage.ts         Read / write / validate the persisted choice
-│       └── no-flash-script.ts       Inline script source injected into index.html
+│       ├── theme-core.ts            Pure: stored value → valid theme; theme → data-* on <html>; no-flash script
+│       ├── theme-options.ts         Storage key + options from theme / app config (also read by vite.config.ts)
+│       └── index.ts                 Public API (ThemeProvider, useTheme): the only app/ import allowed in components
 │
 ├── components/                      Shared, business-free UI
 │   ├── ui/                          Design system (one folder per component)
@@ -250,7 +250,7 @@ src/
 │   │   └── query-keys.ts            Key factory per feature
 │   ├── format/                      date.ts, number.ts, currency.ts, file-size.ts, string.ts
 │   ├── utils/                       cn.ts, invariant.ts, sleep.ts, object.ts, url.ts (safe returnTo)
-│   ├── storage/                     local-storage.ts (namespaced by app slug, JSON-safe, versioned)
+│   ├── storage.ts                   The only localStorage access: JSON-safe, never throws, cross-tab subscribe (keys `<slug>:<name>:v1`)
 │   ├── validation/                  Shared Zod helpers (email, password-policy rules), Level 2
 │   └── constants/                   breakpoints.ts, storage-keys.ts, http.ts
 │
@@ -262,12 +262,12 @@ src/
 │   └── env.d.ts                     ImportMetaEnv for every VITE_ variable
 │
 ├── styles/
-│   ├── index.css                    @import order only (tailwind, tokens, themes, base, utilities)
+│   ├── index.css                    @import order only (tailwind, tokens, themes, appearance, base) + dark variant
 │   ├── tokens.css                   @theme: color / radius / spacing / shadow / font / z-index tokens
 │   ├── themes.css                   [data-preset][data-mode] → color values
 │   ├── appearance.css               [data-radius] [data-density] … → token values
 │   ├── base.css                     Element defaults, focus ring, scrollbar, reduced motion
-│   └── utilities.css                @utility helpers (e.g. scrollbar-thin, text-balance)
+│   └── utilities.css                @utility helpers when needed (not created yet)
 │
 └── assets/                          Imported by code (bundled, hashed): illustrations, empty-state art
 ```
@@ -282,7 +282,7 @@ src/
 | `features/X/` | `components/`, `hooks/`, `lib/`, `config/`, `types/`, `@/features/auth` (public index only) | Other features' internals, `app/` |
 | `pages/` | `components/`, `hooks/`, `lib/`, `config/`, `types/` | `features/`, `app/` |
 | `components/ui/` | `lib/utils`, `hooks/`, `types/` | `components/common` / `page` / `feedback` / `form`, `features/`, `app/`, `config/` (except theme types) |
-| `components/common`, `page`, `feedback`, `form` | `components/ui/`, `hooks/`, `lib/`, `config/`, `types/` | `features/`, `app/` |
+| `components/common`, `page`, `feedback`, `form` | `components/ui/`, `hooks/`, `lib/`, `config/`, `types/`, `@/app/theme` (public index) | `features/`, other `app/` |
 | `hooks/` | `lib/`, `types/`, `config/` | React components, `features/`, `app/` |
 | `lib/` | `lib/`, `types/`, `config/env.ts` | React, `components/`, `hooks/`, `features/`, `app/` |
 | `config/` | `types/`, `lucide-react` (icons registry) | Everything else |
@@ -355,7 +355,7 @@ The current code is kept and moved; nothing is rewritten from scratch.
 | `src/main.tsx` | `src/main.tsx` | Import `@/app/App`; keep `StrictMode` |
 | `src/App.tsx` | `src/app/App.tsx` | Providers + `RouterProvider` |
 | `src/App.css`, `assets/hero.png`, `react.svg`, `vite.svg`, `public/icons.svg` | delete | Unused template files |
-| `src/index.css` | `src/styles/index.css` + `tokens.css` / `themes.css` / `base.css` | Body colors become tokens |
+| ~~`src/index.css`~~ | `src/styles/index.css` + `tokens.css` / `themes.css` / `appearance.css` / `base.css` | Done (module 3) |
 | `src/router/index.tsx` | `src/app/router.tsx` + `src/app/routes/*.routes.tsx` (paths already in `src/config/paths.ts`) | Data router, lazy pages |
 | ~~`src/config/project.ts`~~ | `config/app.config.ts` (identity, branding), `config/features.config.ts` (flags), `config/env.ts` (API URL) | Done (module 2) |
 | `src/components/common/Layout.tsx` | `app/layouts/AppLayout.tsx` | + sidebar, main content |
