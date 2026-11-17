@@ -48,24 +48,55 @@ AuthCore/
 │   │   ├── database/           MongoDB connection, base schema, plugins, scripts
 │   │   ├── common/             Shared building blocks (filters, interceptors, DTOs, ...)
 │   │   ├── shared/             App-wide services (graceful shutdown)
-│   │   └── modules/            Feature modules (health, users, auth)
+│   │   └── modules/            Feature modules (health, users, auth, account, etc.)
 │   ├── Dockerfile
 │   └── .env.example
-└── 📘 docs/                    Planning and setup documentation
+├── ⚛️ authcore-frontend/       React 19 + TypeScript + Vite 8 + Tailwind CSS 4 UI
+│   ├── src/
+│   │   ├── components/         Route guards (ProtectedRoute, GuestRoute) & UI primitives
+│   │   ├── config/             Project identity & feature toggles (project.ts)
+│   │   ├── context/            Auth state, silent auto-refresh queue (AuthContext.tsx)
+│   │   ├── hooks/              RBAC & permission helpers (usePermissions.ts)
+│   │   ├── lib/                API client with silent 401 refresh queue & error mapping
+│   │   ├── pages/              Auth screens (Login, Register, OTP/Link, Reset, Recovery, Profile, Sessions)
+│   │   ├── router/             Client-side routes & layout wrappers
+│   │   ├── services/           Typed API client adapters (auth, account, access-control)
+│   │   └── types/              TypeScript definitions matching backend API DTOs
+│   └── vite.config.ts
+└── 📘 docs/                    Planning and setup documentation (backend/ and frontend/)
 ```
 
 ## 📚 Documentation
 
 | | Document | Contents |
 | :---: | --- | --- |
-| 🧭 | [docs/overview.md](docs/overview.md) | Project goals, scope (28 modules), build levels |
-| 🟩 | [docs/level-1-modules.md](docs/level-1-modules.md) | Modules 1–20 (MVP) with the sprint plan |
-| 🟨 | [docs/level-2-modules.md](docs/level-2-modules.md) | Modules 21–24: advanced security and identity |
-| 🟥 | [docs/level-3-modules.md](docs/level-3-modules.md) | Modules 25–28: enterprise IAM and compliance |
-| ✅ | [docs/project-setup-checklist.md](docs/project-setup-checklist.md) | Production-ready foundation: every setup decision, convention and verification |
-| 🧰 | [docs/techstack.md](docs/techstack.md) | Technology stack and versions |
+Index of everything: [docs/README.md](docs/README.md). Starting a new product from AuthCore: [docs/new-project-guide.md](docs/new-project-guide.md).
+
+**Backend**
+
+| | Document | Contents |
+| :---: | --- | --- |
+| 🧭 | [docs/backend/overview.md](docs/backend/overview.md) | Project goals, scope (28 modules), build levels |
+| 🟩 | [docs/backend/level-1-modules.md](docs/backend/level-1-modules.md) | Modules 1–20 (MVP) with the sprint plan |
+| 🟨 | [docs/backend/level-2-modules.md](docs/backend/level-2-modules.md) | Modules 21–24: advanced security and identity |
+| 🟥 | [docs/backend/level-3-modules.md](docs/backend/level-3-modules.md) | Modules 25–28: enterprise IAM and compliance |
+| ✅ | [docs/backend/project-setup-checklist.md](docs/backend/project-setup-checklist.md) | Production-ready foundation: every setup decision, convention and verification |
+| 🧰 | [docs/backend/techstack.md](docs/backend/techstack.md) | Technology stack and versions |
 | 🔑 | [docs/login-api-checklist.md](docs/login-api-checklist.md) | Login API: production checklist status |
 | 👩‍💻 | [authcore-backend/README.md](authcore-backend/README.md) | Developer guide for the backend |
+
+**Frontend**
+
+| | Document | Contents |
+| :---: | --- | --- |
+| 🧭 | [docs/frontend/overview.md](docs/frontend/overview.md) | Starter kit + AuthCore client, principles, current state |
+| ✅ | [docs/frontend/project-setup-checklist.md](docs/frontend/project-setup-checklist.md) | Tooling and foundation checklist, audit of the current code |
+| 🗂️ | [docs/frontend/folder-structure.md](docs/frontend/folder-structure.md) | Target structure, import rules, naming, migration map |
+| 🎨 | [docs/frontend/theme-system.md](docs/frontend/theme-system.md) | Color mode, presets, appearance, design tokens |
+| 🟩 | [docs/frontend/level-1-modules.md](docs/frontend/level-1-modules.md) | Modules 1–16: reusable starter kit |
+| 🟨 | [docs/frontend/level-2-modules.md](docs/frontend/level-2-modules.md) | Modules 17–26: AuthCore client screens |
+| 🟥 | [docs/frontend/level-3-modules.md](docs/frontend/level-3-modules.md) | Modules 27–34: production and enterprise |
+| 🧰 | [docs/frontend/techstack.md](docs/frontend/techstack.md) | Packages, versions, decisions |
 
 ## 🧰 Tech stack
 
@@ -185,7 +216,7 @@ All configuration comes from environment variables, validated at startup. See [`
 - 🏷️ Every response has an `X-Request-Id` header; quote it when reporting a problem.
 - 🕒 Dates are ISO 8601 in UTC.
 
-Full conventions: [setup checklist, sections 4–5](docs/project-setup-checklist.md).
+Full conventions: [setup checklist, sections 4–5](docs/backend/project-setup-checklist.md).
 
 ## 📊 Project status
 

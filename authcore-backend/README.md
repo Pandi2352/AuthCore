@@ -1,6 +1,6 @@
 # AuthCore Backend
 
-NestJS API for AuthCore, a reusable authentication and authorization service. This guide covers installing, running and working on the backend. For the project overview see the [root README](../README.md); for every setup decision see the [setup checklist](../docs/project-setup-checklist.md).
+NestJS API for AuthCore, a reusable authentication and authorization service. This guide covers installing, running and working on the backend. For the project overview see the [root README](../README.md); for every setup decision see the [setup checklist](../docs/backend/project-setup-checklist.md).
 
 ## Contents
 
@@ -387,7 +387,7 @@ Generate with `npx nest g module|controller|service modules/<name>` (no spec fil
 
 ### Naming
 
-Files and folders: kebab-case with a type suffix (`user-session.service.ts`). Class names must match the file type (`UserSessionService`). Interfaces have no `I` prefix; boolean variables start with `is` / `has` / `can` / ...; enum members are PascalCase. Full rules: [checklist section 7](../docs/project-setup-checklist.md).
+Files and folders: kebab-case with a type suffix (`user-session.service.ts`). Class names must match the file type (`UserSessionService`). Interfaces have no `I` prefix; boolean variables start with `is` / `has` / `can` / ...; enum members are PascalCase. Full rules: [checklist section 7](../docs/backend/project-setup-checklist.md).
 
 ### Request pipeline
 
@@ -463,7 +463,7 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 ### Query rules
 
-Build filters from DTO fields only (never `find(req.body)`); paginate every list (`paginate()`, max 100); select only needed fields; use `.lean()` for reads. Full rules: [checklist sections 8 and 13](../docs/project-setup-checklist.md).
+Build filters from DTO fields only (never `find(req.body)`); paginate every list (`paginate()`, max 100); select only needed fields; use `.lean()` for reads. Full rules: [checklist sections 8 and 13](../docs/backend/project-setup-checklist.md).
 
 ## 7. Swagger
 
@@ -547,7 +547,7 @@ throw new ValidationException([{ field: 'password', message: 'password is too we
 | `500` | Unexpected error (generic message only) |
 | `503` | Database unavailable, query timeout, not ready |
 
-Error codes live in `src/common/constants/error-codes.constants.ts`. Full conventions: [checklist section 5](../docs/project-setup-checklist.md).
+Error codes live in `src/common/constants/error-codes.constants.ts`. Full conventions: [checklist section 5](../docs/backend/project-setup-checklist.md).
 
 ## 9. Security configuration
 

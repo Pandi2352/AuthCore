@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="%APP_LANG%">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- %APP_*% values come from src/config/app.config.ts (see vite.config.ts) -->
+    <title>%APP_NAME%</title>
+    <meta name="description" content="%APP_DESCRIPTION%" />
+    <meta name="application-name" content="%APP_NAME%" />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="%APP_THEME_COLOR_LIGHT%"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="%APP_THEME_COLOR_DARK%"
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

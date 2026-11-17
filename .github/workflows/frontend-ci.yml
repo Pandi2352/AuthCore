@@ -1,0 +1,48 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['authcore-frontend/**', '.github/workflows/frontend-ci.yml']
+  pull_request:
+    paths: ['authcore-frontend/**', '.github/workflows/frontend-ci.yml']
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: authcore-frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: authcore-frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: authcore-frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Format, lint, types, architecture rules, build
+        run: npm run verify
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: authcore-frontend-dist
+          path: authcore-frontend/dist
+          retention-days: 7

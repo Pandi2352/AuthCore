@@ -1465,7 +1465,7 @@ this.model.find(filter).maxTimeMS(30_000);  // this query may take up to 30s
 - [ ] Prepare Docker Compose for local MongoDB development. *(Later.)*
 - [x] Pin container image versions. *(`node:20.19.4-alpine3.22`.)*
 
-Usage: see [authcore-backend/README.md, section 11](../authcore-backend/README.md#11-docker).
+Usage: see [authcore-backend/README.md, section 11](../../authcore-backend/README.md#11-docker).
 
 ## 15. Git and repository standards
 
@@ -1518,8 +1518,8 @@ Usage: see [authcore-backend/README.md, section 11](../authcore-backend/README.m
 | --- | --- |
 | `README.md` (root) | Anyone opening the repository: what AuthCore is, where things are, how to start |
 | `authcore-backend/README.md` | Developers working on the backend |
-| `docs/project-setup-checklist.md` | Why each setup decision was made, and how it was verified |
-| `docs/overview.md`, `docs/level-*-modules.md` | Product scope and build order |
+| `docs/backend/project-setup-checklist.md` | Why each setup decision was made, and how it was verified |
+| `docs/backend/overview.md`, `docs/backend/level-*-modules.md` | Product scope and build order |
 
 ---
 
