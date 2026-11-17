@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
   sidebarCollapsed: { name: 'sidebar-collapsed', version: 1 },
   sidebarExpanded: { name: 'sidebar-expanded', version: 1 },
   devCounter: { name: 'dev-counter', version: 1 },
+  // DataTable layouts (density, column order / visibility / widths), keyed by table + user
+  dataTables: { name: 'data-tables', version: 1 },
 } as const satisfies Record<string, { name: string; version: number }>;
 
 export type StorageKeyId = keyof typeof STORAGE_KEYS;

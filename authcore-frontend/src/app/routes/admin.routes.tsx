@@ -20,4 +20,14 @@ export const adminRoutes: RouteObject[] = [
     } satisfies RouteHandle,
     lazy: lazyPage(() => import('@/pages/PlannedModulePage'), 'PlannedModulePage'),
   },
+  {
+    path: paths.admin.users,
+    handle: {
+      title: 'Users',
+      breadcrumb: [{ label: 'Administration' }, { label: 'Users' }],
+      featureFlag: 'admin.enabled',
+      permission: 'USER_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(() => import('@/features/admin-users/pages/UsersListPage'), 'UsersListPage'),
+  },
 ];

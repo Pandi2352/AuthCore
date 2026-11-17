@@ -10,6 +10,11 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### Data table
+
+- _Additive:_ `components/data-table` — reusable server-side table (`DataTable` + `useServerTable` + `useTableLayout`): search (shared `SearchInput` with clear), visible filters with chips, multi-sort, pagination with totals, explicit selection scope across pages + bulk actions with confirmation, density / column order / visibility / widths remembered per user, sticky header + frozen columns, mobile cards, skeleton / empty / no-results / error states, keyboard navigation and live announcements. Guide: `docs/frontend/data-table.md`.
+- _Additive:_ Administration → Users list (`features/admin-users`) on the data table with mock data (243 users; `?mock=error`, `?mock=empty`).
+
 The first structured version. Projects copied **before** Level 1 (flat `components/common`, `context/`, `services/`, `src/router/`) should not merge file by file: copy the new kit and move their business pages into `features/` (see [Migrating a pre-Level-1 copy](#migrating-a-pre-level-1-copy)).
 
 ### Navbar and theme

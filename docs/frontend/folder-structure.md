@@ -171,6 +171,8 @@ src/
 │   │   ├── StatusBadge.tsx          Status → badge variant mapping
 │   │   └── index.ts
 │   │
+│   ├── data-table/                  DataTable (toolbar, filter chips, bulk bar, grid, mobile cards), useServerTable
+│   │                                (URL state, server paging), useTableLayout (density / columns per user) — data-table.md
 │   ├── page/                        Page scaffolding
 │   │   ├── PageContainer.tsx        Width + padding from layout config
 │   │   ├── PageHeader.tsx           Title, description, actions, breadcrumbs slot

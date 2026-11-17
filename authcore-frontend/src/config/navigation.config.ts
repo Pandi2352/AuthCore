@@ -58,14 +58,12 @@ export const navigationConfig: NavGroup[] = [
         id: 'admin-users',
         title: 'Users',
         icon: 'Users',
-        status: 'planned',
         permission: 'USER_READ',
         children: [
           {
             id: 'admin-users-list',
             title: 'All users',
             path: paths.admin.users,
-            status: 'planned',
           },
           {
             id: 'admin-invites',
