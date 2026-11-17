@@ -10,6 +10,12 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### Appearance page
+
+- _Additive:_ redesigned **Settings → Appearance**: quick presets, mode + auto dark at night, accent chips + custom color, radius / density / sidebar / navbar / icon cards, typography (20 fonts, Google Fonts loaded only when selected; text size 13–18 px), contrast & effects, preferences, live preview, configuration summary, live accessibility (contrast) check, copy settings, reset. Guide: `docs/frontend/theme-system.md#appearance-page`.
+- _Additive:_ new theme appearance keys `fontSize`, `contrast`, `contentWidth`, `sidebarPosition`, `navbarSearch`, `breadcrumbs`, `striped`, `gradientButtons`, `strongFocus`, `reduceMotion`, `tooltips`, `autoDark`, `customColor`; preset `custom`; `useTheme().applyTheme()`; `Button` renders `data-variant`.
+- **Breaking:** `layout.content.maxWidth` removed — content width is the theme option `contentWidth` (`fluid` · `boxed` · `narrow`). Sidebar position, search box, breadcrumbs and tooltips now follow the user's theme (config values are the defaults / master switches). `ThemeRuntimeOptions` gained `fonts`. Features may import `@/app/theme` (architecture rule).
+
 ### Data table
 
 - _Additive:_ `components/data-table` — reusable server-side table (`DataTable` + `useServerTable` + `useTableLayout`): search (shared `SearchInput` with clear), visible filters with chips, multi-sort, pagination with totals, explicit selection scope across pages + bulk actions with confirmation, density / column order / visibility / widths remembered per user, sticky header + frozen columns, mobile cards, skeleton / empty / no-results / error states, keyboard navigation and live announcements. Guide: `docs/frontend/data-table.md`.

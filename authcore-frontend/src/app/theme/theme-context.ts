@@ -19,6 +19,12 @@ export interface ThemeContextValue extends ThemeState {
   setMode: (mode: ColorMode) => void;
   setPreset: (preset: ThemePresetId) => void;
   setAppearance: (changes: Partial<Appearance>) => void;
+  /** Several changes at once (quick presets). */
+  applyTheme: (changes: {
+    mode?: ColorMode;
+    preset?: ThemePresetId;
+    appearance?: Partial<Appearance>;
+  }) => void;
   /** Back to the project defaults (clears the stored choice). */
   reset: () => void;
   /** True when anything differs from the defaults. */

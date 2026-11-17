@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react';
 
+import { useOptionalTheme } from '@/app/theme';
 import { Kbd } from '@/components/ui';
 import { featuresConfig, layoutConfig } from '@/config';
 import { modKeyLabel } from '@/lib/utils';
@@ -9,7 +10,8 @@ import { useCommandMenu } from '../command-menu/command-menu-context';
 /** Global search slot (wide screens): a search box that opens the command menu. */
 export function NavbarCenter() {
   const { setOpen } = useCommandMenu();
-  if (!featuresConfig.ui.globalSearch || !layoutConfig.navbar.actions.includes('search'))
+  const userOn = useOptionalTheme()?.appearance.navbarSearch !== 'off';
+  if (!featuresConfig.ui.globalSearch || !layoutConfig.navbar.actions.includes('search') || !userOn)
     return null;
   return (
     <div className="hidden w-full max-w-xs shrink lg:block xl:max-w-sm">

@@ -188,14 +188,22 @@ function checkTheme(theme: ThemeConfig, presets: readonly ThemePreset[], problem
     at('defaults.mode', `"${theme.defaults.mode}" is not light / dark / system`);
   if (!registered.has(theme.defaults.preset))
     at('defaults.preset', `"${theme.defaults.preset}" is not registered in theme.presets.ts`);
+  // "custom" = the user's own color (appearance.customColor), not a registered preset.
   for (const id of theme.presets) {
-    if (!registered.has(id)) at('presets', `"${id}" is not registered in theme.presets.ts`);
+    if (id !== 'custom' && !registered.has(id))
+      at('presets', `"${id}" is not registered in theme.presets.ts`);
   }
   if (theme.presets.length > 0 && !theme.presets.includes(theme.defaults.preset)) {
     at('presets', 'must include the default preset');
   }
   for (const option of Object.keys(APPEARANCE_VALUES) as AppearanceOption[]) {
     const allowed: readonly string[] = APPEARANCE_VALUES[option];
+    if (option === 'customColor') {
+      const value = theme.defaults.appearance.customColor;
+      if (value !== '' && !/^#[0-9a-f]{6}$/i.test(value))
+        at('defaults.appearance.customColor', `"${value}" is not empty or a #rrggbb color`);
+      continue;
+    }
     if (!allowed.includes(theme.defaults.appearance[option])) {
       at(
         `defaults.appearance.${option}`,

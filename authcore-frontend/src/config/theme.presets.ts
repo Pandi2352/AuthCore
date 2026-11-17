@@ -86,5 +86,13 @@ export const themePresets: readonly ThemePreset[] = [
   },
 ];
 
+/** The user's own color (Appearance → Custom color); not shown as a chip. */
+const customPreset: ThemePreset = {
+  id: 'custom',
+  label: 'Custom',
+  description: 'Your own color',
+  swatch: { light: 'var(--brand-color)', dark: 'var(--brand-color)' },
+};
+
 export const findThemePreset = (id: ThemePresetId): ThemePreset | undefined =>
-  themePresets.find((preset) => preset.id === id);
+  [...themePresets, customPreset].find((preset) => preset.id === id);

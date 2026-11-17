@@ -1,9 +1,9 @@
 import { createContext, useContext } from 'react';
 
 import { useOptionalTheme } from '@/app/theme';
-import { layoutConfig } from '@/config';
 import type { SidebarStyle } from '@/types/theme.types';
 
+import { useSidebarPosition } from './sidebar-position';
 import { useSidebar } from './useSidebar';
 
 /** Rendering mode for sidebar parts: the mobile drawer is always expanded. */
@@ -20,10 +20,11 @@ export function useSidebarMode(): {
   const sidebar = useSidebar();
   const mode = useContext(SidebarModeContext);
   const theme = useOptionalTheme();
+  const position = useSidebarPosition();
   return {
     collapsed: mode?.collapsed ?? sidebar.collapsed,
     inDrawer: mode?.inDrawer ?? false,
     variant: theme?.appearance.sidebar ?? 'classic',
-    tooltipSide: layoutConfig.sidebar.position === 'left' ? 'right' : 'left',
+    tooltipSide: position === 'left' ? 'right' : 'left',
   };
 }

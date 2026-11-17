@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useOptionalTheme } from '@/app/theme';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,10 +15,19 @@ import { cn } from '@/lib/utils';
 
 import { useBreadcrumbs } from './use-breadcrumbs';
 
-/** Navbar breadcrumbs; toggled by features.ui.breadcrumbs + layout.navbar.showBreadcrumbs. */
+/**
+ * Navbar breadcrumbs; toggled by features.ui.breadcrumbs + layout.navbar.showBreadcrumbs and
+ * the user's choice (Appearance → Show breadcrumbs).
+ */
 export function Breadcrumbs({ className }: { className?: string }) {
   const crumbs = useBreadcrumbs();
-  if (!featuresConfig.ui.breadcrumbs || !layoutConfig.navbar.showBreadcrumbs || crumbs.length === 0)
+  const userOn = useOptionalTheme()?.appearance.breadcrumbs !== 'off';
+  if (
+    !featuresConfig.ui.breadcrumbs ||
+    !layoutConfig.navbar.showBreadcrumbs ||
+    !userOn ||
+    crumbs.length === 0
+  )
     return null;
   return (
     <Breadcrumb className={cn('min-w-0', className)}>

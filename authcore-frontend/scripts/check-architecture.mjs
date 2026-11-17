@@ -72,8 +72,8 @@ const BOUNDARIES = [
   },
   {
     from: /^src\/features\//,
-    deny: [/^src\/app\//],
-    why: 'features never import app wiring',
+    deny: [/^src\/app\/(?!theme$)/],
+    why: "features never import app wiring (only '@/app/theme', the design-system API)",
   },
 ];
 

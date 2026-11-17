@@ -26,6 +26,16 @@ function subscribeToSystemMode(onChange: () => void): () => void {
 }
 const getSystemIsDark = (): boolean => window.matchMedia(DARK_QUERY).matches;
 
+/** "Auto dark at night": 7 PM – 6 AM (checked every minute). Same rule as the no-flash script. */
+const isNightNow = (): boolean => {
+  const hour = new Date().getHours();
+  return hour >= 19 || hour < 6;
+};
+function subscribeToClock(onChange: () => void): () => void {
+  const timer = window.setInterval(onChange, 60_000);
+  return () => window.clearInterval(timer);
+}
+
 /** Only what users may change is stored; the rest always follows theme.config.ts. */
 function toStored(state: ThemeState) {
   const { customizable } = options;
@@ -59,13 +69,9 @@ const sameTheme = (a: ThemeState, b: ThemeState): boolean =>
 
 /** Layout sizes from layout.config.ts as CSS variables (static per build). */
 function applyLayoutTokens(root: HTMLElement): void {
-  const maxWidth = { full: 'none', container: '80rem', narrow: '48rem' }[
-    layoutConfig.content.maxWidth
-  ];
   root.style.setProperty('--sidebar-width', `${layoutConfig.sidebar.width}px`);
   root.style.setProperty('--sidebar-width-collapsed', `${layoutConfig.sidebar.collapsedWidth}px`);
   root.style.setProperty('--navbar-height-base', `${layoutConfig.navbar.height}px`);
-  root.style.setProperty('--content-max-width', maxWidth);
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -73,7 +79,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     resolveThemeState(storage.read(options.storageKey), options),
   );
   const systemIsDark = useSyncExternalStore(subscribeToSystemMode, getSystemIsDark, () => false);
-  const resolvedMode = theme.mode === 'system' ? (systemIsDark ? 'dark' : 'light') : theme.mode;
+  const isNight = useSyncExternalStore(subscribeToClock, isNightNow, () => false);
+  const baseMode = theme.mode === 'system' ? (systemIsDark ? 'dark' : 'light') : theme.mode;
+  const resolvedMode =
+    theme.appearance.autoDark === 'on' && isNight && baseMode === 'light' ? 'dark' : baseMode;
 
   // Before paint, so a change never flashes the old theme. The first run only syncs what
   // the no-flash script already applied; later changes switch instantly (no color fades).
@@ -139,6 +148,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [update],
   );
 
+  /** Several changes at once (quick presets): one update, one stored write. */
+  const applyTheme = useCallback(
+    (changes: { mode?: ColorMode; preset?: ThemePresetId; appearance?: Partial<Appearance> }) => {
+      update((current) => ({
+        mode: options.customizable.mode && changes.mode ? changes.mode : current.mode,
+        preset:
+          options.customizable.preset &&
+          changes.preset &&
+          options.allowed.presets.includes(changes.preset)
+            ? changes.preset
+            : current.preset,
+        appearance: {
+          ...current.appearance,
+          ...Object.fromEntries(
+            Object.entries(changes.appearance ?? {}).filter(([key]) =>
+              options.customizable.appearance.includes(key as keyof Appearance),
+            ),
+          ),
+        },
+      }));
+    },
+    [update],
+  );
+
   const reset = useCallback(() => {
     storage.remove(options.storageKey);
     setTheme(options.defaults);
@@ -153,10 +186,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setMode,
       setPreset,
       setAppearance,
+      applyTheme,
       reset,
       isCustomized: !sameTheme(theme, options.defaults),
     }),
-    [theme, resolvedMode, setMode, setPreset, setAppearance, reset],
+    [theme, resolvedMode, setMode, setPreset, setAppearance, applyTheme, reset],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

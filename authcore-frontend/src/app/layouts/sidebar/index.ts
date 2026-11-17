@@ -10,3 +10,4 @@ export { SidebarSubmenu } from './SidebarSubmenu';
 export { SidebarToggleIcon } from './SidebarToggleIcon';
 export { useSidebar } from './useSidebar';
 export { containsActive, isItemActive, useVisibleNavigation } from './navigation-filter';
+export { useSidebarPosition } from './sidebar-position';

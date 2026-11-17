@@ -141,7 +141,8 @@ Each preset defines **every** color token for light and dark. `config/theme.pres
 | --- | --- | --- |
 | `radius` | `sharp` · `small` · `medium` · `large` · `pill` | All `rounded-*` tokens |
 | `density` | `compact` · `comfortable` · `spacious` | Control heights, paddings, table row height, page spacing |
-| `font` | `system` · `inter` · `custom` | `--font-family-sans` (self-hosted fonts only) |
+| `font` | `inter` · `system` · `serif` · `mono` + 16 more (`config/fonts.ts`) · `custom` | `--font-family-sans` set on `<html>`; the chosen Google font's stylesheet (`<link id="theme-font">`) is loaded **only when that font is selected** — no font requests otherwise. `custom` = your `--font-custom` `@font-face` |
+| `fontSize` | `13` … `18` (px) | Root font size (`14` = 100 %); the whole rem-based UI scales |
 | `shadows` | `none` · `subtle` · `elevated` | Card / popover shadows |
 | `borders` | `none` · `subtle` · `strong` | Border width / color strength |
 | `sidebar` | `classic` · `minimal` · `floating` · `compact` | Sidebar look (the same four as the navbar) |
@@ -150,6 +151,21 @@ Each preset defines **every** color token for light and dark. `config/theme.pres
 | `inputs` | `outlined` · `filled` · `underlined` | Default `Input` / `Select` / `Textarea` variant |
 | `buttons` | `solid` · `soft` · `outline` | Default `Button` variant for `intent="primary"` |
 | `icons` | `classic` · `modern` · `duotone` · `color` | Navigation icons: lucide outline · Phosphor regular · Phosphor two-tone (fill in the primary color) · two-tone, one color per item (`iconColor` or picked from the id; tokens `--nav-<color>`, 3:1 on the sidebar) |
+| `contrast` | `standard` · `high` | High: strong borders, field borders = input color, muted text closer to foreground |
+| `contentWidth` | `fluid` · `boxed` · `narrow` | `--content-max-width`: none · 88 % · 72 % (replaces `layout.content.maxWidth`) |
+| `sidebarPosition` | `left` · `right` | Sidebar side (desktop, drawer, tooltips, toggle icon); default from `layout.sidebar.position` |
+| `navbarSearch` · `breadcrumbs` | `on` · `off` | Show the navbar search box / breadcrumbs (the config switches still win) |
+| `striped` | `on` · `off` | Zebra rows in every table |
+| `gradientButtons` | `on` · `off` | Gradient on solid buttons (`[data-variant='solid']`) |
+| `strongFocus` | `on` · `off` | 3 px focus outline |
+| `reduceMotion` | `on` · `off` | Turns off transitions / animations (on top of the OS setting) |
+| `tooltips` | `on` · `off` | `Tooltip` renders only its trigger (accessible names stay) |
+| `autoDark` | `on` · `off` | Light mode turns dark 19:00 – 06:00 (provider clock + no-flash script) |
+| `customColor` | `''` or `#rrggbb` | The user's own accent: used when preset = `custom` (same contrast correction as `brand`) |
+
+### Appearance page
+
+`Settings → Appearance` (`features/settings`) edits all of the above: quick presets (`config/appearance-presets.ts`: Default, Midnight, Sunrise, Forest, Ocean, High contrast — each = project defaults + a few changes, applied in one `applyTheme()` call), mode, accent chips + custom color, radius, density, sidebar / navbar style, icons, typography, contrast & effects, preferences, a live preview, a configuration summary, and a live WCAG contrast check of the rendered colors. "Copy settings" copies the theme JSON; "Reset to default" restores `theme.config.ts`. Settings are saved in this browser (`storageKey`); "Sync across devices" is shown disabled until the account preferences API stores appearance.
 
 Components read the defaults from the theme context (`useTheme().appearance.cards`) when no explicit `variant` prop is given, so `<Card>` follows the configuration while `<Card variant="filled">` still works.
 

@@ -4,6 +4,7 @@ import { cn, isMacPlatform, modKeyLabel } from '@/lib/utils';
 
 import { useVisibleNavigation } from './navigation-filter';
 import { useSidebarMode } from './sidebar-mode';
+import { useSidebarPosition } from './sidebar-position';
 import { sidebarItemSize, sidebarRowClass } from './sidebar.variants';
 import { SidebarItem } from './SidebarItem';
 import { SidebarToggleIcon } from './SidebarToggleIcon';
@@ -14,7 +15,7 @@ export function SidebarFooter() {
   const { footer } = useVisibleNavigation();
   const { collapsed, setCollapsed } = useSidebar();
   const { inDrawer, variant, tooltipSide } = useSidebarMode();
-  const onLeft = layoutConfig.sidebar.position === 'left';
+  const onLeft = useSidebarPosition() === 'left';
   // The navbar has its own toggle when layout.navbar.showSidebarToggle is on.
   const navbarHasToggle = layoutConfig.navbar.enabled && layoutConfig.navbar.showSidebarToggle;
   const showToggle = layoutConfig.sidebar.collapsible && !inDrawer && !navbarHasToggle;

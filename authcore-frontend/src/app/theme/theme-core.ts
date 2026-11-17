@@ -30,6 +30,8 @@ export interface ThemeRuntimeOptions {
   brandColor: string;
   /** app.config.ts → themeColor: browser UI color per resolved mode. */
   themeColor: { light: string; dark: string };
+  /** Font id → CSS family + Google Fonts stylesheet (null = no download). config/fonts.ts */
+  fonts: Record<string, { family: string; url: string | null }>;
 }
 
 /** Stored value → valid theme. Unknown or non-customizable values fall back to the defaults. */
@@ -53,6 +55,12 @@ export function resolveThemeState(stored: unknown, options: ThemeRuntimeOptions)
     source.appearance !== null && typeof source.appearance === 'object' ? source.appearance : {};
   for (const key of options.customizable.appearance) {
     const value = storedAppearance[key];
+    // customColor is free: any #rrggbb.
+    if (key === 'customColor') {
+      if (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value))
+        appearance.customColor = value;
+      continue;
+    }
     if (typeof value === 'string' && options.allowed.appearance[key].includes(value)) {
       (appearance as Record<string, string>)[key] = value;
     }
@@ -82,6 +90,13 @@ export function applyThemeToElement(
     'data-inputs': look.inputs,
     'data-buttons': look.buttons,
     'data-icons': look.icons,
+    'data-contrast': look.contrast,
+    'data-content': look.contentWidth,
+    'data-sidebar-position': look.sidebarPosition,
+    'data-striped': look.striped,
+    'data-gradient': look.gradientButtons,
+    'data-focus': look.strongFocus === 'on' ? 'strong' : 'standard',
+    'data-motion': look.reduceMotion === 'on' ? 'reduce' : 'full',
   };
   for (const name of Object.keys(attributes)) {
     const value = attributes[name];
@@ -89,10 +104,38 @@ export function applyThemeToElement(
   }
   root.style.colorScheme = resolvedMode;
 
+  // Text size: the whole UI is rem-based, so scaling the root scales it (14 px = 100 %).
+  const size = Number(look.fontSize) || 14;
+  root.style.fontSize = size === 14 ? '' : `${(size / 14) * 100}%`;
+
+  // Typeface: family variable + the font's stylesheet (Google Fonts) only when needed.
+  const font = options.fonts[look.font] ?? options.fonts.system;
+  if (font) {
+    root.style.setProperty('--font-family-sans', font.family);
+    const doc = root.ownerDocument;
+    let link = doc.getElementById('theme-font') as HTMLLinkElement | null;
+    if (font.url) {
+      if (!link) {
+        link = doc.createElement('link');
+        link.id = 'theme-font';
+        link.rel = 'stylesheet';
+        doc.head.appendChild(link);
+      }
+      if (link.getAttribute('href') !== font.url) link.setAttribute('href', font.url);
+    } else if (link) {
+      link.remove();
+    }
+  }
+
   // Brand preset: the project color, darkened (light mode) or lightened (dark mode) just
   // enough to read as text on the page (WCAG 4.5:1), plus black or white text on top of it.
   // Keep in sync with brandVariant() in scripts/check-contrast.mjs.
-  const hex = /^#([0-9a-f]{6})$/i.exec(options.brandColor)?.[1] ?? '4f46e5';
+  // The "custom" preset uses the user's own color the same way.
+  const source =
+    state.preset === 'custom' && /^#[0-9a-f]{6}$/i.test(look.customColor)
+      ? look.customColor
+      : options.brandColor;
+  const hex = /^#([0-9a-f]{6})$/i.exec(source)?.[1] ?? '4f46e5';
   const base = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
   const lum = (rgb: number[]): number => {
     const lin = rgb.map((v) => {
@@ -129,7 +172,8 @@ export function buildNoFlashScript(options: ThemeRuntimeOptions): string {
     `var o=${JSON.stringify(options).replace(/</g, '\\u003c')};`,
     'var raw=null;try{raw=JSON.parse(window.localStorage.getItem(o.storageKey)||"null")}catch(e){}',
     `var s=(${resolveThemeState.toString()})(raw,o);`,
-    "var dark=s.mode==='dark'||(s.mode==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);",
+    'var h=new Date().getHours();',
+    "var dark=s.mode==='dark'||(s.mode==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches)||(s.appearance.autoDark==='on'&&(h>=19||h<6));",
     `(${applyThemeToElement.toString()})(document.documentElement,s,dark?'dark':'light',o);`,
     '}catch(e){}})();',
   ].join('');

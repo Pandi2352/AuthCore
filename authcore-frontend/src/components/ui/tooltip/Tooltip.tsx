@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { useOptionalTheme } from '@/app/theme';
 import { cn } from '@/lib/utils';
 
 import { Portal } from '../primitives/Portal';
@@ -57,6 +58,8 @@ export function Tooltip({
   className,
 }: TooltipProps) {
   const id = useId();
+  // Appearance → Tooltips (accessible names stay on the triggers).
+  const tooltipsOff = useOptionalTheme()?.appearance.tooltips === 'off';
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLElement | null>(null);
   const floatingRef = useRef<HTMLDivElement | null>(null);
@@ -111,7 +114,8 @@ export function Tooltip({
   });
 
   if (!isValidElement(children)) return children;
-  if (disabled || content === null || content === undefined || content === '') return children;
+  if (tooltipsOff || disabled || content === null || content === undefined || content === '')
+    return children;
 
   const trigger = (
     <Slot

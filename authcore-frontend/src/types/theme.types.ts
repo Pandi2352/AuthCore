@@ -16,11 +16,44 @@ export type ThemePresetId =
   | 'pink'
   | 'amber'
   | 'lime'
-  | 'brand';
+  | 'brand'
+  /** The user's own color (appearance.customColor). */
+  | 'custom';
 
 export type Radius = 'sharp' | 'small' | 'medium' | 'large' | 'pill';
 export type Density = 'compact' | 'comfortable' | 'spacious';
-export type FontOption = 'system' | 'inter' | 'custom';
+/** Typefaces users can pick (families / Google Fonts in config/fonts.ts). */
+export const FONT_IDS = [
+  'inter',
+  'system',
+  'serif',
+  'mono',
+  'roboto',
+  'open-sans',
+  'lato',
+  'poppins',
+  'montserrat',
+  'nunito-sans',
+  'source-sans',
+  'ibm-plex-sans',
+  'work-sans',
+  'manrope',
+  'dm-sans',
+  'plus-jakarta',
+  'figtree',
+  'outfit',
+  'merriweather',
+  'lora',
+  'custom',
+] as const;
+export type FontOption = (typeof FONT_IDS)[number];
+/** Base text size in px (14 = default); the whole UI scales with it. */
+export type TextSize = '13' | '14' | '15' | '16' | '17' | '18';
+export type ContrastLevel = 'standard' | 'high';
+export type ContentWidth = 'fluid' | 'boxed' | 'narrow';
+export type SidebarPosition = 'left' | 'right';
+/** On / off preference (stored as a string like every appearance value). */
+export type Toggle = 'on' | 'off';
 export type ShadowStyle = 'none' | 'subtle' | 'elevated';
 export type BorderStyle = 'none' | 'subtle' | 'strong';
 /** The same four looks for the sidebar and the navbar. */
@@ -44,6 +77,21 @@ export interface Appearance {
   inputs: InputStyle;
   buttons: ButtonStyle;
   icons: IconStyle;
+  fontSize: TextSize;
+  contrast: ContrastLevel;
+  contentWidth: ContentWidth;
+  sidebarPosition: SidebarPosition;
+  navbarSearch: Toggle;
+  breadcrumbs: Toggle;
+  striped: Toggle;
+  gradientButtons: Toggle;
+  strongFocus: Toggle;
+  reduceMotion: Toggle;
+  tooltips: Toggle;
+  /** Dark between 7 PM and 6 AM (when mode is light or system). */
+  autoDark: Toggle;
+  /** #rrggbb for the "custom" preset ('' = none). */
+  customColor: string;
 }
 
 export type AppearanceOption = keyof Appearance;
@@ -79,7 +127,7 @@ export interface ThemeConfig {
 export const APPEARANCE_VALUES: { readonly [K in AppearanceOption]: readonly Appearance[K][] } = {
   radius: ['sharp', 'small', 'medium', 'large', 'pill'],
   density: ['compact', 'comfortable', 'spacious'],
-  font: ['system', 'inter', 'custom'],
+  font: FONT_IDS,
   shadows: ['none', 'subtle', 'elevated'],
   borders: ['none', 'subtle', 'strong'],
   sidebar: ['classic', 'minimal', 'floating', 'compact'],
@@ -88,6 +136,20 @@ export const APPEARANCE_VALUES: { readonly [K in AppearanceOption]: readonly App
   inputs: ['outlined', 'filled', 'underlined'],
   buttons: ['solid', 'soft', 'outline'],
   icons: ['classic', 'modern', 'duotone', 'color'],
+  fontSize: ['13', '14', '15', '16', '17', '18'],
+  contrast: ['standard', 'high'],
+  contentWidth: ['fluid', 'boxed', 'narrow'],
+  sidebarPosition: ['left', 'right'],
+  navbarSearch: ['on', 'off'],
+  breadcrumbs: ['on', 'off'],
+  striped: ['on', 'off'],
+  gradientButtons: ['on', 'off'],
+  strongFocus: ['on', 'off'],
+  reduceMotion: ['on', 'off'],
+  tooltips: ['on', 'off'],
+  autoDark: ['on', 'off'],
+  /** Free value: any #rrggbb (validated in theme-core). */
+  customColor: [],
 };
 
 export const COLOR_MODES: readonly ColorMode[] = ['light', 'dark', 'system'];

@@ -11,7 +11,7 @@ import { MainContent } from './components/MainContent';
 import { RouteAccessBoundary } from './components/RouteAccessBoundary';
 import { SkipLink } from './components/SkipLink';
 import { Navbar } from './navbar';
-import { Sidebar, SidebarMobile, SidebarProvider, useSidebar } from './sidebar';
+import { Sidebar, SidebarMobile, SidebarProvider, useSidebar, useSidebarPosition } from './sidebar';
 
 /**
  * Signed-in shell: sidebar + navbar + main content.
@@ -38,6 +38,7 @@ export function AppLayout() {
 function AppShell() {
   const { isDesktop } = useSidebar();
   const { sidebar, navbar } = layoutConfig;
+  const sidebarPosition = useSidebarPosition();
   const isFixed = sidebar.behavior === 'fixed';
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const { pathname, hash } = useLocation();
@@ -55,7 +56,7 @@ function AppShell() {
       className={cn(
         'flex w-full overflow-x-clip bg-background text-foreground',
         isFixed ? 'h-dvh overflow-hidden' : 'min-h-dvh',
-        sidebar.position === 'right' && 'flex-row-reverse',
+        sidebarPosition === 'right' && 'flex-row-reverse',
       )}
     >
       {sidebar.enabled && (isDesktop ? <Sidebar /> : <SidebarMobile />)}

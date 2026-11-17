@@ -1,6 +1,7 @@
 // Relative .ts imports (not '@/config'): vite.config.ts also loads this file at build time
 // to generate the no-flash script, and the config index pulls in browser-only modules.
 import { appConfig } from '../../config/app.config.ts';
+import { FONTS, googleFontUrl } from '../../config/fonts.ts';
 import { themeConfig } from '../../config/theme.config.ts';
 import { APPEARANCE_VALUES, COLOR_MODES } from '../../types/theme.types.ts';
 import type { ThemeRuntimeOptions } from './theme-core.ts';
@@ -21,4 +22,7 @@ export const themeRuntimeOptions: ThemeRuntimeOptions = {
   },
   brandColor: appConfig.branding.primaryColor,
   themeColor: appConfig.themeColor,
+  fonts: Object.fromEntries(
+    FONTS.map((font) => [font.id, { family: font.family, url: googleFontUrl(font) }]),
+  ),
 };

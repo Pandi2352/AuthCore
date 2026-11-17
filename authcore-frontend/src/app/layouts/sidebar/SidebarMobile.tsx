@@ -1,7 +1,7 @@
 import { Sheet, SheetContent } from '@/components/ui';
-import { layoutConfig } from '@/config';
 
 import { SidebarModeContext } from './sidebar-mode';
+import { useSidebarPosition } from './sidebar-position';
 import { SidebarContent } from './SidebarContent';
 import { SidebarFooter } from './SidebarFooter';
 import { SidebarHeader } from './SidebarHeader';
@@ -12,10 +12,11 @@ const DRAWER_MODE = { collapsed: false, inDrawer: true };
 /** Below the mobile breakpoint: the sidebar as a drawer (Escape, overlay click and navigation close it). */
 export function SidebarMobile() {
   const { mobileOpen, setMobileOpen } = useSidebar();
+  const position = useSidebarPosition();
   return (
     <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
       <SheetContent
-        side={layoutConfig.sidebar.position}
+        side={position}
         size="sm"
         aria-label="Navigation"
         data-app-sidebar=""

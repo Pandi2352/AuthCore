@@ -2,6 +2,7 @@ import { layoutConfig } from '@/config';
 import { cn } from '@/lib/utils';
 
 import { useSidebarMode } from './sidebar-mode';
+import { useSidebarPosition } from './sidebar-position';
 import { sidebarVariants } from './sidebar.variants';
 import { SidebarContent } from './SidebarContent';
 import { SidebarFooter } from './SidebarFooter';
@@ -15,7 +16,8 @@ import { useSidebar } from './useSidebar';
 export function Sidebar() {
   const { collapsed } = useSidebar();
   const { variant } = useSidebarMode();
-  const { position, behavior } = layoutConfig.sidebar;
+  const { behavior } = layoutConfig.sidebar;
+  const position = useSidebarPosition();
   const floating = variant === 'floating';
   return (
     <aside

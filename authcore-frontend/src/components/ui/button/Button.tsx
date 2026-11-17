@@ -40,8 +40,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   ref,
 ) {
   const theme = useOptionalTheme();
+  const resolvedVariant = variant ?? theme?.appearance.buttons ?? 'solid';
   const classes = buttonVariants({
-    variant: variant ?? theme?.appearance.buttons ?? 'solid',
+    variant: resolvedVariant,
     size,
     fullWidth: fullWidth ? 'true' : 'false',
     className,
@@ -49,7 +50,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
   if (asChild) {
     return (
-      <Slot ref={ref} className={classes} {...props}>
+      <Slot ref={ref} className={classes} data-variant={resolvedVariant} {...props}>
         {children}
       </Slot>
     );
@@ -60,6 +61,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type ?? 'button'}
       className={classes}
+      data-variant={resolvedVariant}
       disabled={disabled || isLoading}
       aria-busy={isLoading || undefined}
       {...props}

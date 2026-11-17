@@ -32,7 +32,6 @@ export const layoutConfig: LayoutConfig = {
     overflowBelow: 'md',
   },
   content: {
-    maxWidth: 'full', // 'full' | 'container' (centered, --content-max-width) | 'narrow'
     padding: 'comfortable',
   },
   auth: {

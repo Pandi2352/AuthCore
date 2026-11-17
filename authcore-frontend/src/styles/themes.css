@@ -262,13 +262,15 @@
  * Brand: the project color (app.config.ts → branding.primaryColor), set at runtime as
  * --brand-color / --brand-foreground (black or white, whichever reads better).
  */
-[data-preset='brand'] {
+[data-preset='brand'],
+[data-preset='custom'] {
   --primary: var(--brand-color);
   --primary-foreground: var(--brand-foreground);
   --primary-soft: color-mix(in oklch, var(--brand-color) 10%, var(--surface));
   --primary-soft-foreground: color-mix(in oklch, var(--brand-color) 75%, var(--foreground));
 }
-[data-preset='brand'][data-mode='dark'] {
+[data-preset='brand'][data-mode='dark'],
+[data-preset='custom'][data-mode='dark'] {
   --primary-soft: color-mix(in oklch, var(--brand-color) 22%, var(--surface));
   --primary-soft-foreground: color-mix(in oklch, var(--brand-color) 45%, var(--foreground));
 }

@@ -128,7 +128,6 @@ export interface LayoutConfig {
     overflowBelow: Breakpoint;
   };
   content: {
-    maxWidth: 'full' | 'container' | 'narrow';
     padding: 'compact' | 'comfortable' | 'spacious';
   };
   /** Where sign-in / sign-up pages are shown. */

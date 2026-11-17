@@ -7,12 +7,13 @@ import { appConfig, layoutConfig, paths } from '@/config';
 import { modKeyLabel } from '@/lib/utils';
 
 import { Breadcrumbs } from '../components/Breadcrumbs';
-import { SidebarToggleIcon, useSidebar } from '../sidebar';
+import { SidebarToggleIcon, useSidebar, useSidebarPosition } from '../sidebar';
 
 /** Sidebar toggle, logo (per layout.navbar.showLogo), breadcrumbs. */
 export function NavbarLeft() {
   const { isDesktop, collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebar();
   const { sidebar, navbar } = layoutConfig;
+  const position = useSidebarPosition();
   const sidebarVisible = sidebar.enabled && isDesktop;
   const showLogo =
     navbar.showLogo === 'always' ||
@@ -35,7 +36,7 @@ export function NavbarLeft() {
           aria-label={`${collapsed ? 'Expand' : 'Collapse'} sidebar (${modKeyLabel()} B)`}
           aria-expanded={!collapsed}
           aria-keyshortcuts="Control+B Meta+B"
-          icon={<SidebarToggleIcon collapsed={collapsed} side={sidebar.position} />}
+          icon={<SidebarToggleIcon collapsed={collapsed} side={position} />}
           onClick={toggleCollapsed}
           className="text-foreground [&_svg]:size-5"
         />

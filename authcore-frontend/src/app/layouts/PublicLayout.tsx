@@ -20,7 +20,7 @@ export function PublicLayout() {
         className="sticky top-0 border-b border-border bg-navbar/90 backdrop-blur"
         style={{ zIndex: 'var(--z-navbar)' }}
       >
-        <div className="mx-auto flex h-(--navbar-height) max-w-(--content-max-width) items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-(--navbar-height) max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link
             to={paths.root}
             aria-label={`${appConfig.name} home`}
@@ -45,7 +45,7 @@ export function PublicLayout() {
         <Outlet />
       </main>
       <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-(--content-max-width) flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:px-6">
           <span>
             © {YEAR} {companyName ?? appConfig.name}
           </span>

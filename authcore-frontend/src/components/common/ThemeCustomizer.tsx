@@ -24,6 +24,19 @@ const OPTION_LABEL: Record<AppearanceOption, string> = {
   inputs: 'Input style',
   buttons: 'Button style',
   icons: 'Icon style',
+  fontSize: 'Text size',
+  contrast: 'Contrast',
+  contentWidth: 'Content width',
+  sidebarPosition: 'Sidebar position',
+  navbarSearch: 'Search bar',
+  breadcrumbs: 'Breadcrumbs',
+  striped: 'Striped rows',
+  gradientButtons: 'Gradient buttons',
+  strongFocus: 'Stronger focus ring',
+  reduceMotion: 'Reduce motion',
+  tooltips: 'Tooltips',
+  autoDark: 'Auto dark at night',
+  customColor: 'Custom color',
 };
 
 /** A native radio group: arrow keys move between choices, the legend names the group. */
@@ -134,20 +147,23 @@ export function ThemeCustomizer() {
         </Group>
       )}
 
-      {userCustomizable.appearance.map((option) => (
-        <Group key={option} title={OPTION_LABEL[option]}>
-          {APPEARANCE_VALUES[option].map((value) => (
-            <Choice
-              key={value}
-              name={`theme-${option}`}
-              checked={appearance[option] === value}
-              onSelect={() => setAppearance({ [option]: value })}
-            >
-              {capitalize(value)}
-            </Choice>
-          ))}
-        </Group>
-      ))}
+      {userCustomizable.appearance
+        // Free values (custom color) have their own picker on the Appearance page.
+        .filter((option) => APPEARANCE_VALUES[option].length > 1)
+        .map((option) => (
+          <Group key={option} title={OPTION_LABEL[option]}>
+            {APPEARANCE_VALUES[option].map((value) => (
+              <Choice
+                key={value}
+                name={`theme-${option}`}
+                checked={appearance[option] === value}
+                onSelect={() => setAppearance({ [option]: value })}
+              >
+                {capitalize(value)}
+              </Choice>
+            ))}
+          </Group>
+        ))}
 
       <button
         type="button"
