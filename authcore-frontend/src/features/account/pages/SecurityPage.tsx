@@ -2,6 +2,8 @@ import { KeyRound, ShieldAlert, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { PageContainer, PageHeader } from '@/components/page';
 import { Alert, Button, Card, Input } from '@/components/ui';
 import { paths } from '@/config';
 import { accountApi } from '@/features/account/api/account.api';
@@ -54,9 +56,14 @@ export const SecurityPage: React.FC = () => {
     }
   };
 
-  const handleDeactivate = async (e: React.FormEvent) => {
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+
+  const handleDeactivateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!deactivatePassword) return;
+    if (deactivatePassword) setConfirmDeactivate(true);
+  };
+
+  const handleDeactivate = async () => {
     setError(null);
     setIsDeactivating(true);
 
@@ -74,13 +81,8 @@ export const SecurityPage: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Security & Credentials</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage your password, authentication policies, and account status
-        </p>
-      </div>
+    <PageContainer width="narrow">
+      <PageHeader title="Security" description="Manage your password and account status." />
 
       {initialAlert && <Alert variant="warning" message={initialAlert} className="mb-4" />}
       {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
@@ -146,7 +148,7 @@ export const SecurityPage: React.FC = () => {
             </div>
           </div>
 
-          <form onSubmit={handleDeactivate} className="space-y-3 pt-2">
+          <form onSubmit={handleDeactivateSubmit} className="space-y-3 pt-2">
             <Input
               label="Confirm Current Password"
               type="password"
@@ -170,6 +172,17 @@ export const SecurityPage: React.FC = () => {
           </form>
         </div>
       </Card>
-    </div>
+
+      <ConfirmDialog
+        open={confirmDeactivate}
+        onOpenChange={setConfirmDeactivate}
+        title="Deactivate your account?"
+        description="You will be signed out on every device. You can reopen the account later from the account recovery page."
+        confirmText="Deactivate"
+        confirmPhrase="DEACTIVATE"
+        destructive
+        onConfirm={handleDeactivate}
+      />
+    </PageContainer>
   );
 };

@@ -223,7 +223,7 @@ src/
 │   ├── RouteErrorPage.tsx           errorElement: render / chunk-load errors
 │   ├── PlannedModulePage.tsx        "Not built yet" module overview (from navigation config)
 │   ├── PlannedFeaturePage.tsx       "Not built yet" page
-│   └── dev/UiKitchenSinkPage.tsx    Every component × preset × mode (development only)
+│   └── dev/                         UiKitchenSinkPage.tsx + PageFeedbackShowcase.tsx (development only)
 │
 ├── config/                          Everything a new project edits
 │   ├── app.config.ts                Name, short name, description, logos, favicon, company, support, links
@@ -242,7 +242,7 @@ src/
 │   ├── useMediaQuery.ts             useMediaQuery, useBreakpoint, useCurrentBreakpoint, useIsTouch, usePrefersReducedMotion
 │   ├── useLocalStorage.ts
 │   ├── useDisclosure.ts
-│   ├── useDebounce.ts / useDebouncedCallback.ts
+│   ├── useDebounce.ts               useDebouncedValue, useDebouncedCallback
 │   ├── useOnlineStatus.ts
 │   ├── useClickOutside.ts
 │   ├── useMounted.ts / usePrevious.ts
@@ -266,7 +266,7 @@ src/
 │   ├── query/                       Level 2
 │   │   ├── query-client.ts          TanStack Query defaults (retry rules by ApiError code)
 │   │   └── query-keys.ts            Key factory per feature
-│   ├── format/                      date.ts, number.ts, currency.ts, file-size.ts, string.ts
+│   ├── format/                      date.ts (formatDateTime, formatRelative), file-size.ts; number / currency later
 │   ├── utils/                       cn.ts, variants.ts (our cva), url.ts (safeReturnTo), …
 │   ├── storage.ts                   The only localStorage access: JSON-safe, never throws, cross-tab subscribe (keys `<slug>:<name>:v1`)
 │   ├── validation/                  Shared Zod helpers (email, password-policy rules), Level 2

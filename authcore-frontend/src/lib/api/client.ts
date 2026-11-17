@@ -126,7 +126,7 @@ class ApiClient {
           timestamp: new Date().toISOString(),
           path: endpoint,
         };
-        throw new ApiError(errorData);
+        throw new ApiError(errorData, response.headers.get('X-Request-Id') ?? undefined);
       }
 
       return data as ApiResponse<T>;

@@ -1,18 +1,16 @@
 import { ThemeCustomizer } from '@/components/common/ThemeCustomizer';
-import { Card } from '@/components/ui';
+import { PageContainer, PageHeader, PageSection } from '@/components/page';
 
 export function AppearanceSettingsPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Appearance</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choose how the application looks on this device.
-        </p>
-      </div>
-      <Card>
+    <PageContainer width="narrow">
+      <PageHeader
+        title="Appearance"
+        description="Choose how the application looks on this device."
+      />
+      <PageSection title="Theme" description="Saved in this browser.">
         <ThemeCustomizer />
-      </Card>
-    </div>
+      </PageSection>
+    </PageContainer>
   );
 }

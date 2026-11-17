@@ -1,11 +1,12 @@
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, History, XCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import { Alert, Badge, Card, Select } from '@/components/ui';
+import { DateTime } from '@/components/common/DateTime';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
+import { PageContainer, PageHeader } from '@/components/page';
+import { Badge, Card, Select } from '@/components/ui';
 import { accountApi } from '@/features/account/api/account.api';
 import type { UserActivityEntry } from '@/features/account/types/account.types';
-import { ApiError } from '@/lib/api';
-import { formatDate } from '@/lib/format';
 
 const EVENT_FILTERS = [
   { value: '', label: 'All events' },
@@ -19,17 +20,20 @@ const EVENT_FILTERS = [
 export const ActivityPage: React.FC = () => {
   const [activities, setActivities] = useState<UserActivityEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filterEvent, setFilterEvent] = useState<string>('');
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   useEffect(() => {
     let isActive = true;
     const load = async () => {
       try {
         const data = await accountApi.getActivity(filterEvent || undefined);
-        if (isActive) setActivities(data);
+        if (isActive) {
+          setActivities(data);
+          setLoadError(null);
+        }
       } catch (err) {
-        if (isActive) setError(err instanceof ApiError ? err.message : 'Failed to load activity');
+        if (isActive) setLoadError(err);
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -40,38 +44,51 @@ export const ActivityPage: React.FC = () => {
     };
   }, [filterEvent]);
 
+  const retry = async () => {
+    try {
+      setActivities(await accountApi.getActivity(filterEvent || undefined));
+      setLoadError(null);
+    } catch (err) {
+      setLoadError(err);
+    }
+  };
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Recent Activity</h1>
-          <p className="text-sm text-muted-foreground">
-            Security audit trail of logins, security updates, and access changes
-          </p>
-        </div>
-
-        <div className="w-full sm:w-56">
-          <Select
-            aria-label="Filter by event"
-            value={filterEvent}
-            onValueChange={(value) => {
-              setIsLoading(true);
-              setFilterEvent(value ?? '');
-            }}
-            options={EVENT_FILTERS}
-          />
-        </div>
-      </div>
-
-      {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
+    <PageContainer width="narrow" className="max-w-4xl">
+      <PageHeader
+        title="Recent activity"
+        description="Security audit trail of sign-ins, security updates and access changes."
+        actions={
+          <div className="w-full sm:w-56">
+            <Select
+              aria-label="Filter by event"
+              value={filterEvent}
+              onValueChange={(value) => {
+                setIsLoading(true);
+                setFilterEvent(value ?? '');
+              }}
+              options={EVENT_FILTERS}
+            />
+          </div>
+        }
+      />
 
       <Card title="Audit History">
         {isLoading ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">Loading audit records...</p>
+          <LoadingState variant="table" label="Loading activity" />
+        ) : loadError ? (
+          <ErrorState size="compact" error={loadError} onRetry={retry} />
         ) : activities.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            No activity records recorded.
-          </p>
+          <EmptyState
+            size="compact"
+            icon={<History />}
+            title="No activity yet"
+            description={
+              filterEvent
+                ? 'Nothing matches this filter. Try “All events”.'
+                : 'Sign-ins and security changes will appear here.'
+            }
+          />
         ) : (
           <div className="divide-y divide-border">
             {activities.map((item) => (
@@ -106,14 +123,16 @@ export const ActivityPage: React.FC = () => {
                   </div>
                 </div>
 
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {formatDate(item.timestamp)}
-                </span>
+                <DateTime
+                  value={item.timestamp}
+                  format="relative"
+                  className="shrink-0 text-xs text-muted-foreground"
+                />
               </div>
             ))}
           </div>
         )}
       </Card>
-    </div>
+    </PageContainer>
   );
 };

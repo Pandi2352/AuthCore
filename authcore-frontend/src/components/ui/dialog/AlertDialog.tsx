@@ -16,6 +16,8 @@ export interface AlertDialogProps {
   actionText?: string;
   /** Red action button (delete, revoke …). */
   destructive?: boolean;
+  /** Keep the action button disabled (e.g. until a confirmation phrase is typed). */
+  actionDisabled?: boolean;
   /** May return a promise: the button shows a spinner and the dialog closes when it resolves. */
   onAction: () => void | Promise<unknown>;
 }
@@ -35,6 +37,7 @@ export function AlertDialog({
   cancelText = 'Cancel',
   actionText = 'Confirm',
   destructive = false,
+  actionDisabled = false,
   onAction,
 }: AlertDialogProps) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen ?? false);
@@ -51,6 +54,8 @@ export function AlertDialog({
     try {
       await onAction();
       setOpen(false);
+    } catch {
+      // Stay open so the user can retry; the caller reports the error (toast / alert).
     } finally {
       setIsBusy(false);
     }
@@ -81,6 +86,7 @@ export function AlertDialog({
           <Button
             variant={destructive ? 'destructive' : 'solid'}
             isLoading={isBusy}
+            disabled={actionDisabled}
             onClick={handleAction}
           >
             {actionText}

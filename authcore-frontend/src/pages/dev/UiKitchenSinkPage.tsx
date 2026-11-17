@@ -100,6 +100,8 @@ import {
 } from '@/components/ui';
 import { appConfig } from '@/config';
 
+import { PageFeedbackShowcase } from './PageFeedbackShowcase';
+
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="space-y-4">
@@ -656,6 +658,9 @@ export function UiKitchenSinkPage() {
             ))}
           </ScrollArea>
         </div>
+      </Section>
+      <Section id="ks-page" title="Page and feedback components">
+        <PageFeedbackShowcase />
       </Section>
 
       <Section id="ks-table" title="Table and pagination">

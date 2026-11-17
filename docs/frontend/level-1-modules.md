@@ -208,14 +208,19 @@ Files: `app/layouts/navbar/`, `app/layouts/command-menu/`, `components/ui/comman
 
 ## 10. Page & Feedback Components
 
-- [ ] `PageContainer`, `PageHeader` (title, description, actions, breadcrumbs slot), `PageSection`, `ResponsiveGrid`
-- [ ] `LoadingState` (skeleton / spinner), `EmptyState` (icon, title, text, action), `ErrorState` (from `ApiError`, request id, retry), `NoPermissionState`
-- [ ] `ConfirmDialog` (destructive variant, async confirm with loading)
-- [ ] `SearchInput` (debounced, clearable), `FilterBar` (URL-synced filters + reset)
-- [ ] `Logo`, `ThemeToggle`, `ThemeCustomizer`, `CopyButton`, `DateTime`, `StatusBadge`, `FileDropzone`
-- [ ] `ErrorBoundary` (app and widget level), `OfflineBanner`
-- [ ] Global pages: `NotFoundPage`, `ForbiddenPage`, `RouteErrorPage`, `PlannedModulePage`, `PlannedFeaturePage`
-- [ ] `/dev/ui` kitchen-sink page (development only)
+Folders: `components/page/`, `components/feedback/`, `components/common/` (all own code, tokens only). All of them are on `/dev/ui` → "Page and feedback components".
+
+- [x] `PageContainer` (vertical rhythm, default / narrow / prose / full width), `PageHeader` (h1, description, actions, breadcrumbs slot, back link, meta badge; stacks on phones), `PageSection` (card or plain, labelled region), `ResponsiveGrid` (columns per breakpoint)
+- [x] `LoadingState` (spinner / skeleton / cards / table, announced), `EmptyState` (icon, title, text, actions; compact), `ErrorState` (`getErrorMessage`: friendly text, server 5xx details never shown; **request id** from the backend's `X-Request-Id` header, copyable; retry with spinner; offline variant; details in development), `NoPermissionState`
+- [x] `ConfirmDialog` (destructive variant, async confirm with loading, stays open on error, optional typed confirmation phrase)
+- [x] `SearchInput` (debounced, clearable, Escape clears, Enter searches now, follows URL changes), `FilterBar` (search + select filters + reset, all in URL search params, resets `page`)
+- [x] `Logo`, `ThemeToggle`, `ThemeCustomizer`, `CopyButton` (check icon + announced), `DateTime` (`<time>`, date / time / datetime / relative, locale + time zone, full date on hover), `StatusBadge` (status word → tone + readable text), `FileDropzone` (drag & drop + button, type / size / count checks with messages, removable list, image thumbnails)
+- [x] `ErrorBoundary` (app level in `Providers`; widget level with reset / `resetKeys` — each dashboard card), `OfflineBanner` (live region + "back online" toast)
+- [x] Global pages: `NotFoundPage`, `ForbiddenPage`, `RouteErrorPage`, `PlannedModulePage`, `PlannedFeaturePage` *(module 5)*
+- [x] `/dev/ui` kitchen-sink page (development only, not in production builds)
+- [x] Used in the existing pages: Activity / Sessions (PageHeader, loading / empty / error-with-retry states, relative dates), Sessions revoke + "sign out others" and Security "deactivate" (typed DEACTIVATE) behind `ConfirmDialog`, Profile / Security / Appearance (PageContainer + PageHeader), Dashboard (StatusBadge, DateTime, ResponsiveGrid, per-card ErrorBoundary)
+
+Supporting code: `lib/api/get-error-message.ts` (`getErrorMessage`, `getRequestId`; `ApiError.requestId`), `lib/format/` (`formatDateTime`, `formatRelative`, `formatFileSize`), hooks `useDebouncedValue` / `useDebouncedCallback`, `useOnlineStatus`, `useCopyToClipboard`.
 
 ## 11. Hooks
 
@@ -342,7 +347,7 @@ Level 1 is done when all of these pass **without editing any component**:
 | 7 | 7. Sidebar ✅ | Critical | Config-driven, collapsible, mobile drawer |
 | 8 | 8. Navbar ✅ | Critical | Configurable actions, responsive |
 | 9 | 9. Responsive & accessibility ✅ | Critical | Breakpoint and keyboard pass |
-| 10 | 10. Page & feedback components | High | Page scaffolding, states, global pages |
+| 10 | 10. Page & feedback components ✅ | High | Page scaffolding, states, global pages |
 | 11 | 11–12. Hooks & utilities | High | Reusable helpers |
 | 12 | 13. API layer | High | Client, errors, upload / download |
 | 13 | 14. Error handling | High | Boundaries, chunk errors, offline |

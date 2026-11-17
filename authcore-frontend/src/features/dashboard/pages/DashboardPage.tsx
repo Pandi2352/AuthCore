@@ -2,17 +2,20 @@ import { Activity, CheckCircle, KeyRound, Laptop, User as UserIcon } from 'lucid
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+import { DateTime } from '@/components/common/DateTime';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { ErrorBoundary } from '@/components/feedback';
+import { PageContainer, ResponsiveGrid } from '@/components/page';
 import { Badge, Card } from '@/components/ui';
 import { paths } from '@/config';
 import { useAuth, usePermissions } from '@/features/auth';
-import { formatDate } from '@/lib/format';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { isSuperAdmin, roles, permissions } = usePermissions();
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       {/* Welcome Banner */}
       <div className="rounded-md bg-primary p-6 text-primary-foreground sm:p-8">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -47,99 +50,109 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Account Info Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <Card title="Identity Overview" className="space-y-3">
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between border-b border-border py-1">
-              <span className="text-muted-foreground">Email</span>
-              <span className="font-medium text-foreground">{user?.email}</span>
-            </div>
-            <div className="flex justify-between border-b border-border py-1">
-              <span className="text-muted-foreground">Username</span>
-              <span className="font-medium text-foreground">{user?.username || '—'}</span>
-            </div>
-            <div className="flex justify-between border-b border-border py-1">
-              <span className="text-muted-foreground">Status</span>
-              <Badge tone="success">{user?.status}</Badge>
-            </div>
-            <div className="flex justify-between py-1">
-              <span className="text-muted-foreground">Member Since</span>
-              <span className="font-medium text-foreground">{formatDate(user?.createdAt)}</span>
-            </div>
-          </div>
-        </Card>
-
-        <Card title="Effective Access" className="space-y-3">
-          <div className="space-y-2 text-sm">
-            <div>
-              <span className="mb-1 block text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                Assigned Roles ({roles.length})
-              </span>
-              <div className="flex flex-wrap gap-1">
-                {roles.length > 0 ? (
-                  roles.map((r) => (
-                    <Badge key={r} tone="neutral">
-                      {r}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-xs text-muted-foreground">Standard Member</span>
-                )}
+      <ResponsiveGrid cols={{ base: 1, md: 3 }} gap="lg">
+        <ErrorBoundary>
+          <Card title="Identity Overview" className="space-y-3">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between border-b border-border py-1">
+                <span className="text-muted-foreground">Email</span>
+                <span className="font-medium text-foreground">{user?.email}</span>
+              </div>
+              <div className="flex justify-between border-b border-border py-1">
+                <span className="text-muted-foreground">Username</span>
+                <span className="font-medium text-foreground">{user?.username || '—'}</span>
+              </div>
+              <div className="flex justify-between border-b border-border py-1">
+                <span className="text-muted-foreground">Status</span>
+                <StatusBadge status={user?.status} />
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">Member Since</span>
+                <DateTime
+                  value={user?.createdAt}
+                  format="date"
+                  className="font-medium text-foreground"
+                />
               </div>
             </div>
+          </Card>
+        </ErrorBoundary>
 
-            <div className="border-t border-border pt-2">
-              <span className="mb-1 block text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                Effective Permissions ({permissions.length})
-              </span>
-              <div className="flex max-h-24 flex-wrap gap-1 overflow-y-auto">
-                {isSuperAdmin ? (
-                  <Badge tone="primary">ALL_PERMISSIONS (Super Admin)</Badge>
-                ) : permissions.length > 0 ? (
-                  permissions.map((p) => (
-                    <Badge key={p} tone="info" className="text-[10px]">
-                      {p}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-xs text-muted-foreground">None</span>
-                )}
+        <ErrorBoundary>
+          <Card title="Effective Access" className="space-y-3">
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="mb-1 block text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  Assigned Roles ({roles.length})
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {roles.length > 0 ? (
+                    roles.map((r) => (
+                      <Badge key={r} tone="neutral">
+                        {r}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Standard Member</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-2">
+                <span className="mb-1 block text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  Effective Permissions ({permissions.length})
+                </span>
+                <div className="flex max-h-24 flex-wrap gap-1 overflow-y-auto">
+                  {isSuperAdmin ? (
+                    <Badge tone="primary">ALL_PERMISSIONS (Super Admin)</Badge>
+                  ) : permissions.length > 0 ? (
+                    permissions.map((p) => (
+                      <Badge key={p} tone="info" className="text-[10px]">
+                        {p}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground">None</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </ErrorBoundary>
 
-        <Card title="Quick Actions" className="space-y-2">
-          <Link
-            to={paths.account.profile}
-            className="flex items-center gap-3 rounded-md border border-transparent p-2.5 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent"
-          >
-            <UserIcon className="h-4 w-4 text-primary" />
-            Edit Profile & Avatar
-          </Link>
-          <Link
-            to={paths.account.security}
-            className="flex items-center gap-3 rounded-md border border-transparent p-2.5 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent"
-          >
-            <KeyRound className="h-4 w-4 text-primary" />
-            Change Password
-          </Link>
-          <Link
-            to={paths.account.sessions}
-            className="flex items-center gap-3 rounded-md border border-transparent p-2.5 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent"
-          >
-            <Laptop className="h-4 w-4 text-primary" />
-            Manage Active Sessions
-          </Link>
-          <Link
-            to={paths.account.activity}
-            className="flex items-center gap-3 rounded-md border border-transparent p-2.5 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent"
-          >
-            <Activity className="h-4 w-4 text-primary" />
-            View Login History
-          </Link>
-        </Card>
-      </div>
-    </div>
+        <ErrorBoundary>
+          <Card title="Quick Actions" className="space-y-2">
+            <Link
+              to={paths.account.profile}
+              className="flex items-center gap-3 rounded-md border border-transparent p-2.5 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent"
+            >
+              <UserIcon className="h-4 w-4 text-primary" />
+              Edit Profile & Avatar
+            </Link>
+            <Link
+              to={paths.account.security}
+              className="flex items-center gap-3 rounded-md border border-transparent p-2.5 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent"
+            >
+              <KeyRound className="h-4 w-4 text-primary" />
+              Change Password
+            </Link>
+            <Link
+              to={paths.account.sessions}
+              className="flex items-center gap-3 rounded-md border border-transparent p-2.5 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent"
+            >
+              <Laptop className="h-4 w-4 text-primary" />
+              Manage Active Sessions
+            </Link>
+            <Link
+              to={paths.account.activity}
+              className="flex items-center gap-3 rounded-md border border-transparent p-2.5 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent"
+            >
+              <Activity className="h-4 w-4 text-primary" />
+              View Login History
+            </Link>
+          </Card>
+        </ErrorBoundary>
+      </ResponsiveGrid>
+    </PageContainer>
   );
 };

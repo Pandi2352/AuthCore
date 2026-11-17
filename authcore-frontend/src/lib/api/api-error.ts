@@ -6,13 +6,16 @@ export class ApiError extends Error {
   code: string;
   errors?: Array<{ field?: string; message: string }>;
   raw: ApiErrorResponse;
+  /** Backend X-Request-Id: quote it to support to find the server log line. */
+  requestId?: string;
 
-  constructor(response: ApiErrorResponse) {
+  constructor(response: ApiErrorResponse, requestId?: string) {
     super(response.message || 'An unexpected error occurred');
     this.name = 'ApiError';
     this.statusCode = response.statusCode;
     this.code = response.code;
     this.errors = response.errors;
     this.raw = response;
+    this.requestId = requestId;
   }
 }

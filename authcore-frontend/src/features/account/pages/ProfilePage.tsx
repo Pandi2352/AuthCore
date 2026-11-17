@@ -1,6 +1,7 @@
 import { Camera, Trash2, User as UserIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
+import { PageContainer, PageHeader } from '@/components/page';
 import { Alert, Button, Card, Input } from '@/components/ui';
 import { accountApi } from '@/features/account/api/account.api';
 import { useAuth } from '@/features/auth';
@@ -98,13 +99,8 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage your account profile and public information
-        </p>
-      </div>
+    <PageContainer width="narrow">
+      <PageHeader title="Profile" description="Your name, photo and contact details." />
 
       {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
       {success && <Alert variant="success" message={success} onClose={() => setSuccess(null)} />}
@@ -196,6 +192,6 @@ export const ProfilePage: React.FC = () => {
           </div>
         </form>
       </Card>
-    </div>
+    </PageContainer>
   );
 };
