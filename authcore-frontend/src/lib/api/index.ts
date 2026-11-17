@@ -1,5 +1,17 @@
-/** The only network layer: every request goes through apiClient. */
-export { apiClient } from './client';
-export { ApiError } from './api-error';
-export { getErrorMessage, getRequestId } from './get-error-message';
+/**
+ * API layer: the only network code in the app (architecture rule). Features call these from
+ * their `api/` files; components never fetch directly.
+ */
+export { ApiError, isAbortError, isApiError, type ApiErrorInit } from './api-error';
+export {
+  apiClient,
+  ApiClient,
+  type ApiEvents,
+  type AuthAdapter,
+  type HttpMethod,
+  type RequestOptions,
+} from './client';
+export { downloadFile, saveBlob, type DownloadOptions } from './download';
+export { getErrorMessage, getFieldErrors, getRequestId } from './get-error-message';
+export { uploadFile, type UploadOptions, type UploadProgress } from './upload';
 export type * from './types';

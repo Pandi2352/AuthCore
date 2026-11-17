@@ -254,16 +254,21 @@ Plain TypeScript, no React (`lib/utils`, `lib/format`, `lib/constants`, `lib/sto
 
 ## 13. API Layer
 
-- [~] Fetch client *(`lib/api-client.ts`: base URL, JSON, `credentials: 'include'`, Bearer token, refresh queue — to move and extend)*
-- [ ] `lib/api/client.ts`: the only `fetch`; `get / post / put / patch / delete`; base URL from `env`; JSON + `FormData` bodies; query params
-- [ ] Response envelope unwrapped (`data`), `meta` kept for paginated lists (`Paginated<T>`)
-- [ ] `ApiError`: `status`, `code`, `message`, `fieldErrors` (`errors[]` → `{ field: message }`), `requestId` (`X-Request-Id`), `retryAfter`
-- [ ] Request timeout (`AbortController`, `VITE_API_TIMEOUT_MS`), caller abort signals
-- [ ] Network / offline errors mapped to a distinct code
-- [ ] Hooks: `onUnauthorized` (Level 2 refresh), `onForbidden`, `onServerError` — registered by providers, not imported by the client
-- [ ] `upload.ts` (XHR with progress, cancel), `download.ts` (blob + filename from `Content-Disposition`)
-- [ ] `getErrorMessage(error)` for any thrown value
-- [ ] Manual check against the running backend: envelope, errors, timeout, abort, retry after refresh (Level 2), upload progress
+`src/lib/api/` — the only network code (architecture rule). Features call it from their `api/` files (`authApi`, `accountApi`, `accessApi`); pages and components never fetch.
+
+- [x] Fetch client moved and rebuilt (`lib/api/client.ts`, class `ApiClient` + the `apiClient` instance)
+- [x] The only `fetch`; `get / post / put / patch / delete` + `request(method)` + `raw()`; base URL from `env`; JSON, `FormData`, `Blob`, `URLSearchParams` bodies; `query` params (arrays, empty values dropped); `credentials: 'include'` for the refresh cookie
+- [x] Envelope unwrapped: calls return `data`; `getPage<T>()` returns `Paginated<T>` = `{ items, meta }`; 204 / empty body → `undefined`; endpoints without the envelope returned as-is
+- [x] `ApiError`: `status`, `code`, `message`, `errors` + `fieldErrors` (`{ field: message }`), `requestId`, `retryAfter` (seconds, number or HTTP date), `method`, `path`, `is(...codes)`, `isNetworkError / isTimeout / isAborted / isUnauthorized / isForbidden / isNotFound / isValidation / isServerError`; `isApiError()`, `isAbortError()`
+- [x] Request id: the client sends its own `X-Request-Id` on every request (the backend reuses it in its logs), so even a request without a response has an id
+- [x] Timeout (`AbortController`, `VITE_API_TIMEOUT_MS`, default 30 s, per call `timeoutMs`) and caller `signal` (linked) — `TIMEOUT` vs `ABORTED` are distinct codes; page loaders cancel on unmount / filter change
+- [x] Network / offline errors → `NETWORK_ERROR` (status 0); unexpected responses → `HTTP_ERROR`
+- [x] Auth without imports from features: `setAuthAdapter({ getAccessToken, refreshAccessToken })` registered by `AuthProvider` (token in memory: `features/auth/session/token-store.ts`); on 401 **one shared refresh** for all concurrent requests (refresh-token rotation safe), then the request is retried once; refresh failure → `AUTH_SESSION_EXPIRED` + `unauthorized` event → signed out locally. Public calls pass `auth: false` (no token, no refresh). The token is never sent to absolute URLs outside the API base
+- [x] Events (`apiClient.on`): `unauthorized`, `forbidden` (AuthProvider reloads permissions, throttled), `serverError`, `error` — registered by providers, not imported by the client
+- [x] `upload.ts`: XHR multipart with progress, cancel (`signal`), optional timeout, same auth / refresh / error contract (profile picture shows a progress bar); `download.ts`: blob + file name from `Content-Disposition` (RFC 5987 `filename*`, path parts stripped) + save (`accountApi.exportData` now downloads the JSON file instead of expecting an envelope)
+- [x] `getErrorMessage(error)` (friendly text, no 5xx details, "Try again in 15 minutes" from Retry-After), `getFieldErrors(error)`, `getRequestId(error)`
+- [x] Checked against the running backend (built app on a separate port, throwaway `_e2e` database): envelope, pagination, 404 / 400 field errors, request id round-trip, timeout, abort, network, no token to foreign URLs, refresh + retry, 4 parallel 401s → 1 refresh, session-expired event, file download name, 429 Retry-After — 22 / 22 passed. Upload progress: try it in the browser (`/dev/api`, Profile picture)
+- [x] `/dev/api` API playground (development only): every scenario against the running backend, client events, upload with progress + cancel, download
 
 ## 14. Error Handling
 
@@ -354,7 +359,7 @@ Level 1 is done when all of these pass **without editing any component**:
 | 9 | 9. Responsive & accessibility ✅ | Critical | Breakpoint and keyboard pass |
 | 10 | 10. Page & feedback components ✅ | High | Page scaffolding, states, global pages |
 | 11 | 11–12. Hooks & utilities ✅ | High | Reusable helpers |
-| 12 | 13. API layer | High | Client, errors, upload / download |
+| 12 | 13. API layer ✅ | High | Client, errors, upload / download |
 | 13 | 14. Error handling | High | Boundaries, chunk errors, offline |
 | 14 | 4. UI components (rest: table, tabs, pagination, avatar, sheet, select, …) | High | Complete design system |
 | 15 | 15. Manual verification | High | Checklist passed in every preset, mode and breakpoint |

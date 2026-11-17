@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 
 import { accessApi } from '@/features/auth/api/access.api';
 import { authApi } from '@/features/auth/api/auth.api';
@@ -14,12 +21,27 @@ import { apiClient } from '@/lib/api';
 import { setFormatDefaults } from '@/lib/format';
 
 import { AuthContext, type AuthContextType } from './auth-context';
+import { tokenStore } from './token-store';
 
 /** Registration doesn't touch the session: no state needed. */
 const register = (payload: RegisterPayload): Promise<RegisterResponse> => authApi.register(payload);
 
+/** After a 403, reload the user's permissions at most this often (they may have changed). */
+const ACCESS_RELOAD_MIN_INTERVAL_MS = 30_000;
+
+/**
+ * Session state. Wires the auth layer into the API client (which imports no feature):
+ * - auth adapter: the token from tokenStore, refresh via POST /auth/refresh (httpOnly cookie);
+ *   the client shares one refresh between concurrent 401s (refresh-token rotation safe)
+ * - "unauthorized" event (refresh failed) → signed out locally
+ * - "forbidden" event → permissions reloaded (throttled)
+ */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const accessToken = useSyncExternalStore(tokenStore.subscribe, tokenStore.get, tokenStore.get);
+  const [effectiveAccess, setEffectiveAccess] = useState<EffectiveAccess | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const lastAccessReload = useRef(0);
 
   // Dates / numbers everywhere follow the signed-in user's language and time zone.
   const language = user?.preferences?.language ?? null;
@@ -27,62 +49,82 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     setFormatDefaults({ locale: language, timeZone });
   }, [language, timeZone]);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [effectiveAccess, setEffectiveAccess] = useState<EffectiveAccess | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const fetchEffectiveAccess = useCallback(async () => {
+    lastAccessReload.current = Date.now();
     try {
-      const access = await accessApi.getMyAccess();
-      setEffectiveAccess(access);
+      setEffectiveAccess(await accessApi.getMyAccess());
     } catch {
-      // Non-fatal if access control endpoint is not enabled or user lacks permissions
+      // Non-fatal: access control disabled or not allowed — permission checks see "none".
       setEffectiveAccess(null);
     }
   }, []);
 
   const logoutLocally = useCallback(() => {
+    tokenStore.clear();
     setUser(null);
-    setAccessToken(null);
     setEffectiveAccess(null);
-    apiClient.setAccessToken(null);
   }, []);
 
+  // Register the session with the API client.
+  useEffect(() => {
+    apiClient.setAuthAdapter({
+      getAccessToken: tokenStore.get,
+      refreshAccessToken: async () => {
+        try {
+          const data = await authApi.refresh();
+          tokenStore.set(data.accessToken);
+          setUser(data.user);
+          return data.accessToken;
+        } catch {
+          return null;
+        }
+      },
+    });
+    const offUnauthorized = apiClient.on('unauthorized', logoutLocally);
+    const offForbidden = apiClient.on('forbidden', () => {
+      if (!tokenStore.get()) return;
+      if (Date.now() - lastAccessReload.current < ACCESS_RELOAD_MIN_INTERVAL_MS) return;
+      void fetchEffectiveAccess();
+    });
+    return () => {
+      offUnauthorized();
+      offForbidden();
+      apiClient.setAuthAdapter(null);
+    };
+  }, [logoutLocally, fetchEffectiveAccess]);
+
+  /** Restore the session from the refresh cookie (app start, "reload my session"). */
   const refreshSession = useCallback(async () => {
-    try {
-      const data = await authApi.refresh();
-      setUser(data.user);
-      setAccessToken(data.accessToken);
-      apiClient.setAccessToken(data.accessToken);
-      await fetchEffectiveAccess();
-    } catch {
-      logoutLocally();
-    }
+    const token = await apiClient.refreshAccessToken();
+    if (token) await fetchEffectiveAccess();
+    else logoutLocally();
   }, [fetchEffectiveAccess, logoutLocally]);
 
+  // App start: one refresh (shared with any request that hits 401 meanwhile).
   useEffect(() => {
-    // Configure API client callback for unauthorized state
-    apiClient.setOnUnauthorized(logoutLocally);
-
-    // Initial auth hydration on app startup
-    const initAuth = async () => {
+    let isActive = true;
+    const restore = async () => {
       try {
         await refreshSession();
       } finally {
-        setIsLoading(false);
+        if (isActive) setIsLoading(false);
       }
     };
-
-    initAuth();
-  }, [logoutLocally, refreshSession]);
+    void restore();
+    return () => {
+      isActive = false;
+    };
+  }, [refreshSession]);
 
   const login = useCallback(
     async (credentials: LoginCredentials): Promise<LoginResponse> => {
       const data = await authApi.login(credentials);
-      setUser(data.user);
-      setAccessToken(data.accessToken);
-      apiClient.setAccessToken(data.accessToken);
-      await fetchEffectiveAccess();
+      if (data.accessToken) {
+        tokenStore.set(data.accessToken);
+        setUser(data.user);
+        await fetchEffectiveAccess();
+      }
       return data;
     },
     [fetchEffectiveAccess],
@@ -101,9 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await authApi.logoutAll(keepCurrentSession);
       } finally {
-        if (!keepCurrentSession) {
-          logoutLocally();
-        }
+        if (!keepCurrentSession) logoutLocally();
       }
     },
     [logoutLocally],

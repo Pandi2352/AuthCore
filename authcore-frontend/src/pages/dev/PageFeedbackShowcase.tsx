@@ -20,24 +20,18 @@ import { useQueryParams } from '@/hooks/useQueryParams';
 import { ApiError } from '@/lib/api';
 import { ERROR_CODES } from '@/lib/constants';
 
-const SAMPLE_ERROR = new ApiError(
-  {
-    success: false,
-    message: 'The user could not be found.',
-    code: ERROR_CODES.NOT_FOUND,
-    statusCode: 404,
-    timestamp: new Date(0).toISOString(),
-    path: '/api/v1/users/42',
-  },
-  'req_01HZX8Q4N2',
-);
+const SAMPLE_ERROR = new ApiError({
+  status: 404,
+  code: ERROR_CODES.NOT_FOUND,
+  message: 'The user could not be found.',
+  requestId: 'req_01HZX8Q4N2',
+  path: '/users/42',
+});
 const NETWORK_ERROR = new ApiError({
-  success: false,
-  message: 'Failed to fetch',
+  status: 0,
   code: ERROR_CODES.NETWORK_ERROR,
-  statusCode: 0,
-  timestamp: new Date(0).toISOString(),
-  path: '/api/v1/users',
+  message: 'Failed to fetch',
+  path: '/users',
 });
 const HOURS_AGO = new Date(Date.UTC(2026, 10, 17, 9, 30));
 

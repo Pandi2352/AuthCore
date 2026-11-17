@@ -2,10 +2,10 @@ import { Camera, Trash2, User as UserIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { PageContainer, PageHeader } from '@/components/page';
-import { Alert, Button, Card, Input } from '@/components/ui';
+import { Alert, Button, Card, Input, Progress } from '@/components/ui';
 import { accountApi } from '@/features/account/api/account.api';
 import { useAuth } from '@/features/auth';
-import { ApiError } from '@/lib/api';
+import { ApiError, getErrorMessage } from '@/lib/api';
 
 export const ProfilePage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -19,14 +19,16 @@ export const ProfilePage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isAvatarLoading, setIsAvatarLoading] = useState(false);
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
+    const controller = new AbortController();
     const load = async () => {
       try {
-        const data = await accountApi.getProfile();
+        const data = await accountApi.getProfile(controller.signal);
         if (isActive) {
           setFormData({
             firstName: data.firstName || '',
@@ -41,6 +43,7 @@ export const ProfilePage: React.FC = () => {
     void load();
     return () => {
       isActive = false;
+      controller.abort();
     };
   }, []);
 
@@ -74,12 +77,15 @@ export const ProfilePage: React.FC = () => {
     setIsAvatarLoading(true);
 
     try {
-      await accountApi.uploadAvatar(file);
+      setUploadPercent(0);
+      await accountApi.uploadAvatar(file, { onProgress: (p) => setUploadPercent(p.percent) });
       setSuccess('Profile picture updated successfully');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to upload profile picture');
+      setError(getErrorMessage(err, 'Failed to upload profile picture'));
     } finally {
       setIsAvatarLoading(false);
+      setUploadPercent(null);
+      e.target.value = '';
     }
   };
 
@@ -92,7 +98,7 @@ export const ProfilePage: React.FC = () => {
       await accountApi.deleteAvatar();
       setSuccess('Profile picture removed');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete profile picture');
+      setError(getErrorMessage(err, 'Failed to delete profile picture'));
     } finally {
       setIsAvatarLoading(false);
     }
@@ -146,6 +152,15 @@ export const ProfilePage: React.FC = () => {
                 Remove
               </Button>
             </div>
+            {uploadPercent !== null && (
+              <Progress
+                value={uploadPercent}
+                label="Uploading profile picture"
+                showValue
+                size="sm"
+                className="max-w-xs"
+              />
+            )}
             <p className="text-xs text-muted-foreground">
               JPEG, PNG or WebP, up to 2MB. Square crop recommended.
             </p>

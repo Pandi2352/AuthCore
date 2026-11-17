@@ -15,5 +15,13 @@ export const devRoutes: RouteObject[] = __DEV_BUILD__
         } satisfies RouteHandle,
         lazy: lazyPage(() => import('@/pages/dev/UiKitchenSinkPage'), 'UiKitchenSinkPage'),
       },
+      {
+        path: paths.dev.api,
+        handle: {
+          title: 'API playground',
+          breadcrumb: [{ label: 'Developer' }, { label: 'API playground' }],
+        } satisfies RouteHandle,
+        lazy: lazyPage(() => import('@/app/dev/ApiPlaygroundPage'), 'ApiPlaygroundPage'),
+      },
     ]
   : [];

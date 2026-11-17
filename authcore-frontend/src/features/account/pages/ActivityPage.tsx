@@ -7,6 +7,7 @@ import { PageContainer, PageHeader } from '@/components/page';
 import { Badge, Card, Select } from '@/components/ui';
 import { accountApi } from '@/features/account/api/account.api';
 import type { UserActivityEntry } from '@/features/account/types/account.types';
+import { isAbortError } from '@/lib/api';
 
 const EVENT_FILTERS = [
   { value: '', label: 'All events' },
@@ -25,15 +26,16 @@ export const ActivityPage: React.FC = () => {
 
   useEffect(() => {
     let isActive = true;
+    const controller = new AbortController();
     const load = async () => {
       try {
-        const data = await accountApi.getActivity(filterEvent || undefined);
+        const data = await accountApi.getActivity(filterEvent || undefined, controller.signal);
         if (isActive) {
           setActivities(data);
           setLoadError(null);
         }
       } catch (err) {
-        if (isActive) setLoadError(err);
+        if (isActive && !isAbortError(err)) setLoadError(err);
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -41,6 +43,7 @@ export const ActivityPage: React.FC = () => {
     void load();
     return () => {
       isActive = false;
+      controller.abort();
     };
   }, [filterEvent]);
 

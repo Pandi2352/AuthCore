@@ -17,112 +17,71 @@ import type {
 import type { User } from '@/features/auth/types/user.types';
 import { apiClient } from '@/lib/api';
 
+/** Public / session endpoints: no Bearer token and no refresh-on-401 (they are the auth flow). */
+const PUBLIC = { auth: false } as const;
+
+/**
+ * Auth endpoints. Pure transport: they return data; the session (token, user) is managed by
+ * AuthProvider + tokenStore.
+ */
 export const authApi = {
-  async login(payload: LoginCredentials) {
-    const res = await apiClient.post<LoginResponse>('/auth/login', payload);
-    if (res.data.accessToken) {
-      apiClient.setAccessToken(res.data.accessToken);
-    }
-    return res.data;
-  },
+  login: (payload: LoginCredentials) =>
+    apiClient.post<LoginResponse>('/auth/login', payload, PUBLIC),
 
-  async register(payload: RegisterPayload) {
-    const res = await apiClient.post<RegisterResponse>('/auth/register', payload);
-    return res.data;
-  },
+  register: (payload: RegisterPayload) =>
+    apiClient.post<RegisterResponse>('/auth/register', payload, PUBLIC),
 
-  async verifyEmailOtp(payload: VerifyEmailOtpPayload) {
-    const res = await apiClient.post<{ user: User }>('/auth/verify-email/otp', payload);
-    return res.data;
-  },
+  verifyEmailOtp: (payload: VerifyEmailOtpPayload) =>
+    apiClient.post<{ user: User }>('/auth/verify-email/otp', payload, PUBLIC),
 
-  async verifyEmailLink(payload: VerifyEmailLinkPayload) {
-    const res = await apiClient.post<{ user: User }>('/auth/verify-email/link', payload);
-    return res.data;
-  },
+  verifyEmailLink: (payload: VerifyEmailLinkPayload) =>
+    apiClient.post<{ user: User }>('/auth/verify-email/link', payload, PUBLIC),
 
-  async resendEmailVerification(payload: ResendEmailVerificationPayload) {
-    const res = await apiClient.post<null>('/auth/verify-email/resend', payload);
-    return res;
-  },
+  resendEmailVerification: (payload: ResendEmailVerificationPayload) =>
+    apiClient.post<null>('/auth/verify-email/resend', payload, PUBLIC),
 
-  async refresh() {
-    const res = await apiClient.post<LoginResponse>('/auth/refresh');
-    if (res.data.accessToken) {
-      apiClient.setAccessToken(res.data.accessToken);
-    }
-    return res.data;
-  },
+  /** New access token from the httpOnly refresh cookie (origin-checked by the backend). */
+  refresh: () => apiClient.post<LoginResponse>('/auth/refresh', undefined, PUBLIC),
 
-  async logout() {
-    try {
-      await apiClient.post<null>('/auth/logout');
-    } finally {
-      apiClient.setAccessToken(null);
-    }
-  },
+  /** Revokes this session (token sent so the backend knows which one; no refresh on 401). */
+  logout: () => apiClient.post<null>('/auth/logout'),
 
-  async logoutAll(keepCurrentSession = false) {
-    try {
-      return await apiClient.post<{ revokedSessionCount: number; isCurrentSessionKept: boolean }>(
-        '/auth/logout-all',
-        { keepCurrentSession },
-      );
-    } finally {
-      if (!keepCurrentSession) {
-        apiClient.setAccessToken(null);
-      }
-    }
-  },
+  logoutAll: (keepCurrentSession = false) =>
+    apiClient.post<{ revokedSessionCount: number; isCurrentSessionKept: boolean }>(
+      '/auth/logout-all',
+      {
+        keepCurrentSession,
+      },
+    ),
 
-  async getMe() {
-    const res = await apiClient.get<User>('/auth/me');
-    return res.data;
-  },
+  getMe: () => apiClient.get<User>('/auth/me'),
 
-  async forgotPassword(payload: ForgotPasswordPayload) {
-    const res = await apiClient.post<null>('/auth/forgot-password', payload);
-    return res;
-  },
+  forgotPassword: (payload: ForgotPasswordPayload) =>
+    apiClient.post<null>('/auth/forgot-password', payload, PUBLIC),
 
-  async verifyResetToken(payload: VerifyResetTokenPayload) {
-    const res = await apiClient.post<VerifyResetTokenResponse>('/auth/verify-reset-token', payload);
-    return res.data;
-  },
+  verifyResetToken: (payload: VerifyResetTokenPayload) =>
+    apiClient.post<VerifyResetTokenResponse>('/auth/verify-reset-token', payload, PUBLIC),
 
-  async resetPassword(payload: ResetPasswordPayload) {
-    const res = await apiClient.post<null>('/auth/reset-password', payload);
-    return res;
-  },
+  resetPassword: (payload: ResetPasswordPayload) =>
+    apiClient.post<null>('/auth/reset-password', payload, PUBLIC),
 
-  async changePassword(payload: ChangePasswordPayload) {
-    const res = await apiClient.patch<ChangePasswordResponse>('/auth/change-password', payload);
-    return res.data;
-  },
+  changePassword: (payload: ChangePasswordPayload) =>
+    apiClient.patch<ChangePasswordResponse>('/auth/change-password', payload),
 
-  async getPasswordRequirements() {
-    const res = await apiClient.get<PasswordRequirementsResponse>(
-      '/password-policies/requirements',
-    );
-    return res.data;
-  },
+  getPasswordRequirements: () =>
+    apiClient.get<PasswordRequirementsResponse>('/password-policies/requirements', PUBLIC),
 
-  async validatePassword(password: string, email?: string, username?: string) {
-    const res = await apiClient.post<{
-      isValid: boolean;
-      violations: Array<{ rule: string; message: string }>;
-    }>('/password-policies/validate', { password, email, username });
-    return res.data;
-  },
+  validatePassword: (password: string, email?: string, username?: string) =>
+    apiClient.post<{ isValid: boolean; violations: Array<{ rule: string; message: string }> }>(
+      '/password-policies/validate',
+      { password, email, username },
+      PUBLIC,
+    ),
 
   /** Reopen a self-closed account (public flow). */
-  async requestRecovery(payload: { email: string }) {
-    const res = await apiClient.post<null>('/account/recovery/request', payload);
-    return res;
-  },
+  requestRecovery: (payload: { email: string }) =>
+    apiClient.post<null>('/account/recovery/request', payload, PUBLIC),
 
-  async confirmRecovery(payload: { email: string; code: string }) {
-    const res = await apiClient.post<null>('/account/recovery/confirm', payload);
-    return res;
-  },
+  confirmRecovery: (payload: { email: string; code: string }) =>
+    apiClient.post<null>('/account/recovery/confirm', payload, PUBLIC),
 };

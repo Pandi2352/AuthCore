@@ -20,9 +20,23 @@ function readApiBaseUrl(): string {
   return value;
 }
 
+/** Request timeout in ms (VITE_API_TIMEOUT_MS, default 30 s; 0 = no timeout). */
+function readTimeoutMs(): number {
+  const raw = readString('VITE_API_TIMEOUT_MS', '30000');
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0 || value > 600_000) {
+    throw new Error(
+      `VITE_API_TIMEOUT_MS must be a whole number of milliseconds (0–600000), got "${raw}"`,
+    );
+  }
+  return value;
+}
+
 export const env = Object.freeze({
   /** API root, e.g. "/api/v1" (dev proxy) or "https://api.example.com/api/v1". */
   apiBaseUrl: readApiBaseUrl(),
+  /** Default API request timeout (ms); 0 = none. Uploads have no timeout by default. */
+  apiTimeoutMs: readTimeoutMs(),
   /** package.json version (injected at build time). */
   appVersion: __APP_VERSION__,
   /** "development" | "production" (Vite mode). */

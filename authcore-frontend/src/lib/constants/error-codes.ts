@@ -94,6 +94,8 @@ export const CLIENT_ERROR_CODES = {
   NETWORK_ERROR: 'NETWORK_ERROR',
   /** Request aborted after the client timeout. */
   TIMEOUT: 'TIMEOUT',
+  /** Cancelled by the caller (AbortSignal): navigated away, newer search … */
+  ABORTED: 'ABORTED',
   /** Non-JSON / unexpected error response. */
   HTTP_ERROR: 'HTTP_ERROR',
   /** Refresh failed: the user must sign in again. */

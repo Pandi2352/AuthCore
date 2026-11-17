@@ -56,6 +56,7 @@ export const paths = {
   /** Development-only pages (not routed in production builds). */
   dev: {
     ui: '/dev/ui',
+    api: '/dev/api',
   },
 } as const;
 

@@ -45,6 +45,7 @@ Supporting documents:
 | --- | --- | --- |
 | Project identity | `project.config.json` (name, slug, branding) | `src/config/app.config.ts` (same values; `npm run project:init` keeps them in sync — Level 1 module 2) |
 | API base URL | `/api/v1` | `VITE_API_BASE_URL` (dev: Vite proxy to `http://localhost:3000`) |
+| API timeout | 30 s | `VITE_API_TIMEOUT_MS` (0 = none; uploads: none by default) |
 | Response format | `{ success, message, data, meta?, timestamp, path }` | `lib/api/client.ts` unwraps `data`, keeps `meta` for lists |
 | Errors | `{ success: false, message, code, errors[], statusCode }` | `ApiError` class; `errors[]` mapped onto form fields; `code` drives UI decisions |
 | Access token | JWT in the sign-in response, 15 min | Kept **in memory only** (never `localStorage`) |

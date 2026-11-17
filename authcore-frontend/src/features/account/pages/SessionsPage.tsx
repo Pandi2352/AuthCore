@@ -10,7 +10,7 @@ import { paths } from '@/config';
 import { accountApi } from '@/features/account/api/account.api';
 import type { Session } from '@/features/account/types/account.types';
 import { useAuth } from '@/features/auth';
-import { ApiError } from '@/lib/api';
+import { ApiError, isAbortError } from '@/lib/api';
 
 export const SessionsPage: React.FC = () => {
   const { logoutAll } = useAuth();
@@ -22,15 +22,16 @@ export const SessionsPage: React.FC = () => {
 
   useEffect(() => {
     let isActive = true;
+    const controller = new AbortController();
     const load = async () => {
       try {
-        const data = await accountApi.getSessions();
+        const data = await accountApi.getSessions(controller.signal);
         if (isActive) {
           setSessions(data);
           setLoadError(null);
         }
       } catch (err) {
-        if (isActive) setLoadError(err);
+        if (isActive && !isAbortError(err)) setLoadError(err);
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -38,6 +39,7 @@ export const SessionsPage: React.FC = () => {
     void load();
     return () => {
       isActive = false;
+      controller.abort();
     };
   }, []);
 

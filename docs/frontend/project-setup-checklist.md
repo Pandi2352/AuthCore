@@ -108,6 +108,7 @@ What exists and what has to change before the starter kit is "foundation-ready":
 ## 5. Environment variables
 
 - [x] `VITE_API_BASE_URL` (default `/api/v1`).
+- [x] `VITE_API_TIMEOUT_MS` (default 30000; 0 = none; validated 0–600000).
 - [x] `src/config/env.ts`: the **only** reader of `import.meta.env`; parses, defaults and validates at startup; exports a typed, frozen `env` object; fails loudly on a bad `VITE_API_BASE_URL`.
 - [ ] Planned variables (all optional with defaults): `VITE_APP_ENV` (development / staging / production), `VITE_API_TIMEOUT_MS`, `VITE_SENTRY_DSN` (Level 3), `VITE_DEFAULT_LOCALE` (Level 3).
 - [x] Rule: no secrets in `VITE_*` (everything is public in the bundle). Documented in `.env.example`.

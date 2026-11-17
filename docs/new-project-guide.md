@@ -230,6 +230,7 @@ cp .env.example .env
 | Setting | Development | Production |
 | --- | --- | --- |
 | `VITE_API_BASE_URL` (`.env`) | `/api/v1` (Vite proxy) | `/api/v1` when the web server proxies `/api` to the backend (recommended), or `https://api.nexacrm.com/api/v1` |
+| `VITE_API_TIMEOUT_MS` (`.env`) | `30000` | `30000` (raise for slow reports / exports; 0 = none) |
 | Proxy target (`vite.config.ts` → `server.proxy`) | `http://localhost:3000` (change if the backend `PORT` differs) | — |
 
 Same origin (proxy) is strongly recommended: the refresh cookie and the backend's origin check then work without extra CORS setup. With separate domains, set `CORS_ORIGIN` to the frontend URL and `REFRESH_COOKIE_SAMESITE` / `REFRESH_COOKIE_SECURE` accordingly.

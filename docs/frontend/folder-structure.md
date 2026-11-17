@@ -110,6 +110,8 @@ src/
 │   │       ├── RequireGuest.tsx     Signed in → home
 │   │       └── RequirePermission.tsx Missing permission → 403 page
 │   │
+│   ├── dev/                         Dev-only pages that need app internals (ApiPlaygroundPage: /dev/api)
+│   │
 │   └── theme/                       Theme runtime (configuration lives in config/)
 │       ├── ThemeProvider.tsx        Mode + preset + appearance; applies data-* attributes on <html>
 │       ├── theme-context.ts
@@ -195,7 +197,8 @@ src/
 ├── features/                        One folder per business module
 │   ├── auth/                        Level 2 — the only feature others may import (via index.ts)
 │   │   ├── api/                     auth.api.ts (login, register, verify, refresh, logout, reset, invites)
-│   │   ├── session/                 AuthProvider.tsx, auth-context.ts, useAuth.ts, token-store.ts
+│   │   ├── session/                 AuthProvider.tsx (registers the API auth adapter), auth-context.ts, useAuth.ts,
+│   │   │                            token-store.ts (access token in memory)
 │   │   ├── permissions/             usePermissions.ts, PermissionGate.tsx, can.ts
 │   │   ├── components/              PasswordRequirements.tsx, PasswordStrength.tsx, OtpInput.tsx
 │   │   ├── pages/                   LoginPage, RegisterPage, VerifyEmailPage, ForgotPasswordPage,
@@ -257,9 +260,10 @@ src/
 │
 ├── lib/                             Plain TypeScript, no React
 │   ├── api/
-│   │   ├── client.ts                The only fetch: base URL, headers, timeout, envelope unwrap,
-│   │   │                            auth header, 401 → refresh once → retry, request id
-│   │   ├── api-error.ts             ApiError(status, code, message, fieldErrors, requestId, retryAfter)
+│   │   ├── client.ts                ApiClient: the only fetch; envelope unwrap, getPage, timeout + abort,
+│   │   │                            X-Request-Id, auth adapter (401 → one shared refresh → retry), events
+│   │   ├── api-error.ts             ApiError(status, code, message, fieldErrors, requestId, retryAfter) + is* helpers
+│   │   ├── request-utils.ts         Request ids, Retry-After, linked abort signals, Content-Disposition
 │   │   ├── get-error-message.ts     Any error → user-facing text
 │   │   ├── upload.ts                XHR upload with progress (multipart)
 │   │   ├── download.ts              Blob download with filename from Content-Disposition

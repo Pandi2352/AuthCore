@@ -3,6 +3,7 @@
 /** Every VITE_ variable the app reads (see .env.example). Read only through src/config/env.ts. */
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
+  readonly VITE_API_TIMEOUT_MS?: string;
 }
 
 interface ImportMeta {

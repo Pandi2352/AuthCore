@@ -4,103 +4,65 @@ import type {
   UserActivityEntry,
 } from '@/features/account/types/account.types';
 import type { User, UserPreferences, UserProfileDetails } from '@/features/auth';
-import { apiClient } from '@/lib/api';
+import { apiClient, downloadFile, uploadFile, type UploadProgress } from '@/lib/api';
 
+/** The signed-in user's own account ("me" endpoints). Every call accepts an AbortSignal where it reads. */
 export const accountApi = {
-  async getProfile() {
-    const res = await apiClient.get<UserProfileDetails>('/users/me');
-    return res.data;
-  },
+  getProfile: (signal?: AbortSignal) => apiClient.get<UserProfileDetails>('/users/me', { signal }),
 
-  async updateProfile(data: {
+  updateProfile: (data: {
     firstName?: string;
     lastName?: string | null;
     username?: string | null;
-  }) {
-    const res = await apiClient.patch<User>('/users/me', data);
-    return res.data;
-  },
+  }) => apiClient.patch<User>('/users/me', data),
 
-  async updateAttributes(attributes: Record<string, unknown>) {
-    const res = await apiClient.patch<UserProfileDetails>('/users/me/attributes', {
-      attributes,
-    });
-    return res.data;
-  },
+  updateAttributes: (attributes: Record<string, unknown>) =>
+    apiClient.patch<UserProfileDetails>('/users/me/attributes', { attributes }),
 
-  async uploadAvatar(file: File) {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await apiClient.post<{ picture: string }>('/users/me/avatar', formData);
-    return res.data;
-  },
+  /** Multipart upload with progress (resized and virus-scanned by the backend). */
+  uploadAvatar: (
+    file: File,
+    options: { onProgress?: (p: UploadProgress) => void; signal?: AbortSignal } = {},
+  ) => uploadFile<{ picture: string }>('/users/me/avatar', file, options),
 
-  async deleteAvatar() {
-    const res = await apiClient.delete<null>('/users/me/avatar');
-    return res;
-  },
+  deleteAvatar: () => apiClient.delete<null>('/users/me/avatar'),
 
-  async getSessions() {
-    const res = await apiClient.get<Session[]>('/auth/sessions');
-    return res.data;
-  },
+  getSessions: (signal?: AbortSignal) => apiClient.get<Session[]>('/auth/sessions', { signal }),
 
-  async revokeSession(sessionId: string) {
-    const res = await apiClient.delete<{
-      revokedSessionId: string;
-      isCurrentSession: boolean;
-    }>(`/auth/sessions/${sessionId}`);
-    return res.data;
-  },
+  revokeSession: (sessionId: string) =>
+    apiClient.delete<{ revokedSessionId: string; isCurrentSession: boolean }>(
+      `/auth/sessions/${encodeURIComponent(sessionId)}`,
+    ),
 
-  async getDevices() {
-    const res = await apiClient.get<KnownDevice[]>('/users/me/devices');
-    return res.data;
-  },
+  getDevices: (signal?: AbortSignal) =>
+    apiClient.get<KnownDevice[]>('/users/me/devices', { signal }),
 
-  async revokeDevice(deviceId: string) {
-    const res = await apiClient.delete<null>(`/users/me/devices/${deviceId}`);
-    return res;
-  },
+  revokeDevice: (deviceId: string) =>
+    apiClient.delete<null>(`/users/me/devices/${encodeURIComponent(deviceId)}`),
 
-  async getActivity(event?: string) {
-    const query = event ? `?event=${encodeURIComponent(event)}` : '';
-    const res = await apiClient.get<UserActivityEntry[]>(`/users/me/activity${query}`);
-    return res.data;
-  },
+  getActivity: (event?: string, signal?: AbortSignal) =>
+    apiClient.get<UserActivityEntry[]>('/users/me/activity', { query: { event }, signal }),
 
-  async updatePreferences(preferences: Partial<UserPreferences>) {
-    const res = await apiClient.patch<UserPreferences>('/users/me/preferences', preferences);
-    return res.data;
-  },
+  updatePreferences: (preferences: Partial<UserPreferences>) =>
+    apiClient.patch<UserPreferences>('/users/me/preferences', preferences),
 
-  async requestEmailChange(payload: { newEmail: string; currentPassword: string }) {
-    const res = await apiClient.post<null>('/users/me/email/change', payload);
-    return res;
-  },
+  requestEmailChange: (payload: { newEmail: string; currentPassword: string }) =>
+    apiClient.post<null>('/users/me/email/change', payload),
 
-  async confirmEmailChange(payload: { code: string }) {
-    const res = await apiClient.post<User>('/users/me/email/confirm', payload);
-    return res.data;
-  },
+  confirmEmailChange: (payload: { code: string }) =>
+    apiClient.post<User>('/users/me/email/confirm', payload),
 
-  async deactivateAccount(payload: { currentPassword: string; reason?: string }) {
-    const res = await apiClient.post<null>('/users/me/deactivate', payload);
-    return res;
-  },
+  deactivateAccount: (payload: { currentPassword: string; reason?: string }) =>
+    apiClient.post<null>('/users/me/deactivate', payload),
 
-  async deleteAccount(payload: { currentPassword: string; reason?: string }) {
-    const res = await apiClient.delete<null>('/users/me', {
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    return res;
-  },
+  deleteAccount: (payload: { currentPassword: string; reason?: string }) =>
+    apiClient.delete<null>('/users/me', { body: payload }),
 
-  async exportData(currentPassword: string) {
-    const res = await apiClient.post<Record<string, unknown>>('/users/me/export', {
-      currentPassword,
-    });
-    return res.data;
-  },
+  /** "Download my data": the backend returns a JSON file attachment (not the envelope). */
+  exportData: (currentPassword: string) =>
+    downloadFile('/users/me/export', {
+      method: 'POST',
+      body: { currentPassword },
+      fallbackFilename: 'my-data.json',
+    }),
 };
