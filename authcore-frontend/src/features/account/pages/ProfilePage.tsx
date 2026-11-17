@@ -1,5 +1,5 @@
 import { Camera, Trash2, User as UserIcon } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Alert, Button, Card, Input } from '@/components/ui';
 import { accountApi } from '@/features/account/api/account.api';
@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth';
 import { ApiError } from '@/lib/api';
 
 export const ProfilePage: React.FC = () => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { user, updateUser } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -117,28 +118,26 @@ export const ProfilePage: React.FC = () => {
 
           <div className="space-y-2 text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                  disabled={isAvatarLoading}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  isLoading={isAvatarLoading}
-                  onClick={(e) => {
-                    const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                    input?.click();
-                  }}
-                >
-                  <Camera className="mr-1.5 h-4 w-4" />
-                  Upload new picture
-                </Button>
-              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={handleAvatarChange}
+                disabled={isAvatarLoading}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                isLoading={isAvatarLoading}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Camera className="mr-1.5 h-4 w-4" />
+                Upload new picture
+              </Button>
 
               <Button
                 type="button"

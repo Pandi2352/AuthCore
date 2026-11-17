@@ -62,7 +62,8 @@ export type FeatureFlag = {
 // layout.config.ts — sizes and behavior (looks: theme appearance)
 // ---------------------------------------------------------------------------
 
-export type Breakpoint = 'sm' | 'md' | 'lg' | 'xl';
+/** Responsive breakpoints (src/lib/constants/breakpoints.ts). */
+export type Breakpoint = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 /**
  * Built-in navbar actions:
  * - search: search box (center, wide screens) / icon (small screens) → opens the command menu

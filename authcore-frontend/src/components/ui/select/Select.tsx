@@ -211,7 +211,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
             setSelected(null);
             triggerRef.current?.focus();
           }}
-          className="absolute top-1/2 right-8 inline-flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          className="touch-target absolute! top-1/2 right-8 inline-flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <X className="size-3.5" aria-hidden="true" />
         </button>

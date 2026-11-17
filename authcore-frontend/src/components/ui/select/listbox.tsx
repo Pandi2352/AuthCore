@@ -100,7 +100,7 @@ export function ListboxPopup({
                   }
                   onClick={() => !option.disabled && onSelect(index)}
                   className={cn(
-                    'relative flex cursor-pointer items-center gap-2 rounded-md py-1.5 pr-8 pl-2 select-none',
+                    'relative flex cursor-pointer items-center gap-2 rounded-md py-1.5 pr-8 pl-2 select-none pointer-coarse:py-2.5',
                     'data-[active]:bg-accent data-[active]:text-accent-foreground',
                     'aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
                   )}

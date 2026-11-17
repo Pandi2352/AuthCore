@@ -192,18 +192,19 @@ Files: `app/layouts/navbar/`, `app/layouts/command-menu/`, `components/ui/comman
 
 ## 9. Responsive & Accessibility
 
-- [ ] Breakpoints in one place (`lib/constants/breakpoints.ts`, matching Tailwind): sm 640, md 768, lg 1024, xl 1280, 2xl 1536
-- [ ] `useBreakpoint()` / `useMediaQuery()`
-- [ ] Sidebar → drawer below `lg`; navbar overflow menu below `md`
-- [ ] Tables scroll horizontally inside their container; dialogs become sheets on mobile (optional)
-- [ ] Forms single-column on mobile; touch targets ≥ 44 px
-- [ ] No content overflow at 320 px width
-- [ ] Semantic HTML, labels for every control, `aria-*` only where HTML is not enough
-- [ ] Visible focus (ring token) everywhere; skip link; focus moved on route change
+- [x] Breakpoints in one place (`lib/constants/breakpoints.ts`, matching Tailwind): sm 640, md 768, lg 1024, xl 1280, 2xl 1536 *(Tailwind's `--breakpoint-*` pinned to the same values in `styles/tokens.css`; `Breakpoint` type includes `2xl`)*
+- [x] `useBreakpoint()` / `useMediaQuery()` *(+ `useCurrentBreakpoint()`, `useIsTouch()`, `usePrefersReducedMotion()`)*
+- [x] Sidebar → drawer below `lg`; navbar overflow menu below `md` *(modules 7–8, configurable)*
+- [x] Tables scroll horizontally inside their container; dialogs become bottom sheets below `sm` *(`DialogContent mobileLayout="sheet"` default, `"dialog"` to opt out — the command menu does; safe-area padding)*
+- [x] Forms single-column on mobile *(Register name fields fixed; Profile already `sm:grid-cols-2`)*; touch targets ≥ 44 px *(coarse pointers: every control token ≥ 44 px in all densities; list rows (sidebar, menus, listbox, command menu, tabs, accordion) `pointer-coarse:` taller; small inline buttons (clear ×, show password, dismiss, switch) get an invisible 44 px hit area via the `touch-target` utility)*
+- [x] No content overflow at 320 px width *(pages audited; `DevOverflowCheck` warns in the dev console with the offending elements whenever the page scrolls sideways — removed from production builds)*
+- [x] Semantic HTML, labels for every control, `aria-*` only where HTML is not enough *(Login: `PasswordInput` + `Checkbox` replace hand-rolled controls; Activity filter: our `Select` replaces the native one; Profile upload: no button inside a label; password rules are a real list; architecture check now rejects any native `<select>`)*
+- [x] Visible focus (ring token) everywhere; skip link; focus moved on route change *(global `:focus-visible` ring; modules 6 / 5)*
 - [x] Dialogs / menus: focus trap, Esc, return focus *(own primitives, module 4)*
-- [ ] Status never by color alone (icon / text)
-- [ ] `prefers-reduced-motion` respected
-- [ ] Contrast ≥ 4.5:1 (text), ≥ 3:1 (UI, focus) in every theme
+- [x] Status never by color alone *(badges carry text, icons are `aria-hidden` next to text, password rules say "(met / not met)", verified mark has screen-reader text, avatar status / unread dots are labelled)*
+- [x] `prefers-reduced-motion` respected *(motion tokens → 0 ms, global animation / transition cut in `base.css`, `usePrefersReducedMotion()` for JS)*
+- [x] Contrast ≥ 4.5:1 (text), ≥ 3:1 (UI, focus) in every theme *(`check:contrast` now also checks input / checkbox / switch boundaries and the focus ring on surfaces: 464 pairs; `--input` darkened (light) / lightened (dark) to pass; filled inputs keep a bottom border)*
+- [ ] Manual check with a screen reader (NVDA / VoiceOver) and at 320 px / 200 % zoom *(your manual test)*
 
 ## 10. Page & Feedback Components
 
@@ -340,7 +341,7 @@ Level 1 is done when all of these pass **without editing any component**:
 | 6 | 6. Layouts ✅ | Critical | App / auth / public layouts |
 | 7 | 7. Sidebar ✅ | Critical | Config-driven, collapsible, mobile drawer |
 | 8 | 8. Navbar ✅ | Critical | Configurable actions, responsive |
-| 9 | 9. Responsive & accessibility | Critical | Breakpoint and keyboard pass |
+| 9 | 9. Responsive & accessibility ✅ | Critical | Breakpoint and keyboard pass |
 | 10 | 10. Page & feedback components | High | Page scaffolding, states, global pages |
 | 11 | 11–12. Hooks & utilities | High | Reusable helpers |
 | 12 | 13. API layer | High | Client, errors, upload / download |

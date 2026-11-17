@@ -98,6 +98,7 @@ export function CommandPalette({
         aria-label={label}
         hideClose
         size="lg"
+        mobileLayout="dialog"
         initialFocus={inputRef}
         className="top-[12vh] max-h-[min(36rem,76dvh)] translate-y-0 overflow-hidden"
       >
@@ -163,7 +164,7 @@ export function CommandPalette({
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => run(i)}
                     className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm text-foreground select-none',
+                      'flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm text-foreground select-none pointer-coarse:py-3',
                       'data-[active]:bg-accent data-[active]:text-accent-foreground',
                       'aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
                     )}

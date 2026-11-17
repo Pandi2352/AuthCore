@@ -135,7 +135,7 @@ export function AccordionTrigger({
         disabled={item.disabled}
         onClick={() => accordion.toggle(item.value)}
         className={cn(
-          'flex w-full cursor-pointer items-center justify-between gap-4 rounded-md px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent/60 disabled:cursor-not-allowed disabled:opacity-50',
+          'flex w-full cursor-pointer items-center justify-between gap-4 rounded-md px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent/60 disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:min-h-11',
           className,
         )}
       >

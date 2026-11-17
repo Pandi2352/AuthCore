@@ -5,7 +5,7 @@
 //   node scripts/check-contrast.mjs --verbose  print every ratio
 //
 // Reads src/styles/themes.css (OKLCH literals) and the brand color from src/config/app.config.ts.
-// Text pairs need 4.5:1, the focus ring 3:1 (WCAG 2.2 AA: 1.4.3, 1.4.11).
+// Text pairs need 4.5:1; focus ring and form-control boundaries 3:1 (WCAG 2.2 AA: 1.4.3, 1.4.11).
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -130,6 +130,11 @@ const PAIRS = [
   ['--primary', '--background', TEXT],
   ['--primary-soft-foreground', '--primary-soft', TEXT],
   ['--ring', '--background', UI],
+  ['--ring', '--surface', UI],
+  // Form control boundaries (WCAG 1.4.11): input borders, checkbox / radio outlines, switch track
+  ['--input', '--surface', UI],
+  ['--input', '--background', UI],
+  ['--input', '--muted', UI],
   ['--sidebar-foreground', '--sidebar', TEXT],
   ['--sidebar-muted', '--sidebar', TEXT],
   ['--sidebar-active-foreground', '--sidebar-active', TEXT],

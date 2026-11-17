@@ -1,8 +1,8 @@
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { Alert, Button, Card, Input } from '@/components/ui';
+import { Alert, Button, Card, Checkbox, Field, Input, PasswordInput } from '@/components/ui';
 import { appConfig, featuresConfig, paths } from '@/config';
 import { useAuth } from '@/features/auth/session/useAuth';
 import { ApiError } from '@/lib/api';
@@ -16,7 +16,6 @@ export const LoginPage: React.FC = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,36 +84,21 @@ export const LoginPage: React.FC = () => {
             />
 
             <div className="space-y-1">
-              <div className="relative">
-                <Input
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
+              <Field label="Password" required>
+                <PasswordInput
                   autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-[34px] right-3 text-muted-foreground transition-colors hover:text-muted-foreground"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              </Field>
 
               <div className="flex items-center justify-between pt-1">
-                <label className="flex cursor-pointer items-center text-sm text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 rounded-md border-input text-primary focus:ring-ring"
-                  />
-                  <span className="ml-2">Remember me (30 days)</span>
-                </label>
+                <Checkbox
+                  label="Remember me (30 days)"
+                  checked={rememberMe}
+                  onCheckedChange={setRememberMe}
+                />
 
                 <Link
                   to={paths.auth.forgotPassword}

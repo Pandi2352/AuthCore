@@ -98,3 +98,16 @@
   /* Define --font-custom with your @font-face in base.css */
   --font-family-sans: var(--font-custom, ui-sans-serif), system-ui, sans-serif;
 }
+
+/* ---------------------------------------------------------------- touch screens
+ * Coarse pointers (phones, tablets): every control at least 44 px tall, whatever the density
+ * (WCAG 2.5.5 / platform guidelines). Comes last so it wins over [data-density].
+ */
+@media (pointer: coarse) {
+  :root,
+  [data-density] {
+    --control-h-sm: 2.75rem;
+    --control-h-md: 2.75rem;
+    --control-h-lg: 3rem;
+  }
+}

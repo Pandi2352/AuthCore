@@ -9,6 +9,7 @@
 //   3. Layer boundaries: lib → no React / UI; hooks → no UI / features; components → no features / app / pages;
 //      config → only types and other config; features → no other feature (except the auth public API), no app
 //   4. Colors: no Tailwind palette classes (bg-indigo-600 …) or hex values outside config / styles / theme runtime
+//   8. No native <select> (use Select / Combobox from components/ui: keyboard, theming, a11y)
 //   7. Shape: corners are rounded-md (rounded-full only for circles); shadows only through the
 //      theme tokens shadow-card / shadow-popover (off by default: theme.config.ts → shadows 'none')
 //   5. Project identity: the app name / slug from app.config.ts never hard-coded outside config/
@@ -209,6 +210,14 @@ for (const abs of walk(SRC)) {
       const cls = m[0].replace(/^(?:[a-z0-9-]+:)*/, '');
       errors.push(
         `${file}:${lineOf(text, m.index)}  "${cls}": use rounded-md (rounded-full for circles) and shadow-card / shadow-popover`,
+      );
+    }
+  }
+  // 8. Native <select>
+  if (file.endsWith('.tsx')) {
+    for (const m of text.matchAll(/<select[s>]/g)) {
+      errors.push(
+        `${file}:${lineOf(text, m.index)}  native <select>: use Select or Combobox from '@/components/ui'`,
       );
     }
   }

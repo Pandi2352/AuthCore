@@ -71,6 +71,7 @@ src/
 │   │   ├── components/
 │   │   │   ├── FullPageLoader.tsx   Session check / first load
 │   │   │   ├── FocusOnNavigate.tsx  Focus the new page h1 after navigation
+│   │   │   ├── DevOverflowCheck.tsx Dev only: warns about horizontal overflow (test at 320 px)
 │   │   │   ├── RouteAccessBoundary.tsx handle.featureFlag → 404, handle.permission → 403
 │   │   │   ├── use-breadcrumbs.ts
 │   │   │   ├── MainContent.tsx      Scroll container, content width, skip-link target
@@ -238,7 +239,7 @@ src/
 │   └── index.ts
 │
 ├── hooks/                           Generic React hooks (no business logic)
-│   ├── useMediaQuery.ts / useBreakpoint.ts
+│   ├── useMediaQuery.ts             useMediaQuery, useBreakpoint, useCurrentBreakpoint, useIsTouch, usePrefersReducedMotion
 │   ├── useLocalStorage.ts
 │   ├── useDisclosure.ts
 │   ├── useDebounce.ts / useDebouncedCallback.ts
@@ -269,7 +270,7 @@ src/
 │   ├── utils/                       cn.ts, variants.ts (our cva), url.ts (safeReturnTo), …
 │   ├── storage.ts                   The only localStorage access: JSON-safe, never throws, cross-tab subscribe (keys `<slug>:<name>:v1`)
 │   ├── validation/                  Shared Zod helpers (email, password-policy rules), Level 2
-│   └── constants/                   breakpoints.ts, storage-keys.ts, http.ts
+│   └── constants/                   breakpoints.ts (single source, = Tailwind), storage-keys.ts, http.ts
 │
 ├── types/                           Shared types
 │   ├── navigation.types.ts

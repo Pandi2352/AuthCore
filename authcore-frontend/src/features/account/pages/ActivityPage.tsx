@@ -1,11 +1,20 @@
 import { CheckCircle2, XCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import { Alert, Badge, Card } from '@/components/ui';
+import { Alert, Badge, Card, Select } from '@/components/ui';
 import { accountApi } from '@/features/account/api/account.api';
 import type { UserActivityEntry } from '@/features/account/types/account.types';
 import { ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
+
+const EVENT_FILTERS = [
+  { value: '', label: 'All events' },
+  { value: 'LOGIN', label: 'Sign in' },
+  { value: 'LOGIN_FAILED', label: 'Failed sign in' },
+  { value: 'LOGOUT', label: 'Sign out' },
+  { value: 'PASSWORD_CHANGED', label: 'Password changed' },
+  { value: 'NEW_DEVICE_LOGIN', label: 'New device sign in' },
+];
 
 export const ActivityPage: React.FC = () => {
   const [activities, setActivities] = useState<UserActivityEntry[]>([]);
@@ -41,21 +50,17 @@ export const ActivityPage: React.FC = () => {
           </p>
         </div>
 
-        <select
-          value={filterEvent}
-          onChange={(e) => {
-            setIsLoading(true);
-            setFilterEvent(e.target.value);
-          }}
-          className="rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
-        >
-          <option value="">All Events</option>
-          <option value="LOGIN">Sign In</option>
-          <option value="LOGIN_FAILED">Failed Sign In</option>
-          <option value="LOGOUT">Sign Out</option>
-          <option value="PASSWORD_CHANGED">Password Changed</option>
-          <option value="NEW_DEVICE_LOGIN">New Device Sign In</option>
-        </select>
+        <div className="w-full sm:w-56">
+          <Select
+            aria-label="Filter by event"
+            value={filterEvent}
+            onValueChange={(value) => {
+              setIsLoading(true);
+              setFilterEvent(value ?? '');
+            }}
+            options={EVENT_FILTERS}
+          />
+        </div>
       </div>
 
       {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
@@ -74,9 +79,9 @@ export const ActivityPage: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5">
                     {item.isSuccess ? (
-                      <CheckCircle2 className="h-5 w-5 text-success" />
+                      <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />
                     ) : (
-                      <XCircle className="h-5 w-5 text-danger" />
+                      <XCircle className="h-5 w-5 text-danger" aria-hidden="true" />
                     )}
                   </div>
 

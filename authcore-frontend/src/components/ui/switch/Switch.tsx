@@ -63,7 +63,7 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
         if (!event.defaultPrevented) setOn(!isOn);
       }}
       className={cn(
-        'inline-flex shrink-0 cursor-pointer items-center rounded-md border-2 border-transparent bg-input p-0 transition-colors',
+        'touch-target inline-flex shrink-0 cursor-pointer items-center rounded-md border-2 border-transparent bg-input p-0 transition-colors',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         'disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary',
         TRACK[size],

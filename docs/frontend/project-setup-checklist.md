@@ -98,7 +98,7 @@ What exists and what has to change before the starter kit is "foundation-ready":
 | `lint:fix` | oxlint `--fix` | [x] |
 | `format` / `format:check` | Prettier write / check | [x] |
 | `typecheck` | Types only (`tsc -b`) | [x] |
-| `check:architecture` | Architecture rules (colors, shape, boundaries, env, network, identity, routes) | [x] |
+| `check:architecture` | Architecture rules (colors, shape, boundaries, env, network, identity, routes, no native `<select>`) | [x] |
 | `check:contrast` | WCAG contrast of every preset × mode (module 3) | [x] |
 | `verify` | Everything CI runs | [x] |
 | `analyze` | Bundle size report | [ ] (Level 3) |

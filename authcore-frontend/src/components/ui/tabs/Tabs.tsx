@@ -145,7 +145,7 @@ export function TabsTrigger({ value, className, onClick, ...props }: TabsTrigger
         if (!event.defaultPrevented) ctx.setValue(value);
       }}
       className={cn(
-        'inline-flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4',
+        'inline-flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:min-h-11 [&_svg]:size-4',
         ctx.variant === 'underline' &&
           ctx.orientation === 'horizontal' &&
           '-mb-px border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground',

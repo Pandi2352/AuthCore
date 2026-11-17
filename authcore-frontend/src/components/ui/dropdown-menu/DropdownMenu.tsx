@@ -350,7 +350,7 @@ function useMenuItem({
 }
 
 const itemClass =
-  'relative flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none select-none focus:bg-accent focus:text-accent-foreground aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0';
+  'relative flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 pointer-coarse:py-2.5 text-left outline-none select-none focus:bg-accent focus:text-accent-foreground aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0';
 
 export interface DropdownMenuItemProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onSelect'> {
   onSelect?: (event: ReactMouseEvent<HTMLElement>) => void;

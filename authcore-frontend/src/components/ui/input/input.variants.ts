@@ -7,7 +7,7 @@ export const controlVariants = variants({
     variant: {
       outlined: 'border border-input bg-surface focus:border-ring focus:ring-2 focus:ring-ring/25',
       filled:
-        'border border-transparent bg-muted focus:border-ring focus:bg-surface focus:ring-2 focus:ring-ring/25',
+        'border border-transparent border-b-input bg-muted focus:border-ring focus:bg-surface focus:ring-2 focus:ring-ring/25',
       underlined:
         'border-x-0 border-t-0 border-b-2 border-input bg-transparent px-0! focus:border-ring',
     },

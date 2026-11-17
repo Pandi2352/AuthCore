@@ -69,7 +69,7 @@ export function Alert({
           type="button"
           onClick={onClose}
           className={cn(
-            '-m-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md opacity-70 transition-opacity hover:opacity-100',
+            'touch-target -m-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md opacity-70 transition-opacity hover:opacity-100',
           )}
           aria-label="Dismiss"
         >

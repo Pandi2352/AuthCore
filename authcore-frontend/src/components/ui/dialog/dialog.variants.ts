@@ -12,8 +12,15 @@ export const dialogPanelVariants = variants({
       bottom: 'inset-x-0 bottom-0 max-h-[85dvh] w-full rounded-md border-x-0 border-b-0',
     },
     size: { sm: '', md: '', lg: '', xl: '', full: '' },
+    mobile: { sheet: '', dialog: '' },
   },
   compoundVariants: [
+    {
+      placement: 'center',
+      mobile: 'sheet',
+      className:
+        'max-sm:top-auto max-sm:bottom-0 max-sm:left-0 max-sm:max-h-[90dvh] max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:border-x-0 max-sm:border-b-0 max-sm:pb-[env(safe-area-inset-bottom)]',
+    },
     { placement: 'center', size: 'sm', className: 'sm:max-w-sm' },
     { placement: 'center', size: 'md', className: 'sm:max-w-lg' },
     { placement: 'center', size: 'lg', className: 'sm:max-w-2xl' },
@@ -32,5 +39,5 @@ export const dialogPanelVariants = variants({
     { placement: 'left', size: 'lg', className: 'sm:max-w-lg' },
     { placement: 'left', size: 'xl', className: 'sm:max-w-2xl' },
   ],
-  defaultVariants: { placement: 'center', size: 'md' },
+  defaultVariants: { placement: 'center', size: 'md', mobile: 'sheet' },
 });

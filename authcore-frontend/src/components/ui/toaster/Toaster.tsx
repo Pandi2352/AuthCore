@@ -64,7 +64,7 @@ function Toast({ item, paused }: { item: ToastItem; paused: boolean }) {
         type="button"
         onClick={() => dismissToast(item.id)}
         aria-label="Dismiss notification"
-        className="-m-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        className="touch-target -m-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       >
         <X className="size-4" aria-hidden="true" />
       </button>

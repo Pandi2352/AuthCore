@@ -95,6 +95,8 @@ export interface DialogContentProps extends Omit<HTMLAttributes<HTMLDivElement>,
   description?: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   placement?: 'center' | 'left' | 'right' | 'top' | 'bottom';
+  /** Below `sm`, a centered dialog becomes a bottom sheet (default) or stays a dialog. */
+  mobileLayout?: 'sheet' | 'dialog';
   /** Hide the × button (keep Escape / a footer button to close). */
   hideClose?: boolean;
   /** Clicking the backdrop closes (default true; AlertDialog: false). */
@@ -111,6 +113,7 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(func
     description,
     size = 'md',
     placement = 'center',
+    mobileLayout = 'sheet',
     hideClose = false,
     closeOnOverlayClick = true,
     closeOnEscape = true,
@@ -147,7 +150,7 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(func
         aria-describedby={description ? descriptionId : props['aria-describedby']}
         tabIndex={-1}
         style={{ zIndex: 'var(--z-modal)' }}
-        className={dialogPanelVariants({ placement, size, className })}
+        className={dialogPanelVariants({ placement, size, mobile: mobileLayout, className })}
         {...props}
       >
         {(title || description) && (

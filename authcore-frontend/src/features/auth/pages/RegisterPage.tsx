@@ -124,7 +124,7 @@ export const RegisterPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <Alert variant="danger" message={error} onClose={() => setError(null)} />}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Input
                 label="First name"
                 name="firstName"

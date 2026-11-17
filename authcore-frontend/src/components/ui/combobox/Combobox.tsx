@@ -180,7 +180,7 @@ export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Com
             setQuery(null);
             inputRef.current?.focus();
           }}
-          className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          className="touch-target inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <X className="size-3.5" aria-hidden="true" />
         </button>

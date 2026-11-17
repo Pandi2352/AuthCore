@@ -1,5 +1,6 @@
 import { Outlet, ScrollRestoration } from 'react-router-dom';
 
+import { DevOverflowCheck } from './components/DevOverflowCheck';
 import { FocusOnNavigate } from './components/FocusOnNavigate';
 import { PageTitle } from './components/PageTitle';
 import { RouteProgress } from './components/RouteProgress';
@@ -12,6 +13,7 @@ export function RootLayout() {
       <RouteProgress />
       <FocusOnNavigate />
       <ScrollRestoration />
+      {__DEV_BUILD__ && <DevOverflowCheck />}
       <Outlet />
     </>
   );

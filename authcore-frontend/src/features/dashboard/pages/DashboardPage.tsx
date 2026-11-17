@@ -22,8 +22,9 @@ export const DashboardPage: React.FC = () => {
                 Welcome back, {user?.firstName}!
               </h1>
               {user?.isEmailVerified && (
-                <span title="Verified Account">
+                <span title="Verified account" className="inline-flex">
                   <CheckCircle className="h-5 w-5" aria-hidden="true" />
+                  <span className="sr-only">(verified account)</span>
                 </span>
               )}
             </div>

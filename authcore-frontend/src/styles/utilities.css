@@ -1,5 +1,24 @@
 /* Small project utilities (Tailwind v4 @utility). */
 
+/*
+ * touch-target: on touch screens, grows the clickable area of a small control to 44 × 44 px
+ * with an invisible pseudo-element (the visual size stays the same).
+ */
+@utility touch-target {
+  position: relative;
+  @media (pointer: coarse) {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
 /* Thin, themed scrollbars for scroll containers (ScrollArea, sidebar, menus). */
 @utility scrollbar-thin {
   scrollbar-width: thin;
