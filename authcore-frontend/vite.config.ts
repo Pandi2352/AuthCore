@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
+import packageJson from './package.json' with { type: 'json' };
 import { appConfig } from './src/config/app.config.ts';
 
 const escapeHtml = (value: string): string =>
@@ -17,9 +18,11 @@ function appConfigHtml(): Plugin {
   const values: Record<string, string> = {
     APP_NAME: appConfig.name,
     APP_DESCRIPTION: appConfig.description,
-    APP_LANG: appConfig.defaultLanguage,
+    APP_LANG: appConfig.locale.defaultLanguage,
     APP_THEME_COLOR_LIGHT: appConfig.themeColor.light,
     APP_THEME_COLOR_DARK: appConfig.themeColor.dark,
+    APP_FAVICON: appConfig.favicon,
+    APP_SHORT_NAME: appConfig.shortName,
   };
   return {
     name: 'app-config-html',
@@ -38,6 +41,9 @@ function appConfigHtml(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss(), appConfigHtml()],
+  define: {
+    __APP_VERSION__: JSON.stringify(packageJson.version),
+  },
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

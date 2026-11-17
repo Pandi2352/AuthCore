@@ -5,6 +5,7 @@ import { Alert } from '@/components/common/Alert';
 import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
+import { paths } from '@/config';
 import { useAuth } from '@/context/AuthContext';
 import { ApiError } from '@/lib/api-client';
 import { formatDate } from '@/lib/utils';
@@ -41,7 +42,7 @@ export const Sessions: React.FC = () => {
     try {
       const res = await accountService.revokeSession(sessionId);
       if (res.isCurrentSession) {
-        window.location.href = '/login';
+        window.location.href = paths.auth.login;
         return;
       }
       setSuccess('Session signed out successfully');

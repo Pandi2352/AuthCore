@@ -23,6 +23,8 @@ function readApiBaseUrl(): string {
 export const env = Object.freeze({
   /** API root, e.g. "/api/v1" (dev proxy) or "https://api.example.com/api/v1". */
   apiBaseUrl: readApiBaseUrl(),
+  /** package.json version (injected at build time). */
+  appVersion: __APP_VERSION__,
   /** "development" | "production" (Vite mode). */
   mode: import.meta.env.MODE,
   isDevelopment: import.meta.env.DEV,

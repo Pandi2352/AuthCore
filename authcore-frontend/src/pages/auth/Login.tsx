@@ -6,7 +6,7 @@ import { Alert } from '@/components/common/Alert';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Input } from '@/components/common/Input';
-import { projectConfig } from '@/config/project';
+import { appConfig, featuresConfig, paths } from '@/config';
 import { useAuth } from '@/context/AuthContext';
 import { ApiError } from '@/lib/api-client';
 
@@ -36,16 +36,16 @@ export const Login: React.FC = () => {
       const res = await login(payload);
 
       if (res.isPasswordChangeRequired || res.user.mustChangePassword) {
-        navigate('/security', {
+        navigate(paths.account.security, {
           state: { message: 'You must change your password before continuing.' },
         });
       } else {
-        navigate('/dashboard');
+        navigate(paths.dashboard);
       }
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.code === 'AUTH_EMAIL_NOT_VERIFIED') {
-          navigate('/verify-email', {
+          navigate(paths.auth.verifyEmail, {
             state: { email: identifier.trim().toLowerCase() },
           });
           return;
@@ -63,10 +63,10 @@ export const Login: React.FC = () => {
     <div className="flex min-h-screen flex-col justify-center bg-slate-50 py-12 sm:px-6 lg:px-8">
       <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-2xl font-black text-white shadow-md">
-          {projectConfig.name.charAt(0)}
+          {appConfig.name.charAt(0)}
         </div>
         <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          Sign in to {projectConfig.name}
+          Sign in to {appConfig.name}
         </h2>
         <p className="mt-2 text-sm text-slate-500">Reusable authentication & access management</p>
       </div>
@@ -119,7 +119,7 @@ export const Login: React.FC = () => {
                 </label>
 
                 <Link
-                  to="/forgot-password"
+                  to={paths.auth.forgotPassword}
                   className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
                 >
                   Forgot password?
@@ -133,11 +133,11 @@ export const Login: React.FC = () => {
             </Button>
           </form>
 
-          {projectConfig.features.allowRegistration && (
+          {featuresConfig.auth.allowRegistration && (
             <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-600">
               Don't have an account?{' '}
               <Link
-                to="/register"
+                to={paths.auth.register}
                 className="font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
               >
                 Sign up
@@ -145,10 +145,10 @@ export const Login: React.FC = () => {
             </div>
           )}
 
-          {projectConfig.features.enableSelfRecovery && (
+          {featuresConfig.auth.enableSelfRecovery && (
             <div className="mt-2 text-center text-xs text-slate-500">
               Closed or deactivated account?{' '}
-              <Link to="/recovery" className="font-medium text-slate-700 hover:underline">
+              <Link to={paths.auth.recovery} className="font-medium text-slate-700 hover:underline">
                 Recover account
               </Link>
             </div>

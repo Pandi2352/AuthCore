@@ -33,7 +33,7 @@ What exists and what has to change before the starter kit is "foundation-ready":
 | Layout | `Layout` = `Navbar` + `<Outlet>`; **no sidebar** | `AppLayout` / `AuthLayout` / `PublicLayout`, configurable sidebar + navbar |
 | Styling | Palette classes in almost every file (`bg-indigo-600`, `text-slate-…`, `bg-white`); one `--primary` variable | Design tokens only; presets, dark mode, appearance (see [theme-system.md](./theme-system.md)) |
 | Components | `Button`, `Input`, `Card`, `Badge`, `Alert` in `components/common` | Move to `components/ui/<name>/` with variants, sizes, states, tests |
-| Config | `config/project.ts` (name, branding, feature flags, API URL) | Split into `app.config.ts`, `features.config.ts`, `env.ts` (+ navigation, layout, theme configs) |
+| Config | ~~`config/project.ts`~~ | Done: `app.config.ts`, `features.config.ts`, `env.ts`, `paths.ts`, navigation, layout, theme configs (module 2) |
 | API | `lib/api-client.ts`: fetch, `credentials: 'include'`, refresh queue, token in memory | Keep logic; move to `lib/api/`; add timeout, `ApiError`, typed errors, tests |
 | Auth | `AuthContext`, `ProtectedRoute`, `GuestRoute`, `PermissionGate`, `usePermissions` | Keep logic; move into `features/auth/` (see migration table) |
 | Pages | auth (6), account (4), dashboard, 404 | Move into features; add 403, route error, planned-module pages |
@@ -120,7 +120,7 @@ What exists and what has to change before the starter kit is "foundation-ready":
 ## 7. Routing foundation
 
 - [ ] `createBrowserRouter` + `<RouterProvider>` (replaces `<BrowserRouter>` + `<Routes>`).
-- [ ] `src/app/paths.ts`: every URL as a constant and every dynamic URL as a builder (`paths.users.detail(id)`); no path strings anywhere else.
+- [x] `src/config/paths.ts`: every URL as a constant and every dynamic URL as a builder (`paths.admin.userDetail(id)`); no path strings anywhere else.
 - [ ] `src/app/routes/*.routes.tsx`: one file per area, pages lazy-loaded (`lazy: () => import(...)`).
 - [ ] Route `handle`: `title`, `breadcrumb`, `permission` (for guards, document title, breadcrumbs).
 - [ ] `errorElement` at the root and per layout; 404 catch-all; redirects (`/` → home).

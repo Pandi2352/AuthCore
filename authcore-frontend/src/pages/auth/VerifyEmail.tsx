@@ -6,6 +6,7 @@ import { Alert } from '@/components/common/Alert';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Input } from '@/components/common/Input';
+import { paths } from '@/config';
 import { ApiError } from '@/lib/api-client';
 import { authService } from '@/services/auth.service';
 
@@ -67,7 +68,7 @@ export const VerifyEmail: React.FC = () => {
         email: email.trim().toLowerCase(),
         code: code.trim(),
       });
-      navigate('/login', {
+      navigate(paths.auth.login, {
         state: { message: 'Email verified successfully! Please sign in.' },
       });
     } catch (err) {
@@ -132,7 +133,7 @@ export const VerifyEmail: React.FC = () => {
             <div className="space-y-4 text-center">
               <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
               <p className="text-sm text-slate-600">Your account is ready.</p>
-              <Link to="/login">
+              <Link to={paths.auth.login}>
                 <Button variant="primary" className="w-full">
                   Sign In
                 </Button>
@@ -179,7 +180,10 @@ export const VerifyEmail: React.FC = () => {
                   {resendCooldown > 0 ? `Resend available in ${resendCooldown}s` : 'Resend code'}
                 </button>
 
-                <Link to="/login" className="text-slate-500 hover:text-slate-800 hover:underline">
+                <Link
+                  to={paths.auth.login}
+                  className="text-slate-500 hover:text-slate-800 hover:underline"
+                >
                   Back to Sign In
                 </Link>
               </div>

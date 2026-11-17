@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
+import { paths } from '@/config';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -32,15 +33,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to={paths.auth.login} state={{ from: location }} replace />;
   }
 
   if (requiredPermission && !hasPermission(requiredPermission)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={paths.dashboard} replace />;
   }
 
   if (requiredRole && !hasRole(requiredRole)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={paths.dashboard} replace />;
   }
 
   return <>{children}</>;

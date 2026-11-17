@@ -1,0 +1,68 @@
+/**
+ * Every URL of the app: constants and builders. Routes, links, redirects and
+ * the navigation config use these — never a path string written elsewhere.
+ * (Kept in config/ so navigation.config.ts can use it.)
+ */
+const segment = (value: string): string => encodeURIComponent(value);
+
+export const paths = {
+  root: '/',
+  dashboard: '/dashboard',
+
+  auth: {
+    login: '/login',
+    register: '/register',
+    verifyEmail: '/verify-email',
+    forgotPassword: '/forgot-password',
+    resetPassword: '/reset-password',
+    recovery: '/recovery',
+    acceptInvite: '/accept-invite',
+  },
+
+  account: {
+    profile: '/profile',
+    security: '/security',
+    sessions: '/sessions',
+    activity: '/activity',
+    devices: '/devices',
+    preferences: '/preferences',
+  },
+
+  admin: {
+    root: '/admin',
+    users: '/admin/users',
+    userDetail: (id: string) => `/admin/users/${segment(id)}`,
+    invites: '/admin/invites',
+    roles: '/admin/access/roles',
+    permissions: '/admin/access/permissions',
+    groups: '/admin/access/groups',
+    auditLog: '/admin/access/audit-log',
+    passwordPolicy: '/admin/security/password-policy',
+    userSchema: '/admin/security/user-schema',
+    activity: '/admin/monitoring/activity',
+  },
+
+  settings: {
+    root: '/settings',
+    general: '/settings/general',
+    appearance: '/settings/appearance',
+  },
+
+  errors: {
+    forbidden: '/403',
+    notFound: '/404',
+  },
+} as const;
+
+/** Path with query parameters (undefined / empty values are left out). */
+export function withQuery(
+  path: string,
+  query: Record<string, string | number | boolean | undefined>,
+): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== '') params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
+}

@@ -1,38 +1,35 @@
-/**
- * Project identity. Plain data only (no imports, no import.meta.env): it is
- * also read by vite.config.ts to fill the <title> and <meta> tags of
- * index.html at build time. A new project changes these values.
- */
-export interface AppConfig {
-  /** Display name: browser tab, sidebar, emails. Keep in sync with the backend's project.config.json. */
-  name: string;
-  /** Machine name: storage-key prefix, file names. Lowercase letters, digits and "-". */
-  slug: string;
-  description: string;
-  /** Browser UI color (mobile address bar), light and dark. */
-  themeColor: { light: string; dark: string };
-  /** HTML lang attribute until i18n arrives. */
-  defaultLanguage: string;
-  branding: {
-    primaryColor: string;
-    logoUrl: string | null;
-    companyName: string | null;
-    supportEmail: string | null;
-    websiteUrl: string | null;
-  };
-}
+import type { AppConfig } from '../types/app-config.types.ts';
 
+/**
+ * Project identity. Plain data (no runtime imports, no import.meta.env): it is
+ * also read by vite.config.ts to fill <title> / <meta> / favicon in
+ * index.html at build time, and edited by `npm run project:init`.
+ * Keep name and slug in sync with the backend's project.config.json.
+ */
 export const appConfig: AppConfig = {
   name: 'AuthCore',
+  shortName: 'AuthCore',
   slug: 'authcore',
   description: 'Reusable authentication and authorization service',
   themeColor: { light: '#ffffff', dark: '#0f172a' },
-  defaultLanguage: 'en',
+  logos: {
+    light: null,
+    dark: null,
+    mark: null,
+  },
+  favicon: '/favicon.svg',
+  locale: {
+    defaultLanguage: 'en',
+    defaultTimeZone: 'UTC',
+  },
   branding: {
     primaryColor: '#4f46e5',
-    logoUrl: null,
     companyName: 'AuthCore Identity',
     supportEmail: 'support@authcore.local',
     websiteUrl: null,
+  },
+  legal: {
+    privacyUrl: null,
+    termsUrl: null,
   },
 };

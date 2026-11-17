@@ -10,6 +10,8 @@
 //   3. Layer boundaries: lib → no React / UI; hooks → no UI / features; components → no features / app / pages;
 //      config → only types and other config; features → no other feature (except the auth public API), no app
 //   4. Colors: no Tailwind palette classes (bg-indigo-600 …) or hex values outside config / styles
+//   5. Project identity: the app name / slug from app.config.ts never hard-coded outside config/
+//   6. Routes: no inline path strings in to="/…", href="/…", navigate('/…') — use paths from config/paths.ts
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -19,6 +21,18 @@ const isStrict = process.argv.includes('--strict');
 
 const ENV_READER = 'src/config/env.ts';
 const API_LAYER = [/^src\/lib\/api\//, /^src\/lib\/api-client\.ts$/];
+/** App name and slug, read from src/config/app.config.ts (rule 5). */
+const APP_CONFIG_SOURCE = fs.readFileSync(path.join(ROOT, 'src/config/app.config.ts'), 'utf8');
+const IDENTITY = ['name', 'slug']
+  .map((key) => new RegExp(`^\\s+${key}: '([^']+)'`, 'm').exec(APP_CONFIG_SOURCE)?.[1])
+  .filter((value) => typeof value === 'string' && value.length >= 3);
+const escapeRe = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const IDENTITY_RE = IDENTITY.length
+  ? new RegExp(`\\b(?:${IDENTITY.map(escapeRe).join('|')})\\b`, 'g')
+  : null;
+/** Inline internal routes (rule 6). */
+const INLINE_ROUTE = /\b(?:to|href)="\/|\bnavigate\(\s*['"`]\/|location\.href\s*=\s*['"`]\//g;
+
 /** Where literal colors are allowed (configuration and token definitions). */
 const COLOR_ALLOWED = [/^src\/config\//, /^src\/styles\//, /^src\/index\.css$/];
 
@@ -133,6 +147,22 @@ for (const abs of walk(SRC)) {
       for (const m of text.matchAll(/import\.meta\.env/g)) {
         errors.push(
           `${file}:${lineOf(text, m.index)}  import.meta.env outside ${ENV_READER} (use \`env\` from '@/config/env')`,
+        );
+      }
+    }
+    // 5. Project identity
+    if (IDENTITY_RE && !file.startsWith('src/config/')) {
+      for (const m of text.matchAll(IDENTITY_RE)) {
+        errors.push(
+          `${file}:${lineOf(text, m.index)}  "${m[0]}" is the project name / slug: use appConfig from '@/config'`,
+        );
+      }
+    }
+    // 6. Inline routes
+    if (!file.startsWith('src/config/')) {
+      for (const m of text.matchAll(INLINE_ROUTE)) {
+        errors.push(
+          `${file}:${lineOf(text, m.index)}  inline route ${m[0].trim()}…: use paths from '@/config'`,
         );
       }
     }

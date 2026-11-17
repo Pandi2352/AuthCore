@@ -20,6 +20,7 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "erasableSyntaxOnly": true,
+    "resolveJsonModule": true,
 
     /* Unused code */
     "noUnusedLocals": true,

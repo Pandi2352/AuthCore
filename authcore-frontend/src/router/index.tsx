@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { GuestRoute } from '@/components/auth/GuestRoute';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Layout } from '@/components/common/Layout';
+import { paths } from '@/config';
 import { Activity } from '@/pages/account/Activity';
 import { Profile } from '@/pages/account/Profile';
 import { Security } from '@/pages/account/Security';
@@ -21,11 +22,11 @@ export const AppRouter: React.FC = () => {
   return (
     <Routes>
       {/* Root redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path={paths.root} element={<Navigate to={paths.dashboard} replace />} />
 
       {/* Guest / Public Auth Routes */}
       <Route
-        path="/login"
+        path={paths.auth.login}
         element={
           <GuestRoute>
             <Login />
@@ -33,25 +34,25 @@ export const AppRouter: React.FC = () => {
         }
       />
       <Route
-        path="/register"
+        path={paths.auth.register}
         element={
           <GuestRoute>
             <Register />
           </GuestRoute>
         }
       />
-      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path={paths.auth.verifyEmail} element={<VerifyEmail />} />
       <Route
-        path="/forgot-password"
+        path={paths.auth.forgotPassword}
         element={
           <GuestRoute>
             <ForgotPassword />
           </GuestRoute>
         }
       />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path={paths.auth.resetPassword} element={<ResetPassword />} />
       <Route
-        path="/recovery"
+        path={paths.auth.recovery}
         element={
           <GuestRoute>
             <AccountRecovery />
@@ -67,11 +68,11 @@ export const AppRouter: React.FC = () => {
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/security" element={<Security />} />
-        <Route path="/sessions" element={<Sessions />} />
-        <Route path="/activity" element={<Activity />} />
+        <Route path={paths.dashboard} element={<Dashboard />} />
+        <Route path={paths.account.profile} element={<Profile />} />
+        <Route path={paths.account.security} element={<Security />} />
+        <Route path={paths.account.sessions} element={<Sessions />} />
+        <Route path={paths.account.activity} element={<Activity />} />
       </Route>
 
       {/* 404 Catch-All */}

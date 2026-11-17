@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
+import { paths } from '@/config';
 import { useAuth } from '@/context/AuthContext';
 
 interface GuestRouteProps {
@@ -22,7 +23,7 @@ export const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
 
   if (isAuthenticated) {
     const from =
-      (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
+      (location.state as { from?: { pathname: string } })?.from?.pathname || paths.dashboard;
     return <Navigate to={from} replace />;
   }
 

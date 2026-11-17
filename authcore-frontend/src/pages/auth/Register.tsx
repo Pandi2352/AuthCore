@@ -7,7 +7,7 @@ import { Alert } from '@/components/common/Alert';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Input } from '@/components/common/Input';
-import { projectConfig } from '@/config/project';
+import { appConfig, paths } from '@/config';
 import { useAuth } from '@/context/AuthContext';
 import { ApiError } from '@/lib/api-client';
 
@@ -54,7 +54,7 @@ export const Register: React.FC = () => {
       const res = await register(payload);
 
       if (res.nextStep === 'VERIFY_EMAIL_OTP') {
-        navigate('/verify-email', {
+        navigate(paths.auth.verifyEmail, {
           state: {
             email: payload.email,
             mode: 'otp',
@@ -70,7 +70,7 @@ export const Register: React.FC = () => {
           'Registration submitted! An administrator will review and approve your account shortly.',
         );
       } else {
-        navigate('/login', {
+        navigate(paths.auth.login, {
           state: { message: 'Registration successful! You may now sign in.' },
         });
       }
@@ -101,7 +101,7 @@ export const Register: React.FC = () => {
             <h3 className="text-xl font-bold text-slate-900">Check your inbox</h3>
             <p className="text-sm text-slate-600">{infoMessage}</p>
             <div className="pt-4">
-              <Link to="/login">
+              <Link to={paths.auth.login}>
                 <Button variant="primary" className="w-full">
                   Return to Sign In
                 </Button>
@@ -117,12 +117,12 @@ export const Register: React.FC = () => {
     <div className="flex min-h-screen flex-col justify-center bg-slate-50 py-12 sm:px-6 lg:px-8">
       <div className="text-center sm:mx-auto sm:w-full sm:max-w-md">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-2xl font-black text-white shadow-md">
-          {projectConfig.name.charAt(0)}
+          {appConfig.name.charAt(0)}
         </div>
         <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           Create your account
         </h2>
-        <p className="mt-2 text-sm text-slate-500">Join {projectConfig.name} today</p>
+        <p className="mt-2 text-sm text-slate-500">Join {appConfig.name} today</p>
       </div>
 
       <div className="mt-8 px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
@@ -199,7 +199,7 @@ export const Register: React.FC = () => {
           <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-600">
             Already have an account?{' '}
             <Link
-              to="/login"
+              to={paths.auth.login}
               className="font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
             >
               Sign in

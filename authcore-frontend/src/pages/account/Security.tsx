@@ -7,6 +7,7 @@ import { Alert } from '@/components/common/Alert';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Input } from '@/components/common/Input';
+import { paths } from '@/config';
 import { ApiError } from '@/lib/api-client';
 import { accountService } from '@/services/account.service';
 import { authService } from '@/services/auth.service';
@@ -68,7 +69,7 @@ export const Security: React.FC = () => {
         currentPassword: deactivatePassword,
         reason: deactivateReason || undefined,
       });
-      window.location.href = '/login';
+      window.location.href = paths.auth.login;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Account deactivation failed.');
     } finally {

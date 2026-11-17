@@ -1,0 +1,164 @@
+import type { NavGroup } from '@/types/navigation.types';
+
+import { paths } from './paths';
+
+/**
+ * Sidebar navigation: the only place modules and pages are listed.
+ * - `featureFlag` hides an item when the flag is off (features.config.ts).
+ * - `permission` hides it for users without the permission (Level 2, auth).
+ * - `status: 'planned'` shows a "not built yet" page until the module exists.
+ * Icons: names from config/icons.ts.
+ */
+export const navigationConfig: NavGroup[] = [
+  {
+    id: 'main',
+    items: [
+      {
+        id: 'dashboard',
+        title: 'Dashboard',
+        path: paths.dashboard,
+        icon: 'LayoutDashboard',
+        match: 'exact',
+      },
+    ],
+  },
+  {
+    id: 'account',
+    title: 'My account',
+    items: [
+      { id: 'account-profile', title: 'Profile', path: paths.account.profile, icon: 'UserRound' },
+      {
+        id: 'account-security',
+        title: 'Security',
+        path: paths.account.security,
+        icon: 'ShieldCheck',
+      },
+      {
+        id: 'account-sessions',
+        title: 'Sessions',
+        path: paths.account.sessions,
+        icon: 'MonitorSmartphone',
+        featureFlag: 'account.sessionsPage',
+      },
+      {
+        id: 'account-activity',
+        title: 'Activity',
+        path: paths.account.activity,
+        icon: 'History',
+        featureFlag: 'account.activityPage',
+      },
+    ],
+  },
+  {
+    id: 'admin',
+    title: 'Administration',
+    featureFlag: 'admin.enabled',
+    items: [
+      {
+        id: 'admin-users',
+        title: 'Users',
+        icon: 'Users',
+        status: 'planned',
+        permission: 'USER_READ',
+        children: [
+          {
+            id: 'admin-users-list',
+            title: 'All users',
+            path: paths.admin.users,
+            status: 'planned',
+          },
+          {
+            id: 'admin-invites',
+            title: 'Invitations',
+            path: paths.admin.invites,
+            status: 'planned',
+            permission: 'USER_INVITE',
+            featureFlag: 'auth.enableInvites',
+          },
+        ],
+      },
+      {
+        id: 'admin-access',
+        title: 'Access control',
+        icon: 'Shield',
+        status: 'planned',
+        permission: ['ROLE_READ', 'PERMISSION_READ', 'GROUP_READ'],
+        children: [
+          {
+            id: 'admin-roles',
+            title: 'Roles',
+            path: paths.admin.roles,
+            status: 'planned',
+            permission: 'ROLE_READ',
+          },
+          {
+            id: 'admin-permissions',
+            title: 'Permissions',
+            path: paths.admin.permissions,
+            status: 'planned',
+            permission: 'PERMISSION_READ',
+          },
+          {
+            id: 'admin-groups',
+            title: 'Groups',
+            path: paths.admin.groups,
+            status: 'planned',
+            permission: 'GROUP_READ',
+          },
+          {
+            id: 'admin-audit-log',
+            title: 'Audit log',
+            path: paths.admin.auditLog,
+            status: 'planned',
+            permission: 'ACCESS_AUDIT_READ',
+          },
+        ],
+      },
+      {
+        id: 'admin-security',
+        title: 'Security settings',
+        icon: 'Lock',
+        status: 'planned',
+        permission: ['PASSWORD_POLICY_READ', 'USER_SCHEMA_READ'],
+        children: [
+          {
+            id: 'admin-password-policy',
+            title: 'Password policy',
+            path: paths.admin.passwordPolicy,
+            status: 'planned',
+            permission: 'PASSWORD_POLICY_READ',
+          },
+          {
+            id: 'admin-user-schema',
+            title: 'User schema',
+            path: paths.admin.userSchema,
+            status: 'planned',
+            permission: 'USER_SCHEMA_READ',
+          },
+        ],
+      },
+      {
+        id: 'admin-activity',
+        title: 'Activity & sign-ins',
+        path: paths.admin.activity,
+        icon: 'Activity',
+        status: 'planned',
+        permission: 'USER_READ',
+      },
+    ],
+  },
+];
+
+/** Footer area of the sidebar (settings, help). */
+export const navigationFooterConfig: NavGroup = {
+  id: 'footer',
+  items: [
+    {
+      id: 'settings',
+      title: 'Settings',
+      path: paths.settings.general,
+      icon: 'Settings',
+      status: 'planned',
+    },
+  ],
+};

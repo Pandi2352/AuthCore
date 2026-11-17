@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 
 import { Badge } from '@/components/common/Badge';
 import { Card } from '@/components/common/Card';
+import { paths } from '@/config';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatDate } from '@/lib/utils';
@@ -111,28 +112,28 @@ export const Dashboard: React.FC = () => {
 
         <Card title="Quick Actions" className="space-y-2">
           <Link
-            to="/profile"
+            to={paths.account.profile}
             className="flex items-center gap-3 rounded-lg border border-transparent p-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-200 hover:bg-slate-50"
           >
             <UserIcon className="h-4 w-4 text-indigo-600" />
             Edit Profile & Avatar
           </Link>
           <Link
-            to="/security"
+            to={paths.account.security}
             className="flex items-center gap-3 rounded-lg border border-transparent p-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-200 hover:bg-slate-50"
           >
             <KeyRound className="h-4 w-4 text-indigo-600" />
             Change Password
           </Link>
           <Link
-            to="/sessions"
+            to={paths.account.sessions}
             className="flex items-center gap-3 rounded-lg border border-transparent p-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-200 hover:bg-slate-50"
           >
             <Laptop className="h-4 w-4 text-indigo-600" />
             Manage Active Sessions
           </Link>
           <Link
-            to="/activity"
+            to={paths.account.activity}
             className="flex items-center gap-3 rounded-lg border border-transparent p-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-200 hover:bg-slate-50"
           >
             <Activity className="h-4 w-4 text-indigo-600" />

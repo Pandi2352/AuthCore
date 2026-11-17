@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/common/Button';
+import { paths } from '@/config';
 
 export const NotFound: React.FC = () => {
   return (
@@ -11,7 +12,7 @@ export const NotFound: React.FC = () => {
       <p className="mb-6 max-w-sm text-sm text-slate-500">
         The page you are looking for does not exist or has been moved.
       </p>
-      <Link to="/dashboard">
+      <Link to={paths.dashboard}>
         <Button variant="primary">Return Home</Button>
       </Link>
     </div>

@@ -2,7 +2,7 @@ import { LogOut, Shield } from 'lucide-react';
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { projectConfig } from '@/config/project';
+import { appConfig, paths } from '@/config';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -13,7 +13,7 @@ export const Navbar: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate(paths.auth.login);
   };
 
   return (
@@ -21,42 +21,42 @@ export const Navbar: React.FC = () => {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
           <Link
-            to="/dashboard"
+            to={paths.dashboard}
             className="flex items-center gap-2 text-lg font-bold text-slate-900"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-xl font-black text-white shadow-sm">
-              {projectConfig.name.charAt(0)}
+              {appConfig.name.charAt(0)}
             </div>
-            <span>{projectConfig.name}</span>
+            <span>{appConfig.name}</span>
           </Link>
 
           <nav className="hidden items-center gap-1 text-sm font-medium text-slate-600 md:flex">
             <Link
-              to="/dashboard"
+              to={paths.dashboard}
               className="rounded-lg px-3 py-2 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               Dashboard
             </Link>
             <Link
-              to="/profile"
+              to={paths.account.profile}
               className="rounded-lg px-3 py-2 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               Profile
             </Link>
             <Link
-              to="/security"
+              to={paths.account.security}
               className="rounded-lg px-3 py-2 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               Security
             </Link>
             <Link
-              to="/sessions"
+              to={paths.account.sessions}
               className="rounded-lg px-3 py-2 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               Sessions
             </Link>
             <Link
-              to="/activity"
+              to={paths.account.activity}
               className="rounded-lg px-3 py-2 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               Activity

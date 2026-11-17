@@ -50,7 +50,6 @@ src/
 │   ├── App.tsx                      <Providers> + <RouterProvider router={router} />
 │   ├── Providers.tsx                ErrorBoundary → Theme → Query → Auth → Tooltip → Toaster
 │   ├── router.tsx                   createBrowserRouter(routes)
-│   ├── paths.ts                     Every URL: constants + builders (paths.users.detail(id))
 │   │
 │   ├── routes/                      One file per area; every page lazy
 │   │   ├── index.tsx                The tree: layouts, guards, error elements, redirects, 404
@@ -218,6 +217,8 @@ src/
 │   ├── theme.config.ts              Default mode, preset, appearance; what users may change
 │   ├── theme.presets.ts             Color presets (light + dark tokens each)
 │   ├── icons.ts                     Icon name → Lucide component registry (config stays serializable)
+│   ├── paths.ts                     Every URL: constants + builders (paths.admin.userDetail(id)); here so navigation can use it
+│   ├── validate-config.ts           Startup checks (duplicate ids, unknown icons / flags, bad URLs …)
 │   ├── env.ts                       The only reader of import.meta.env (validated, typed, frozen)
 │   └── index.ts
 │
@@ -355,8 +356,8 @@ The current code is kept and moved; nothing is rewritten from scratch.
 | `src/App.tsx` | `src/app/App.tsx` | Providers + `RouterProvider` |
 | `src/App.css`, `assets/hero.png`, `react.svg`, `vite.svg`, `public/icons.svg` | delete | Unused template files |
 | `src/index.css` | `src/styles/index.css` + `tokens.css` / `themes.css` / `base.css` | Body colors become tokens |
-| `src/router/index.tsx` | `src/app/router.tsx` + `src/app/routes/*.routes.tsx` + `src/app/paths.ts` | Data router, lazy pages |
-| `src/config/project.ts` | `config/app.config.ts` (identity, branding), `config/features.config.ts` (flags), `config/env.ts` (API URL) | Same values |
+| `src/router/index.tsx` | `src/app/router.tsx` + `src/app/routes/*.routes.tsx` (paths already in `src/config/paths.ts`) | Data router, lazy pages |
+| ~~`src/config/project.ts`~~ | `config/app.config.ts` (identity, branding), `config/features.config.ts` (flags), `config/env.ts` (API URL) | Done (module 2) |
 | `src/components/common/Layout.tsx` | `app/layouts/AppLayout.tsx` | + sidebar, main content |
 | `src/components/common/Navbar.tsx` | `app/layouts/navbar/*` | Split into left / right / user menu |
 | `src/components/common/Button.tsx`, `Input.tsx`, `Card.tsx`, `Badge.tsx`, `Alert.tsx` | `components/ui/<name>/` | Variants via cva, tokens |
@@ -382,7 +383,7 @@ The current code is kept and moved; nothing is rewritten from scratch.
 
 | Task | Steps |
 | --- | --- |
-| Add a page to an existing module | Page in `features/X/pages/` → path in `app/paths.ts` → route (lazy) in `app/routes/<area>.routes.tsx` → item in `config/navigation.config.ts` |
+| Add a page to an existing module | Page in `features/X/pages/` → path in `config/paths.ts` → route (lazy) in `app/routes/<area>.routes.tsx` → item in `config/navigation.config.ts` |
 | Add a new module | `features/<module>/` → `app/routes/<module>.routes.tsx` + include in `routes/index.tsx` → group / items in `navigation.config.ts` (until the routes exist, the planned pages show) |
 | Add a UI component | `components/ui/<name>/` with component, variants, index → export in `components/ui/index.ts` → add to the kitchen-sink page and check every preset × mode |
 | Add a theme preset | One entry in `config/theme.presets.ts` (light + dark tokens) → it appears in the theme customizer; check contrast on the kitchen-sink page |

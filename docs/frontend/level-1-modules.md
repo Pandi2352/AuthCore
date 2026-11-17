@@ -34,17 +34,20 @@ Details: [project-setup-checklist.md](./project-setup-checklist.md), sections 1�
 
 ## 2. Configuration System
 
-- [~] Central project config *(`src/config/project.ts`: name, slug, branding, feature flags, API URL — to be split)*
-- [ ] `app.config.ts`: name, short name, description, version, logos (light / dark / mark), favicon, company, support email, website, legal links, default locale / time zone
-- [ ] `features.config.ts`: feature toggles (theme switcher, theme customizer, global search, notifications, breadcrumbs, command menu, auth flows from Level 2)
-- [ ] `navigation.config.ts`: sidebar groups and items (see [module 7](#7-sidebar-system))
-- [ ] `layout.config.ts`: sidebar (variant, width, collapsed width, position, collapsible, default collapsed, sticky), navbar (variant, height, sticky, show logo, show breadcrumbs, actions), content (max width, padding)
-- [ ] `theme.config.ts` + `theme.presets.ts` (see [theme-system.md](./theme-system.md))
-- [ ] `icons.ts`: icon name → Lucide component registry (configs stay plain data)
-- [ ] `env.ts`: only reader of `import.meta.env`; validated, typed, frozen; clear startup error on bad values
-- [ ] Config types in `types/config.types.ts`; configs validated at startup in development (unknown icon, duplicate nav id, path without route → console error + dev overlay)
-- [ ] `npm run project:init -- --name "…" --slug …`: updates `app.config.ts`, `package.json` name, `index.html` meta, storage-key prefix, `.env.example`; prints what is left (logos, navigation, colors)
-- [ ] No project-specific value hard-coded outside `config/` (architecture check)
+Everything a new project edits is in `src/config/` (import from `@/config`); the types are in `src/types/config.types.ts`, `navigation.types.ts`, `theme.types.ts`.
+
+- [x] Central project config split *(`src/config/project.ts` removed; every consumer now reads `appConfig` / `featuresConfig` / `env`)*
+- [x] `app.config.ts`: name, short name, slug, description, logos (light / dark / mark), favicon, theme colors, default language / time zone, company, support email, website, legal links *(version: `env.appVersion` from `package.json` via Vite `define`; the file stays plain data because `vite.config.ts` reads it for `index.html`)*
+- [x] `features.config.ts`: `ui` (theme switcher, theme customizer, global search, command menu, notifications, breadcrumbs), `auth` (registration, flow, login identifiers, remember me, self recovery, invites), `account` pages, `admin` *(typed `FeatureFlag` = `"section.key"`; `isFeatureEnabled(flag)`)*
+- [x] `navigation.config.ts`: groups and items *(id, title, path, icon, children (one level), badge (text or live count), external, disabled, hidden, featureFlag, permission, status `planned`, match; account pages + planned admin area; footer group. Rendered by the sidebar in [module 7](#7-sidebar-system))*
+- [x] `layout.config.ts`: sidebar (enabled, position, width, collapsed width, collapsible, default collapsed, sticky / fixed, mobile breakpoint), navbar (enabled, height, sticky, show logo, breadcrumbs, built-in + custom actions), content (max width, padding), auth page variant *(visual variants are theme appearance)*
+- [x] `theme.config.ts` + `theme.presets.ts` *(defaults, what users may change, offered presets; preset metadata + swatches. Tokens and the provider: [module 3](#3-theme--design-tokens))*
+- [x] `icons.ts`: icon name → Lucide component registry *(`IconName` type derived from it; configs stay plain data)*
+- [x] `paths.ts`: every URL, constants + builders (`paths.admin.userDetail(id)`, `withQuery`) *(in `config/` so the navigation config can use it; all inline route strings in pages / router replaced)*
+- [x] `env.ts`: only reader of `import.meta.env`; validated, typed, frozen *(+ `appVersion`)*
+- [x] Startup validation *(`validate-config.ts`: slug / colors / URLs / language / time zone, duplicate nav ids, unknown icons / feature flags, nesting, sizes, unregistered presets … → development: `ConfigErrorPage` lists the problems instead of the app; production: `console.error`. Route-exists check comes with the data router in module 5)*
+- [x] `npm run project:init -- --name "…" --slug …` *(`scripts/project-init.mjs`: updates `app.config.ts` (name, short name, slug, description, color, company, support email, website, language, time zone) and the `package.json` / lock name; `--dry-run`; prints what is left. `index.html` meta follows automatically; the slug is the storage-key prefix; `.env.example` has no project values)*
+- [x] No project-specific value hard-coded outside `config/` *(architecture check: the app name / slug from `app.config.ts` and inline routes (`to="/…"`, `href="/…"`, `navigate('/…')`) are errors outside `config/`)*
 
 ## 3. Theme & Design Tokens
 
@@ -102,7 +105,7 @@ Display:
 
 - [~] React Router installed and used *(`<BrowserRouter>` + `<Routes>`; to migrate)*
 - [ ] `createBrowserRouter` + `<RouterProvider>`
-- [ ] `app/paths.ts`: constants + builders; no path strings elsewhere
+- [x] `config/paths.ts`: constants + builders; no path strings elsewhere *(done in module 2; enforced by the architecture check)*
 - [ ] Route files per area (`*.routes.tsx`), all pages lazy (`lazy` route property)
 - [ ] Nested routes and layout routes (`PublicLayout`, `AuthLayout`, `AppLayout`) with `<Outlet />`
 - [ ] Route `handle`: `title`, `breadcrumb`, `permission`, `featureFlag`
@@ -170,7 +173,7 @@ Navigation config shape:
 export interface NavItem {
   id: string;                        // unique, stable (used for keys and persisted expand state)
   title: string;
-  path?: string;                     // from app/paths.ts
+  path?: string;                     // from config/paths.ts
   icon?: IconName;                   // key of config/icons.ts
   children?: NavItem[];
   badge?: { text: string; tone?: BadgeTone } | { useCount: () => number | undefined };
@@ -367,7 +370,7 @@ Level 1 is done when all of these pass **without editing any component**:
 | Sprint | Module | Priority | Output |
 | --- | --- | --- | --- |
 | 1 | 1. Project setup & code quality | Critical | `npm run verify` green, CI running |
-| 2 | 2. Configuration system | Critical | All config files typed and used; `project:init` |
+| 2 | 2. Configuration system ✅ | Critical | All config files typed and used; `project:init` |
 | 3 | 3. Theme & design tokens | Critical | Modes, presets, appearance, no flash |
 | 4 | 4. UI components (core: button, input, field, card, badge, alert, dialog, dropdown, tooltip, toaster) | Critical | Kitchen-sink page |
 | 5 | 5. Routing | Critical | Data router, paths, lazy pages, error pages |

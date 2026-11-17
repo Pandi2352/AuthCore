@@ -67,6 +67,12 @@
       {
         "allow": ["**/*.css"]
       }
+    ],
+    "no-underscore-dangle": [
+      "warn",
+      {
+        "allow": ["__APP_VERSION__"]
+      }
     ]
   },
   "overrides": [

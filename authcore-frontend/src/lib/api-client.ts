@@ -1,4 +1,4 @@
-import { projectConfig } from '@/config/project';
+import { env } from '@/config';
 import type { ApiErrorResponse, ApiResponse } from '@/types/api';
 
 export class ApiError extends Error {
@@ -20,7 +20,7 @@ export class ApiError extends Error {
 type RefreshCallback = (token: string | null) => void;
 
 class ApiClient {
-  private baseUrl: string = projectConfig.apiBaseUrl;
+  private baseUrl: string = env.apiBaseUrl;
   private accessToken: string | null = null;
   private isRefreshing = false;
   private refreshSubscribers: RefreshCallback[] = [];

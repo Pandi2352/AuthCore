@@ -176,46 +176,33 @@ cd ../authcore-frontend       # or your renamed folder
 npm ci
 ```
 
-### 5.1 Identity ✅
+### 5.1 Identity and package name ✅
 
-Edit `src/config/app.config.ts` — use the **same name and slug** as the backend:
+One command — use the **same name and slug** as the backend:
 
-```ts
-export const appConfig: AppConfig = {
-  name: 'Nexa CRM',
-  slug: 'nexa-crm',
-  description: 'Customer relationships, simplified',
-  themeColor: { light: '#ffffff', dark: '#0f172a' },
-  defaultLanguage: 'en',
-  branding: {
-    primaryColor: '#0f766e',
-    logoUrl: '/brand/logo.svg',
-    companyName: 'Nexa Software Pvt Ltd',
-    supportEmail: 'support@nexacrm.com',
-    websiteUrl: 'https://nexacrm.com',
-  },
-};
+```bash
+npm run project:init -- --name "Nexa CRM" --slug nexa-crm --short-name Nexa \
+  --description "Customer relationships, simplified" --color "#0f766e" \
+  --company "Nexa Software Pvt Ltd" --support-email support@nexacrm.com \
+  --website https://nexacrm.com --language en --timezone Asia/Kolkata
+# add --dry-run first to see the changes
 ```
 
-The browser title, description and theme color in `index.html` are filled from this file at build time.
+It updates `src/config/app.config.ts` and the package name (`nexa-crm-frontend` in `package.json` / `package-lock.json`), then prints what is left. The browser title, description, favicon and theme color in `index.html` are filled from `app.config.ts` at build time. Anything else in `app.config.ts` (logos, legal links, theme colors) you edit by hand.
 
-### 5.2 Package name ✅
-
-In `package.json` (and the top of `package-lock.json`): `"name": "nexa-crm-frontend"`.
-
-🔜 *Frontend module 2 adds `npm run project:init` (like the backend) to do 5.1 and 5.2 in one command.*
+If a value is wrong, the app shows a **Configuration problems** page in development listing each one (production logs them to the console).
 
 ### 5.3 Logo and favicon ✅
 
-Replace `public/favicon.svg`. Put logos in `public/brand/` (`logo.svg`, `logo-dark.svg`, `logo-mark.svg` for the collapsed sidebar) and reference them only from `app.config.ts`.
+Replace `public/favicon.svg`. Put logos in `public/brand/` (`logo.svg`, `logo-dark.svg`, `logo-mark.svg` for the collapsed sidebar) and reference them only from `app.config.ts` → `logos` (`light`, `dark`, `mark`); a different favicon file → `favicon`.
 
 ### 5.4 Colors and look 🔜
 
 *Frontend module 3 (theme system):* choose a preset or set `brand` in `src/config/theme.config.ts` and the appearance (radius, density, sidebar / navbar style). Until then the color comes from `branding.primaryColor` and the existing components.
 
-### 5.5 Navigation 🔜
+### 5.5 Navigation (config ✅, sidebar 🔜)
 
-*Frontend module 7 (sidebar):* list your modules in `src/config/navigation.config.ts` (Leads, Contacts, Deals, Reports …); unbuilt modules show a "planned" page automatically.
+List your modules in `src/config/navigation.config.ts` (Leads, Contacts, Deals, Reports …), their URLs in `src/config/paths.ts`, and icons in `src/config/icons.ts`. *Frontend module 7 (sidebar)* renders it; items with `status: 'planned'` will show a "not built yet" page.
 
 ---
 
@@ -241,7 +228,7 @@ npm run verify         # format, lint, types, architecture rules, build
 
 ## Step 7 — Choose the auth flows ✅
 
-Backend and frontend must agree. Backend in `.env`, frontend in `src/config/project.ts` → `features` (🔜 `features.config.ts` after frontend module 2):
+Backend and frontend must agree. Backend in `.env`, frontend in `src/config/features.config.ts` → `auth`:
 
 | Decision | Backend `.env` | Frontend `features` |
 | --- | --- | --- |

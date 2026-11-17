@@ -7,6 +7,7 @@ import { Alert } from '@/components/common/Alert';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Input } from '@/components/common/Input';
+import { paths } from '@/config';
 import { ApiError } from '@/lib/api-client';
 import { authService } from '@/services/auth.service';
 
@@ -69,7 +70,7 @@ export const ResetPassword: React.FC = () => {
         newPassword,
         confirmPassword,
       });
-      navigate('/login', {
+      navigate(paths.auth.login, {
         state: {
           message:
             'Your password has been successfully reset. Please sign in with your new password.',
@@ -168,7 +169,7 @@ export const ResetPassword: React.FC = () => {
 
           <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-600">
             <Link
-              to="/login"
+              to={paths.auth.login}
               className="font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
             >
               Back to Sign In
