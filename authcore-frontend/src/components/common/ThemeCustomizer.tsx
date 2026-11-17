@@ -23,6 +23,7 @@ const OPTION_LABEL: Record<AppearanceOption, string> = {
   cards: 'Card style',
   inputs: 'Input style',
   buttons: 'Button style',
+  icons: 'Icon style',
 };
 
 /** A native radio group: arrow keys move between choices, the legend names the group. */

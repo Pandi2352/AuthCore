@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 
+import { useFullscreen } from '@/hooks/useFullscreen';
 import type { NavbarCommand } from '@/types/config.types';
 import type { ColorMode } from '@/types/theme.types';
 
@@ -15,12 +16,14 @@ export function useNavbarCommands(): Record<NavbarCommand, () => void> {
   const { toggleCollapsed } = useSidebar();
   const { mode, setMode } = useTheme();
   const toggleTheme = useCallback(() => setMode(NEXT_MODE[mode]), [mode, setMode]);
+  const { toggle: toggleFullscreenAsync } = useFullscreen();
   return useMemo(
     () => ({
       openCommandMenu: () => setOpen(true),
       toggleSidebar: toggleCollapsed,
       toggleTheme,
+      toggleFullscreen: () => void toggleFullscreenAsync(),
     }),
-    [setOpen, toggleCollapsed, toggleTheme],
+    [setOpen, toggleCollapsed, toggleTheme, toggleFullscreenAsync],
   );
 }

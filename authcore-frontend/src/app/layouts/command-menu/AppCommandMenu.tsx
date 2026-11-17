@@ -1,10 +1,11 @@
-import { LogOut, Monitor, Moon, PanelLeft, Sun } from 'lucide-react';
+import { LogOut, Maximize, Monitor, Moon, PanelLeft, Sun } from 'lucide-react';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { CommandPalette, type CommandGroup, type CommandItem } from '@/components/ui';
-import { icons, layoutConfig, paths } from '@/config';
+import { icons, isFeatureEnabled, layoutConfig, paths } from '@/config';
 import { useAuth } from '@/features/auth';
+import { useFullscreen } from '@/hooks/useFullscreen';
 import { modKeyLabel } from '@/lib/utils';
 import type { NavItem } from '@/types/navigation.types';
 
@@ -25,6 +26,7 @@ export function AppCommandMenu() {
   const { setMode, userCustomizable } = useTheme();
   const { isDesktop, toggleCollapsed } = useSidebar();
 
+  const fullscreen = useFullscreen();
   const groups = useMemo<CommandGroup[]>(() => {
     const pageItem = (item: NavItem, section: string | undefined): CommandItem | null => {
       if (!item.path || item.disabled) return null;
@@ -89,6 +91,15 @@ export function AppCommandMenu() {
         onSelect: toggleCollapsed,
       });
     }
+    if (fullscreen.supported && isFeatureEnabled('ui.fullscreen')) {
+      actions.push({
+        id: 'toggle-fullscreen',
+        label: 'Toggle full screen',
+        keywords: ['fullscreen', 'maximize', 'expand', 'present'],
+        icon: <Maximize aria-hidden="true" />,
+        onSelect: () => void fullscreen.toggle(),
+      });
+    }
     actions.push({
       id: 'sign-out',
       label: 'Sign out',
@@ -112,6 +123,7 @@ export function AppCommandMenu() {
     userCustomizable.mode,
     isDesktop,
     toggleCollapsed,
+    fullscreen,
   ]);
 
   return <CommandPalette open={open} onOpenChange={setOpen} groups={groups} />;

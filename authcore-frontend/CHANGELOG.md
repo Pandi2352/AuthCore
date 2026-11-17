@@ -12,8 +12,15 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 The first structured version. Projects copied **before** Level 1 (flat `components/common`, `context/`, `services/`, `src/router/`) should not merge file by file: copy the new kit and move their business pages into `features/` (see [Migrating a pre-Level-1 copy](#migrating-a-pre-level-1-copy)).
 
+### Navbar and theme
+
+- _Additive:_ full-screen action — `layout.config.ts → navbar.actions` 'fullscreen' (feature flag `ui.fullscreen`): navbar button (Full screen / Exit full screen), item in the "more" menu on small screens, command-menu action, custom-action command `toggleFullscreen`, hook `useFullscreen()`. Hidden where the browser doesn't allow full screen; follows Esc / F11.
+- **Fixed:** switching mode / preset / appearance applies instantly — color transitions are switched off for the one frame the theme changes (elements with `transition-colors` used to fade one by one).
+
 ### Sidebar
 
+- _Additive:_ icon style — theme `appearance.icons`: `classic` (lucide, default) · `modern` (Phosphor) · `duotone` (two-tone, fill in the primary color) · `color` (each item its own color; `NavItem.iconColor` or stable from the id). Users can pick it on the Appearance page. New dependency `@phosphor-icons/react` 2.1.10; every icon in `config/icons.ts` needs an entry in `config/modern-icons.ts` (type-checked); that module is loaded only when a non-classic style is used (own ~18 kB gzip chunk).
+- **Changed (look):** tighter menu rows (34 px, compact 30 px; submenu rows 30 px) and smaller gaps between rows and groups.
 - **Changed:** collapsed-sidebar flyouts open on hover only after a 350 ms rest (not while passing over) and only one at a time.
 - **Changed (look):** the sidebar header has a bottom border on the same line as the navbar's; the sidebar toggle uses its own three-line icon (`SidebarToggleIcon`: long / muted medium / short, lengths swap when collapsed).
 - **Changed:** sidebar 240 px wide (was 264); one submenu open at a time (`layout.config.ts → sidebar.singleSubmenu`, default true).

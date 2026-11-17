@@ -11,6 +11,7 @@ export const featuresConfig: FeaturesConfig = {
     globalSearch: true,
     commandMenu: true,
     notifications: true,
+    fullscreen: true,
     breadcrumbs: true,
   },
   auth: {

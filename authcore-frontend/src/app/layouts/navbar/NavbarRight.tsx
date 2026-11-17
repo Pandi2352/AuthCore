@@ -1,4 +1,13 @@
-import { Monitor, Moon, MoreVertical, Search, Sun, SunMoon } from 'lucide-react';
+import {
+  Maximize,
+  Minimize,
+  Monitor,
+  Moon,
+  MoreVertical,
+  Search,
+  Sun,
+  SunMoon,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -20,6 +29,7 @@ import {
   Tooltip,
 } from '@/components/ui';
 import { featuresConfig, icons, isFeatureEnabled, layoutConfig } from '@/config';
+import { useFullscreen } from '@/hooks/useFullscreen';
 import { useBreakpoint } from '@/hooks/useMediaQuery';
 import { modKeyLabel } from '@/lib/utils';
 import type { FeatureFlag, NavbarActionId, NavbarCustomAction } from '@/types/config.types';
@@ -34,6 +44,7 @@ import { UserMenu } from './UserMenu';
 const ACTION_FLAG: Record<Exclude<NavbarActionId, 'userMenu'>, FeatureFlag> = {
   search: 'ui.globalSearch',
   commandMenu: 'ui.commandMenu',
+  fullscreen: 'ui.fullscreen',
   themeToggle: 'ui.themeSwitcher',
   notifications: 'ui.notifications',
 };
@@ -97,16 +108,31 @@ function CustomActionItem({ action }: { action: NavbarCustomAction }) {
   );
 }
 
-/** "More" menu on small screens: custom actions + theme choice. */
+function FullscreenButton() {
+  const { isFullscreen, toggle } = useFullscreen();
+  return (
+    <IconButton
+      aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+      aria-pressed={isFullscreen}
+      icon={isFullscreen ? <Minimize /> : <Maximize />}
+      onClick={() => void toggle()}
+    />
+  );
+}
+
+/** "More" menu on small screens: custom actions, full screen, theme choice. */
 function OverflowMenu({
   actions,
   showTheme,
+  showFullscreen,
 }: {
   actions: readonly NavbarCustomAction[];
   showTheme: boolean;
+  showFullscreen: boolean;
 }) {
   const { mode, setMode } = useTheme();
-  if (actions.length === 0 && !showTheme) return null;
+  const fullscreen = useFullscreen();
+  if (actions.length === 0 && !showTheme && !showFullscreen) return null;
   return (
     <DropdownMenu>
       <Tooltip content="More">
@@ -122,7 +148,21 @@ function OverflowMenu({
         {actions.map((action) => (
           <CustomActionItem key={action.id} action={action} />
         ))}
-        {actions.length > 0 && showTheme && <DropdownMenuSeparator />}
+        {showFullscreen && (
+          <DropdownMenuItem
+            icon={
+              fullscreen.isFullscreen ? (
+                <Minimize aria-hidden="true" />
+              ) : (
+                <Maximize aria-hidden="true" />
+              )
+            }
+            onSelect={() => void fullscreen.toggle()}
+          >
+            {fullscreen.isFullscreen ? 'Exit full screen' : 'Full screen'}
+          </DropdownMenuItem>
+        )}
+        {(actions.length > 0 || showFullscreen) && showTheme && <DropdownMenuSeparator />}
         {showTheme && (
           <DropdownMenuSub>
             <DropdownMenuSubTrigger icon={<SunMoon aria-hidden="true" />}>
@@ -164,6 +204,8 @@ export function NavbarRight() {
   const { userCustomizable } = useTheme();
   const enabled = actions.filter(isOn);
   const themeAllowed = enabled.includes('themeToggle') && userCustomizable.mode;
+  const { supported: fullscreenSupported } = useFullscreen();
+  const fullscreenAllowed = enabled.includes('fullscreen') && fullscreenSupported;
 
   const searchIcon = (
     <IconButton
@@ -182,6 +224,8 @@ export function NavbarRight() {
       case 'commandMenu':
         // a separate icon only when there is no search box / icon already
         return enabled.includes('search') ? null : searchIcon;
+      case 'fullscreen':
+        return isWide && fullscreenAllowed ? <FullscreenButton /> : null;
       case 'themeToggle':
         return isWide ? <ThemeToggle /> : null;
       case 'notifications':
@@ -203,7 +247,13 @@ export function NavbarRight() {
           </span>
         ) : null;
       })}
-      {!isWide && <OverflowMenu actions={customActions} showTheme={themeAllowed} />}
+      {!isWide && (
+        <OverflowMenu
+          actions={customActions}
+          showTheme={themeAllowed}
+          showFullscreen={fullscreenAllowed}
+        />
+      )}
     </div>
   );
 }

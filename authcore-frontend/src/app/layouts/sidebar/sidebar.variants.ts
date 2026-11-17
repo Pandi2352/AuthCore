@@ -29,11 +29,11 @@ export const sidebarVariants = variants({
 
 /** Row density per look. */
 export const sidebarItemSize = {
-  classic: 'h-9 text-sm pointer-coarse:h-11',
-  dark: 'h-9 text-sm pointer-coarse:h-11',
-  minimal: 'h-9 text-sm pointer-coarse:h-11',
-  floating: 'h-9 text-sm pointer-coarse:h-11',
-  compact: 'h-8 text-[13px] pointer-coarse:h-11',
+  classic: 'h-8.5 text-sm pointer-coarse:h-11',
+  dark: 'h-8.5 text-sm pointer-coarse:h-11',
+  minimal: 'h-8.5 text-sm pointer-coarse:h-11',
+  floating: 'h-8.5 text-sm pointer-coarse:h-11',
+  compact: 'h-7.5 text-[13px] pointer-coarse:h-11',
 } as const;
 
 export const sidebarRowClass = (active: boolean) =>

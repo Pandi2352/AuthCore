@@ -12,6 +12,7 @@
 | Styling | `tailwindcss`, `@tailwindcss/vite` | 4.3.x | CSS-first config (`@theme`), tokens as CSS variables |
 | Routing | `react-router-dom` | 7.18.x | Data router, layouts, `<Outlet />`, lazy routes, error elements |
 | Icons | `lucide-react` | 1.73.x | Tree-shakable SVG icons |
+| Icons (navigation styles) | `@phosphor-icons/react` | 2.1.10 (exact) | MIT, 6 weights incl. duotone: the "modern", "duotone" and "color" icon styles of the sidebar (`config/modern-icons.ts`, loaded on demand — classic users never download it); named imports only (tree-shaking) |
 | Class names | `clsx` + `tailwind-merge` | 2.1.x / 3.7.x | `cn()` helper: conditional classes without conflicts |
 | Linting | `oxlint` | 1.90.x | Fast linter (Rust); config `.oxlintrc.json`; warnings fail `npm run lint` |
 | Formatting | `prettier` + `prettier-plugin-tailwindcss` + `@ianvs/prettier-plugin-sort-imports` | 3.10.x / 0.8.x / 4.7.x | One code style, sorted Tailwind classes, grouped imports |

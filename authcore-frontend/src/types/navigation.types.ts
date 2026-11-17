@@ -12,6 +12,19 @@ export type NavBadge =
   /** Live count (e.g. pending invites); hidden when undefined or 0. */
   | { useCount: () => number | undefined; tone?: BadgeTone };
 
+/** Palette for the "color" icon style (tokens --nav-<color> in styles/themes.css). */
+export const NAV_ICON_COLORS = [
+  'blue',
+  'violet',
+  'emerald',
+  'amber',
+  'rose',
+  'cyan',
+  'orange',
+  'indigo',
+] as const;
+export type NavIconColor = (typeof NAV_ICON_COLORS)[number];
+
 export interface NavItem {
   /** Unique across the whole navigation; stable (keys, persisted expand state). */
   id: string;
@@ -19,6 +32,8 @@ export interface NavItem {
   /** From config/paths.ts; absolute http(s) URL when `external`. Omit for a parent that only groups children. */
   path?: string;
   icon?: IconName;
+  /** Icon color for the "color" icon style; default: picked from the id (stable). */
+  iconColor?: NavIconColor;
   /** One nested level (children have no children). */
   children?: NavItem[];
   badge?: NavBadge;

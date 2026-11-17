@@ -30,6 +30,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-field: var(--field-border);
+  --color-nav-blue: var(--nav-blue);
+  --color-nav-violet: var(--nav-violet);
+  --color-nav-emerald: var(--nav-emerald);
+  --color-nav-amber: var(--nav-amber);
+  --color-nav-rose: var(--nav-rose);
+  --color-nav-cyan: var(--nav-cyan);
+  --color-nav-orange: var(--nav-orange);
+  --color-nav-indigo: var(--nav-indigo);
   --color-ring: var(--ring);
 
   /* Status */

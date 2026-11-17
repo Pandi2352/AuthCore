@@ -22,6 +22,8 @@ export interface FeaturesConfig {
     globalSearch: boolean;
     commandMenu: boolean;
     notifications: boolean;
+    /** Full-screen button in the navbar. */
+    fullscreen: boolean;
     breadcrumbs: boolean;
   };
   /** Must match the backend .env (docs/new-project-guide.md, step 7). */
@@ -68,13 +70,15 @@ export type Breakpoint = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
  * Built-in navbar actions:
  * - search: search box (center, wide screens) / icon (small screens) → opens the command menu
  * - commandMenu: Ctrl / Cmd + K command menu (pages + actions); icon button when there is no search box
+ * - fullscreen: enter / leave browser full screen (hidden where the browser doesn't allow it)
  * - themeToggle, notifications (bell + popover), userMenu (avatar dropdown)
  */
 export type NavbarActionId =
-  'search' | 'commandMenu' | 'themeToggle' | 'notifications' | 'userMenu';
+  'search' | 'commandMenu' | 'fullscreen' | 'themeToggle' | 'notifications' | 'userMenu';
 
 /** Built-in behaviours a custom action can trigger instead of a link. */
-export type NavbarCommand = 'openCommandMenu' | 'toggleSidebar' | 'toggleTheme';
+export type NavbarCommand =
+  'openCommandMenu' | 'toggleSidebar' | 'toggleTheme' | 'toggleFullscreen';
 
 interface NavbarCustomActionBase {
   id: string;

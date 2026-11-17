@@ -81,6 +81,7 @@ export function applyThemeToElement(
     'data-cards': look.cards,
     'data-inputs': look.inputs,
     'data-buttons': look.buttons,
+    'data-icons': look.icons,
   };
   for (const name of Object.keys(attributes)) {
     const value = attributes[name];

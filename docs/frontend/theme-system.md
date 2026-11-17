@@ -149,6 +149,7 @@ Each preset defines **every** color token for light and dark. `config/theme.pres
 | `cards` | `bordered` · `filled` · `elevated` · `minimal` | Default `Card` variant |
 | `inputs` | `outlined` · `filled` · `underlined` | Default `Input` / `Select` / `Textarea` variant |
 | `buttons` | `solid` · `soft` · `outline` | Default `Button` variant for `intent="primary"` |
+| `icons` | `classic` · `modern` · `duotone` · `color` | Navigation icons: lucide outline · Phosphor regular · Phosphor two-tone (fill in the primary color) · two-tone, one color per item (`iconColor` or picked from the id; tokens `--nav-<color>`, 3:1 on the sidebar) |
 
 Components read the defaults from the theme context (`useTheme().appearance.cards`) when no explicit `variant` prop is given, so `<Card>` follows the configuration while `<Card variant="filled">` still works.
 

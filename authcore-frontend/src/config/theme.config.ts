@@ -19,12 +19,13 @@ export const themeConfig: ThemeConfig = {
       cards: 'bordered',
       inputs: 'outlined',
       buttons: 'solid',
+      icons: 'classic', // classic · modern · duotone · color (navigation icons)
     },
   },
   userCustomizable: {
     mode: true,
     preset: true,
-    appearance: ['radius', 'density', 'sidebar'],
+    appearance: ['radius', 'density', 'sidebar', 'icons'],
   },
   presets: ['default', 'emerald', 'violet', 'orange', 'brand'],
 };

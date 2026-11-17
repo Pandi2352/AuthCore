@@ -205,7 +205,7 @@ export function SidebarSubmenu({ item }: { item: NavItem }) {
           <ul
             id={listId}
             aria-label={item.title}
-            className="ml-[1.3rem] space-y-0.5 border-l border-sidebar-border pl-2"
+            className="ml-[1.3rem] space-y-px border-l border-sidebar-border pl-2"
           >
             <li aria-hidden="true" className="h-0.5" />
             {children.map((child) => (

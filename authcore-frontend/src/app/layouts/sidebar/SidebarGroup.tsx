@@ -12,7 +12,7 @@ export function SidebarGroup({ group }: { group: NavGroup }) {
   const labelId = useId();
   const { collapsed, variant } = useSidebarMode();
   return (
-    <div role="group" aria-labelledby={group.title ? labelId : undefined} className="space-y-0.5">
+    <div role="group" aria-labelledby={group.title ? labelId : undefined} className="space-y-px">
       {group.title &&
         (collapsed ? (
           <div className="mx-3 my-2 h-px bg-sidebar-border" id={labelId} aria-label={group.title} />
@@ -20,14 +20,14 @@ export function SidebarGroup({ group }: { group: NavGroup }) {
           <p
             id={labelId}
             className={cn(
-              'px-3 pt-3 pb-1 text-[11px] font-semibold tracking-wider text-sidebar-muted uppercase',
+              'px-3 pt-2.5 pb-1 text-[11px] font-semibold tracking-wider text-sidebar-muted uppercase',
               variant === 'compact' && 'pt-2',
             )}
           >
             {group.title}
           </p>
         ))}
-      <ul className="space-y-0.5">
+      <ul className="space-y-px">
         {group.items.map((item) =>
           item.children?.length ? (
             <SidebarSubmenu key={item.id} item={item} />

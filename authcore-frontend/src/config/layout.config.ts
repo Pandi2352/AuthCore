@@ -25,7 +25,7 @@ export const layoutConfig: LayoutConfig = {
     showLogo: 'when-sidebar-hidden',
     showSidebarToggle: true,
     showBreadcrumbs: true,
-    actions: ['search', 'commandMenu', 'notifications', 'themeToggle', 'userMenu'],
+    actions: ['search', 'commandMenu', 'fullscreen', 'notifications', 'themeToggle', 'userMenu'],
     customActions: [],
     // Example: { id: 'docs', label: 'Documentation', icon: 'FileText', href: 'https://example.com/docs', external: true }
     //          { id: 'palette', label: 'Command menu', icon: 'Search', command: 'openCommandMenu' }

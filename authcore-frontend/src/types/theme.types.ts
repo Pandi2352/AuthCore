@@ -16,6 +16,8 @@ export type NavbarStyle = 'standard' | 'transparent' | 'bordered' | 'floating' |
 export type CardStyle = 'bordered' | 'filled' | 'elevated' | 'minimal';
 export type InputStyle = 'outlined' | 'filled' | 'underlined';
 export type ButtonStyle = 'solid' | 'soft' | 'outline';
+/** Navigation icons: classic (lucide outline), modern (Phosphor), duotone (Phosphor two-tone), color (two-tone, one color per item). */
+export type IconStyle = 'classic' | 'modern' | 'duotone' | 'color';
 
 export interface Appearance {
   radius: Radius;
@@ -28,6 +30,7 @@ export interface Appearance {
   cards: CardStyle;
   inputs: InputStyle;
   buttons: ButtonStyle;
+  icons: IconStyle;
 }
 
 export type AppearanceOption = keyof Appearance;
@@ -71,6 +74,7 @@ export const APPEARANCE_VALUES: { readonly [K in AppearanceOption]: readonly App
   cards: ['bordered', 'filled', 'elevated', 'minimal'],
   inputs: ['outlined', 'filled', 'underlined'],
   buttons: ['solid', 'soft', 'outline'],
+  icons: ['classic', 'modern', 'duotone', 'color'],
 };
 
 export const COLOR_MODES: readonly ColorMode[] = ['light', 'dark', 'system'];

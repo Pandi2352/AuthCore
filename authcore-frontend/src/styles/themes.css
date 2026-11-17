@@ -25,6 +25,15 @@
   /* Text-field borders: lighter than --input (checkbox / radio / switch keep --input).
      Focus (primary) and error (danger) borders still meet 3:1. */
   --field-border: oklch(0.895 0.01 260);
+  /* Navigation icon colors (appearance.icons = "color"); 3:1 on the sidebar. */
+  --nav-blue: oklch(0.55 0.19 258);
+  --nav-violet: oklch(0.53 0.22 295);
+  --nav-emerald: oklch(0.54 0.13 160);
+  --nav-amber: oklch(0.58 0.15 60);
+  --nav-rose: oklch(0.56 0.2 15);
+  --nav-cyan: oklch(0.55 0.11 215);
+  --nav-orange: oklch(0.58 0.17 42);
+  --nav-indigo: oklch(0.5 0.2 277);
   --overlay: oklch(0.2 0.02 265 / 0.5);
 
   /* Primary: default preset (blue) */
@@ -75,6 +84,15 @@
   --border-strong: oklch(0.42 0.02 265);
   --input: oklch(0.56 0.02 265);
   --field-border: oklch(0.335 0.016 265);
+  /* Navigation icon colors (appearance.icons = "color"); 3:1 on the sidebar. */
+  --nav-blue: oklch(0.74 0.14 255);
+  --nav-violet: oklch(0.74 0.15 295);
+  --nav-emerald: oklch(0.76 0.14 160);
+  --nav-amber: oklch(0.8 0.14 75);
+  --nav-rose: oklch(0.74 0.16 15);
+  --nav-cyan: oklch(0.78 0.11 210);
+  --nav-orange: oklch(0.76 0.14 50);
+  --nav-indigo: oklch(0.72 0.14 277);
   --overlay: oklch(0 0 0 / 0.6);
 
   --primary: oklch(0.72 0.14 258);
@@ -211,4 +229,13 @@
   --sidebar-border: oklch(0.28 0.02 265);
   --sidebar-active: oklch(0.3 0.03 265);
   --sidebar-active-foreground: oklch(0.98 0 0);
+  /* Navigation icon colors (appearance.icons = "color"); light shades for the dark sidebar. */
+  --nav-blue: oklch(0.74 0.14 255);
+  --nav-violet: oklch(0.74 0.15 295);
+  --nav-emerald: oklch(0.76 0.14 160);
+  --nav-amber: oklch(0.8 0.14 75);
+  --nav-rose: oklch(0.74 0.16 15);
+  --nav-cyan: oklch(0.78 0.11 210);
+  --nav-orange: oklch(0.76 0.14 50);
+  --nav-indigo: oklch(0.72 0.14 277);
 }

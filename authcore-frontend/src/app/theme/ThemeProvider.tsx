@@ -3,6 +3,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -37,6 +38,22 @@ function toStored(state: ThemeState) {
   };
 }
 
+/**
+ * Applies a theme change in one frame. Many elements have `transition-colors` (hover
+ * effects); without this they would fade to the new colors one by one. Transitions are
+ * switched off, the new theme applied and styles flushed, then transitions come back on
+ * the next frame — hover / open animations keep working.
+ */
+function withoutTransitions(apply: () => void): void {
+  const style = document.createElement('style');
+  style.textContent = '*,*::before,*::after{transition:none!important}';
+  document.head.append(style);
+  apply();
+  // Force the new styles to be computed while transitions are off.
+  void window.getComputedStyle(document.body).backgroundColor;
+  requestAnimationFrame(() => requestAnimationFrame(() => style.remove()));
+}
+
 const sameTheme = (a: ThemeState, b: ThemeState): boolean =>
   JSON.stringify(a) === JSON.stringify(b);
 
@@ -58,9 +75,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemIsDark = useSyncExternalStore(subscribeToSystemMode, getSystemIsDark, () => false);
   const resolvedMode = theme.mode === 'system' ? (systemIsDark ? 'dark' : 'light') : theme.mode;
 
-  // Before paint, so a change never flashes the old theme.
+  // Before paint, so a change never flashes the old theme. The first run only syncs what
+  // the no-flash script already applied; later changes switch instantly (no color fades).
+  const firstApply = useRef(true);
   useLayoutEffect(() => {
-    applyThemeToElement(document.documentElement, theme, resolvedMode, options);
+    const apply = () => applyThemeToElement(document.documentElement, theme, resolvedMode, options);
+    if (firstApply.current) {
+      firstApply.current = false;
+      apply();
+    } else {
+      withoutTransitions(apply);
+    }
   }, [theme, resolvedMode]);
 
   useLayoutEffect(() => {
