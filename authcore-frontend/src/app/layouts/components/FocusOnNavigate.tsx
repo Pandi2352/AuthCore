@@ -20,6 +20,8 @@ export function FocusOnNavigate() {
       const target = main?.querySelector<HTMLElement>('h1') ?? main;
       if (!target || target.contains(document.activeElement)) return;
       if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+      // Focus target only (not interactive): no focus ring drawn around the heading.
+      target.setAttribute('data-route-focus', '');
       target.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
