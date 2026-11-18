@@ -79,7 +79,6 @@ export const navigationConfig: NavGroup[] = [
             title: 'Create user',
             icon: 'UserPlus',
             path: paths.admin.userCreate,
-            status: 'planned',
             permission: 'USER_CREATE',
           },
           {

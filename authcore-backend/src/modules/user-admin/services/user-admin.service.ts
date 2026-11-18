@@ -36,6 +36,7 @@ import {
   emailChangedNoticeEmail,
   passwordSetByAdminEmail,
 } from '@modules/mail/templates/mail-templates';
+import { PasswordPolicyService } from '@modules/password-policy/services/password-policy.service';
 import { PasswordValidationService } from '@modules/password-policy/services/password-validation.service';
 import { SessionsService } from '@modules/sessions/sessions.service';
 import {
@@ -44,6 +45,7 @@ import {
 } from '@modules/user-activity/enums/user-activity.enum';
 import { UserActivityService } from '@modules/user-activity/user-activity.service';
 import { UserAttributeValuesService } from '@modules/user-schema/services/user-attribute-values.service';
+import { UserSchemaService } from '@modules/user-schema/services/user-schema.service';
 import type {
   AdminUserResponseDto,
   UserResponseDto,
@@ -63,6 +65,9 @@ import {
   type AdminUpdateUserDto,
   type AdminUserDetailsDto,
   type AdminUserListQueryDto,
+  type AvailabilityDto,
+  type AvailabilityQueryDto,
+  type CreateUserConfigDto,
   type PasswordResetSentDto,
   type PurgeRunDto,
 } from '../dto/admin-user.dto';
@@ -94,6 +99,8 @@ export class UserAdminService {
     private readonly activityService: UserActivityService,
     private readonly attributeValuesService: UserAttributeValuesService,
     private readonly avatarService: AvatarService,
+    private readonly schemaService: UserSchemaService,
+    private readonly passwordPolicyService: PasswordPolicyService,
     @Inject(registrationConfig.KEY)
     private readonly registration: ConfigType<typeof registrationConfig>,
   ) {}
@@ -197,6 +204,42 @@ export class UserAdminService {
       attributes: values.attributes,
       missingRequired: values.missingRequired,
     });
+  }
+
+  /** Form configuration for "Create user" (fields from the user schema, password rules, defaults). */
+  async createConfig(actor: Actor): Promise<CreateUserConfigDto> {
+    const [coreFields, attributes, passwordRequirements, permissions] =
+      await Promise.all([
+        this.schemaService.coreFieldSettings(),
+        this.schemaService.adminForm(),
+        this.passwordPolicyService.getRequirements(),
+        this.resolver.getPermissionKeys(actor.auth.userId),
+      ]);
+    return {
+      coreFields,
+      attributes,
+      passwordRequirements,
+      defaults: {
+        mustChangePassword: true,
+        isEmailVerified: true,
+        sendWelcomeEmail: true,
+      },
+      canAssignGroups:
+        actor.auth.role === (UserRole.Admin as string) ||
+        permissions.has('GROUP_READ'),
+    };
+  }
+
+  /** Live "already taken" checks for the create form (deleted accounts count as taken). */
+  async availability(query: AvailabilityQueryDto): Promise<AvailabilityDto> {
+    const [isEmailTaken, isUsernameTaken] = await Promise.all([
+      query.email ? this.usersService.isEmailTaken(query.email) : null,
+      query.username ? this.usersService.isUsernameTaken(query.username) : null,
+    ]);
+    return {
+      isEmailAvailable: isEmailTaken === null ? null : !isEmailTaken,
+      isUsernameAvailable: isUsernameTaken === null ? null : !isUsernameTaken,
+    };
   }
 
   async create(

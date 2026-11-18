@@ -30,6 +30,8 @@ import { MAX_BULK_ITEMS } from '@modules/access-control/constants/access-control
 import { UpdateProfileDto } from '@modules/account/dto/account.dto';
 import { PERSON_NAME_PATTERN } from '@modules/auth/constants/auth.constants';
 import { IsNewPassword } from '@modules/auth/decorators/new-password.decorator';
+import { PasswordRequirementsDto } from '@modules/password-policy/dto/password-policy.dto';
+import { AttributeResponseDto } from '@modules/user-schema/dto/user-attribute.dto';
 import { AdminUserResponseDto } from '@modules/users/dto/user-response.dto';
 import { UserRole } from '@modules/users/enums/user-role.enum';
 import { UserSource } from '@modules/users/enums/user-source.enum';
@@ -402,4 +404,91 @@ export class PurgeRunDto {
   })
   isLocked!: boolean;
   @ApiProperty({ type: [String] }) purgedUserIds!: string[];
+}
+
+export class CoreFieldSettingDto {
+  @ApiProperty({ example: 'Given Name' }) label!: string;
+  @ApiProperty({ example: true }) isEnabled!: boolean;
+  @ApiProperty({ example: false }) isRequired!: boolean;
+  @ApiProperty({ type: Number, nullable: true, example: 50 })
+  maxLength!: number | null;
+}
+
+export class CreateUserCoreFieldsDto {
+  @ApiProperty({ type: CoreFieldSettingDto }) firstName!: CoreFieldSettingDto;
+  @ApiProperty({ type: CoreFieldSettingDto }) lastName!: CoreFieldSettingDto;
+  @ApiProperty({ type: CoreFieldSettingDto }) username!: CoreFieldSettingDto;
+}
+
+export class CreateUserDefaultsDto {
+  @ApiProperty({ example: true }) mustChangePassword!: boolean;
+  @ApiProperty({ example: true }) isEmailVerified!: boolean;
+  @ApiProperty({ example: true }) sendWelcomeEmail!: boolean;
+}
+
+/** Everything the "Create user" form needs, in one call. */
+export class CreateUserConfigDto {
+  @ApiProperty({
+    type: CreateUserCoreFieldsDto,
+    description: 'Built-in name fields as configured in the user schema',
+  })
+  coreFields!: CreateUserCoreFieldsDto;
+
+  @ApiProperty({
+    type: [AttributeResponseDto],
+    description:
+      'Custom variables to show (enabled, incl. internal ones), as a tree; values go in "attributes"',
+  })
+  attributes!: AttributeResponseDto[];
+
+  @ApiProperty({
+    type: PasswordRequirementsDto,
+    description: 'The active password policy, for the initial password',
+  })
+  passwordRequirements!: PasswordRequirementsDto;
+
+  @ApiProperty({ type: CreateUserDefaultsDto })
+  defaults!: CreateUserDefaultsDto;
+
+  @ApiProperty({
+    example: true,
+    description: 'The caller can list groups (GROUP_READ) to add the user to',
+  })
+  canAssignGroups!: boolean;
+}
+
+export class AvailabilityQueryDto {
+  @ApiPropertyOptional({ example: 'new.person@example.com' })
+  @MaxLength(254)
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsString()
+  @IsOptional()
+  email?: string;
+
+  @ApiPropertyOptional({ example: 'new.person' })
+  @MaxLength(30)
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsString()
+  @IsOptional()
+  username?: string;
+}
+
+export class AvailabilityDto {
+  @ApiProperty({
+    type: Boolean,
+    nullable: true,
+    description: 'null when no email was asked about',
+  })
+  isEmailAvailable!: boolean | null;
+
+  @ApiProperty({
+    type: Boolean,
+    nullable: true,
+    description: 'null when no username was asked about',
+  })
+  isUsernameAvailable!: boolean | null;
 }

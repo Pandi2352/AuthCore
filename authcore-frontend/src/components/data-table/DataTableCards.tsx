@@ -44,6 +44,7 @@ export function DataTableCards<T>({
       {sortOptions.length > 0 && (
         <Select
           aria-label="Sort by"
+          size="sm"
           placeholder="Sort by"
           value={primarySort ? `${primarySort.id}.${primarySort.desc ? 'desc' : 'asc'}` : null}
           onValueChange={(value) => {

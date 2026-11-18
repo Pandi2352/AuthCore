@@ -204,6 +204,7 @@ export function InviteUsersPage() {
       >
         <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center">
           <SearchInput
+            size="sm"
             key={tab}
             value={search}
             onSearch={(value) => {

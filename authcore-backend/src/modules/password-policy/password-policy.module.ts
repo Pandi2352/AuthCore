@@ -53,6 +53,6 @@ import { PolicyAuditService } from './services/policy-audit.service';
     PasswordExpiryNotificationService,
     PasswordSchedulerService,
   ],
-  exports: [PasswordValidationService],
+  exports: [PasswordValidationService, PasswordPolicyService],
 })
 export class PasswordPolicyModule {}

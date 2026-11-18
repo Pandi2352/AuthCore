@@ -16,6 +16,16 @@ const PASSWORD_POLICY_CRUMBS = [
 
 export const adminRoutes: RouteObject[] = [
   {
+    path: paths.admin.userCreate,
+    handle: {
+      title: 'Create user',
+      breadcrumb: [{ label: 'Administration' }, { label: 'Users' }, { label: 'Create user' }],
+      featureFlag: 'admin.enabled',
+      permission: 'USER_CREATE',
+    } satisfies RouteHandle,
+    lazy: lazyPage(() => import('@/features/admin-users/pages/CreateUserPage'), 'CreateUserPage'),
+  },
+  {
     path: paths.admin.invites,
     handle: {
       title: 'Invite users',

@@ -1002,7 +1002,9 @@ Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWO
 | --- | --- |
 | `GET /admin/users` | List: search (email, username, names), status, role, source, isEmailVerified, isPendingDeletion, `deleted=EXCLUDE\|ONLY\|INCLUDE`, dates, sort, `attr[name]=value` (searchable custom variables) |
 | `GET /admin/users/:id` | User info: profile, status history, active sessions, groups, effective permissions, sign-in lock, `lastActivityAt`, custom variable values |
-| `POST /admin/users` | Create: ACTIVE, initial password (policy; never emailed), verified email and "must change password" by default, optional groups and welcome email |
+| `GET /admin/users/create-config` | Create form setup (USER_CREATE): name fields as configured in the user schema (label / enabled / required), the custom variables to show (enabled, incl. internal), active password rules, defaults, whether groups can be picked |
+| `GET /admin/users/availability?email=&username=` | Live "already taken" check for the create form (POST still decides with 409) |
+| `POST /admin/users` | Create: ACTIVE, initial password (policy; never emailed), verified email and "must change password" by default, optional groups and welcome email | — custom variable values go in `attributes` |
 | `PATCH /admin/users/:id` | Names, username, email (old address notified), `isEmailVerified` toggle |
 | `PATCH /admin/users/:id/attributes` | Personal details (custom variables), incl. internal and read-only ones |
 | `POST /admin/users/:id/set-password` | "Reset password" panel: `{ newPassword, confirmPassword, notifyByEmail, requireChangeOnNextLogin, signOutAllSessions }`; policy + history apply; the email never contains the password. "Generate" = `POST /password-policies/generate-password` |

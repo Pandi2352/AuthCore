@@ -4,11 +4,34 @@ import { isFeatureEnabled, navigationConfig, navigationFooterConfig } from '@/co
 import { usePermissions } from '@/features/auth';
 import type { NavGroup, NavItem } from '@/types/navigation.types';
 
-/** Active when the URL equals the path (exact) or is below it (prefix, the default). */
-export function isItemActive(item: NavItem, pathname: string): boolean {
+const matchesPath = (item: NavItem, pathname: string): boolean => {
   if (!item.path || item.external) return false;
   if (item.match === 'exact') return pathname === item.path;
   return pathname === item.path || pathname.startsWith(`${item.path}/`);
+};
+
+/** Every internal menu path (for "the most specific item wins"). */
+const MENU_ITEMS: NavItem[] = (() => {
+  const all: NavItem[] = [];
+  const visit = (item: NavItem) => {
+    if (item.path && !item.external) all.push(item);
+    (item.children ?? []).forEach(visit);
+  };
+  for (const group of [...navigationConfig, navigationFooterConfig]) group.items.forEach(visit);
+  return all;
+})();
+
+/**
+ * Active when the URL equals the path (exact) or is below it (prefix, the default) — unless a
+ * more specific menu item matches too: on /admin/users/new only "Create user" is active, not
+ * "Search users" (/admin/users), while /admin/users/123 still activates "Search users".
+ */
+export function isItemActive(item: NavItem, pathname: string): boolean {
+  if (!matchesPath(item, pathname)) return false;
+  const length = item.path?.length ?? 0;
+  return !MENU_ITEMS.some(
+    (other) => (other.path?.length ?? 0) > length && matchesPath(other, pathname),
+  );
 }
 
 export function containsActive(item: NavItem, pathname: string): boolean {

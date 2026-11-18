@@ -212,6 +212,7 @@ export function SchemasPage() {
           >
             <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center">
               <SearchInput
+                size="sm"
                 value={filters.search}
                 onSearch={(search) => setFilters((f) => ({ ...f, search }))}
                 placeholder="Search by name, label or description"

@@ -18,6 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui';
+import { controlVariants } from '@/components/ui/input/input.variants';
 import { cn } from '@/lib/utils';
 
 import type { DataTableColumn, DataTableFilter, TableDensity } from './types';
@@ -41,20 +42,25 @@ function FilterMenu<T>({ filter, table }: { filter: DataTableFilter; table: Serv
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="md"
-          rightIcon={<ChevronDown />}
+        <button
+          type="button"
           aria-label={`Filter by ${filter.label}${selected.length ? `, ${selected.length} selected` : ''}`}
-          className={cn(selected.length > 0 && 'border-primary')}
+          // Same look as the other fields (Input / Select), not a colored button.
+          className={cn(
+            controlVariants({ size: 'sm' }),
+            'inline-flex w-auto shrink-0 cursor-pointer items-center gap-2 text-left hover:bg-accent/50 aria-expanded:border-primary',
+          )}
         >
-          {filter.label}
+          <span className={selected.length > 0 ? 'text-foreground' : 'text-muted-foreground'}>
+            {filter.label}
+          </span>
           {selected.length > 0 && (
             <Badge size="sm" tone="primary" variant="solid">
               {selected.length}
             </Badge>
           )}
-        </Button>
+          <ChevronDown className="size-3.5 text-muted-foreground" aria-hidden="true" />
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-52">
         <DropdownMenuLabel>{filter.label}</DropdownMenuLabel>
@@ -96,7 +102,10 @@ function ViewOptions<T>({
         <IconButton
           aria-label="Table view options"
           icon={<SlidersHorizontal />}
-          variant="outline"
+          variant="ghost"
+          size="sm"
+          // Field look, same height as the search and filters.
+          className="size-control-sm! border border-field bg-surface text-muted-foreground hover:bg-accent/50 hover:text-foreground aria-expanded:border-primary"
         />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 space-y-4 p-4">
@@ -191,6 +200,7 @@ export function DataTableToolbar<T>({
     <div className="flex flex-wrap items-center gap-2">
       <div className="w-full sm:w-72">
         <SearchInput
+          size="sm"
           value={table.query.search}
           onSearch={table.setSearch}
           placeholder={searchPlaceholder}

@@ -47,6 +47,13 @@ import {
 } from '../enums/user-schema.enum';
 import { UserAttribute } from '../schemas/user-attribute.schema';
 
+export interface CoreFieldSetting {
+  label: string;
+  isEnabled: boolean;
+  isRequired: boolean;
+  maxLength: number | null;
+}
+
 const SYSTEM_ACTOR = 'system';
 /** Attributes of system variables that admins may not change. */
 const SYSTEM_FIXED = [
@@ -133,6 +140,66 @@ export class UserSchemaService implements OnApplicationBootstrap {
     return found.kind === AttributeKind.Group
       ? Object.assign(found, { children: all.filter((a) => a.parentId === id) })
       : found;
+  }
+
+  /**
+   * What an admin form shows (create / edit a user): enabled variables incl. internal ones,
+   * without the built-in fields (names, username, email, password) — those have their own inputs.
+   */
+  async adminForm(): Promise<AttributeResponseDto[]> {
+    const all = (await this.definitions())
+      .filter(
+        (d) =>
+          d.isEnabled && !d.coreField && !d.isPassword && !d.isMatchEnabled,
+      )
+      .map(toResponse);
+    return toTree(all);
+  }
+
+  /** Label / enabled / required / max length of the built-in name fields (from the schema). */
+  async coreFieldSettings(): Promise<
+    Record<'firstName' | 'lastName' | 'username', CoreFieldSetting>
+  > {
+    const all = await this.definitions();
+    const setting = (
+      coreField: 'firstName' | 'lastName' | 'username',
+      fallback: CoreFieldSetting,
+    ): CoreFieldSetting => {
+      const d = all.find((a) => a.coreField === coreField);
+      return d
+        ? {
+            label: d.label,
+            isEnabled: d.isEnabled,
+            isRequired: d.isRequired,
+            maxLength: d.maxLength ?? fallback.maxLength,
+          }
+        : fallback;
+    };
+    return {
+      // First name is always required by the account model.
+      firstName: {
+        ...setting('firstName', {
+          label: 'First name',
+          isEnabled: true,
+          isRequired: true,
+          maxLength: 50,
+        }),
+        isEnabled: true,
+        isRequired: true,
+      },
+      lastName: setting('lastName', {
+        label: 'Last name',
+        isEnabled: true,
+        isRequired: false,
+        maxLength: 50,
+      }),
+      username: setting('username', {
+        label: 'Username',
+        isEnabled: true,
+        isRequired: false,
+        maxLength: 30,
+      }),
+    };
   }
 
   /** What a user profile form shows: enabled, not internal, tree. */

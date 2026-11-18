@@ -63,7 +63,10 @@ import {
   AdminUpdateUserDto,
   AdminUserDetailsDto,
   AdminUserListQueryDto,
+  AvailabilityDto,
+  AvailabilityQueryDto,
   CountResultDto,
+  CreateUserConfigDto,
   ForcePasswordResetDto,
   PasswordResetSentDto,
   PurgeRunDto,
@@ -141,6 +144,43 @@ export class UserAdminController {
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
   runPurge(): Promise<PurgeRunDto> {
     return this.userAdminService.runPurge();
+  }
+
+  @Get('create-config')
+  @RequirePermissions(U.Create)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Create user form')
+  @ApiOperation({
+    summary: 'Create user: form configuration',
+    description:
+      'Needs USER_CREATE. Built-in name fields (label / enabled / required from the user schema), the custom ' +
+      'variables to show (enabled, incl. internal ones; values go in "attributes" of POST /admin/users), the ' +
+      'active password rules, the form defaults and whether the caller can pick groups.',
+  })
+  @ApiWrappedResponse(CreateUserConfigDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  createConfig(@CurrentActor() actor: Actor): Promise<CreateUserConfigDto> {
+    return this.userAdminService.createConfig(actor);
+  }
+
+  @Get('availability')
+  @RequirePermissions(U.Create)
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Availability')
+  @ApiOperation({
+    summary: 'Is an email / username free?',
+    description:
+      'Needs USER_CREATE. For live checks while typing; POST /admin/users still decides (409 if taken).',
+  })
+  @ApiWrappedResponse(AvailabilityDto)
+  @ApiErrorResponses(
+    HttpStatus.BAD_REQUEST,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+  )
+  availability(@Query() query: AvailabilityQueryDto): Promise<AvailabilityDto> {
+    return this.userAdminService.availability(query);
   }
 
   @Get(':id')
