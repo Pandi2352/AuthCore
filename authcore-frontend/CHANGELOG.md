@@ -10,6 +10,11 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### Password policy
+
+- _Additive:_ Administration → Security settings → **Password policy** (`features/password-policy`): every saved policy as cards (strength gauge, key rules, Make active / Edit / Duplicate / Delete) and the active policy on top; an editor (`/admin/security/password-policy/new` and `/:id`) with sliders, live strength score and tips, a "Try a password" checker, an example password and an unsaved-changes guard. Exactly one policy is active (backend: partial unique index; an existing single policy becomes the active one at startup).
+- _Additive:_ `range-filled` slider utility (styles/utilities.css).
+
 ### Appearance: one look, set by the super admin
 
 - **Breaking:** Settings → Appearance sets the look for **every user** (and the sign-in pages); only `APPEARANCE_SETTINGS_MANAGE` (super admin) sees it. Changes save automatically (`PUT /settings/appearance`); everyone gets them on the next page load. Users keep only their own light / dark choice (`setMode`, storage key `theme:v2` — older per-browser looks are ignored).

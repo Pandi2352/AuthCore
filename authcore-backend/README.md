@@ -891,8 +891,14 @@ One policy for the whole service, stored in MongoDB and changed through the API 
 | --- | --- | --- |
 | `GET /password-policies/requirements` | public | Rules for sign-up / reset / change forms (numbers + a ready-to-show list) |
 | `POST /password-policies/validate` | public | `{ password, email?, username?, firstName?, lastName? }` → `{ isValid, violations[] }` |
-| `GET /password-policies` | PASSWORD_POLICY_READ | Current policy (`isDefault: true` while nothing is saved) |
-| `PUT /password-policies` | PASSWORD_POLICY_MANAGE | Save the complete policy (`version` +1, audited) |
+| `GET /password-policies` | PASSWORD_POLICY_READ | The **active** policy (`isDefault: true` while nothing is saved) |
+| `PUT /password-policies` | PASSWORD_POLICY_MANAGE | Save the complete active policy (created and activated when none exists; `version` +1, audited) |
+| `GET /password-policies/all` | PASSWORD_POLICY_READ | Every saved policy, the active one first (`isActive`) |
+| `POST /password-policies` | PASSWORD_POLICY_MANAGE | New policy, saved **inactive** |
+| `GET` / `PUT /password-policies/:id` | READ / MANAGE | One policy / save it (editing the active one applies at once) |
+| `POST /password-policies/:id/activate` | PASSWORD_POLICY_MANAGE | Make it the one in force (the previous one stays, inactive; audited) |
+| `POST /password-policies/:id/duplicate` | PASSWORD_POLICY_MANAGE | Inactive copy named "<name> (copy)" |
+| `DELETE /password-policies/:id` | PASSWORD_POLICY_MANAGE | Delete an inactive policy (409 for the active one) |
 | `GET /password-policies/history` | PASSWORD_POLICY_READ | Change history: who, when, IP, changed fields, old / new values (paginated) |
 | `GET /password-policies/schedulers` | PASSWORD_POLICY_READ | Reminder job schedule + last / next run and status |
 | `PUT /password-policies/schedulers` | PASSWORD_POLICY_MANAGE | `{ passwordExpiryNotification: { enabled, frequency, executionTime, timezone, dayOfWeek?, dayOfMonth? } }` |

@@ -1,4 +1,9 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import {
+  HttpStatus,
+  Injectable,
+  Logger,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 
@@ -6,10 +11,10 @@ import { ErrorCode } from '@common/constants/error-codes.constants';
 import { AppException } from '@common/exceptions/app.exception';
 import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
+import { generateUuid } from '@common/utils/uuid.util';
 
 import {
   DEFAULT_PASSWORD_POLICY,
-  GLOBAL_POLICY_KEY,
   POLICY_CACHE_TTL_MS,
 } from '../constants/password-policy.constants';
 import type {
@@ -32,7 +37,7 @@ interface FieldError {
  * (atomic, audited), and the built-in default until one is saved.
  */
 @Injectable()
-export class PasswordPolicyService {
+export class PasswordPolicyService implements OnModuleInit {
   private readonly logger = new Logger(PasswordPolicyService.name);
   private cache: { value: PasswordPolicyResponseDto; loadedAt: number } | null =
     null;
@@ -43,6 +48,23 @@ export class PasswordPolicyService {
     private readonly policyAuditService: PolicyAuditService,
   ) {}
 
+  /** Before multiple policies: the saved policy becomes the active one. */
+  async onModuleInit(): Promise<void> {
+    if (await this.policyModel.exists({ isActive: true })) {
+      return;
+    }
+    const first = await this.policyModel
+      .findOne()
+      .sort({ key: 1, createdAt: 1 })
+      .lean();
+    if (first) {
+      await this.policyModel.updateOne(
+        { _id: first._id },
+        { $set: { isActive: true } },
+      );
+    }
+  }
+
   /** The rules in force (cached). */
   async getRules(): Promise<PasswordPolicyRules> {
     return this.getPolicy();
@@ -52,9 +74,7 @@ export class PasswordPolicyService {
     if (this.cache && Date.now() - this.cache.loadedAt < POLICY_CACHE_TTL_MS) {
       return this.cache.value;
     }
-    const stored = await this.policyModel
-      .findOne({ key: GLOBAL_POLICY_KEY })
-      .lean();
+    const stored = await this.policyModel.findOne({ isActive: true }).lean();
     const value = stored ? toResponse(stored) : defaultResponse();
     this.cache = { value, loadedAt: Date.now() };
     return value;
@@ -68,16 +88,18 @@ export class PasswordPolicyService {
     const rules = normalize(dto);
     assertConsistent(rules);
 
-    // Atomic upsert; the previous document comes back for the audit trail.
+    // PUT /password-policies edits the active policy (created when none exists yet).
+    const active = await this.policyModel.findOne({ isActive: true }).lean();
+    if (!active) {
+      const created = await this.createPolicy(rules, actor, client, true);
+      return created;
+    }
+    // Atomic update; the previous document comes back for the audit trail.
     const previous = await this.policyModel
       .findOneAndUpdate(
-        { key: GLOBAL_POLICY_KEY },
-        {
-          $set: { ...rules, updatedBy: actor.userId },
-          $inc: { version: 1 },
-          $setOnInsert: { key: GLOBAL_POLICY_KEY, createdBy: actor.userId },
-        },
-        { upsert: true, new: false },
+        { _id: active._id },
+        { $set: { ...rules, updatedBy: actor.userId }, $inc: { version: 1 } },
+        { new: false },
       )
       .lean();
     this.cache = null;
@@ -99,6 +121,196 @@ export class PasswordPolicyService {
       ipAddress: client.ipAddress,
     });
     return updated;
+  }
+
+  // ---------------------------------------------------------------- several policies
+
+  /** Every policy, the active one first, then the most recently changed. */
+  async list(): Promise<PasswordPolicyResponseDto[]> {
+    const policies = await this.policyModel
+      .find()
+      .sort({ isActive: -1, updatedAt: -1 })
+      .lean();
+    return policies.map(toResponse);
+  }
+
+  async getById(id: string): Promise<PasswordPolicyResponseDto> {
+    return toResponse(await this.findOrThrow(id));
+  }
+
+  /** A new policy (not active until activated). */
+  async create(
+    dto: UpdatePasswordPolicyDto,
+    actor: AuthContext,
+    client: ClientInfo,
+  ): Promise<PasswordPolicyResponseDto> {
+    const rules = normalize(dto);
+    assertConsistent(rules);
+    return this.createPolicy(rules, actor, client, false);
+  }
+
+  async updateById(
+    id: string,
+    dto: UpdatePasswordPolicyDto,
+    actor: AuthContext,
+    client: ClientInfo,
+  ): Promise<PasswordPolicyResponseDto> {
+    const rules = normalize(dto);
+    assertConsistent(rules);
+    const previous = await this.policyModel
+      .findOneAndUpdate(
+        { _id: id },
+        { $set: { ...rules, updatedBy: actor.userId }, $inc: { version: 1 } },
+        { new: false },
+      )
+      .lean();
+    if (!previous) {
+      throw policyNotFound();
+    }
+    this.cache = null;
+    const updated = await this.getById(id);
+    const changedFields = await this.policyAuditService.record({
+      target: 'policy',
+      changedBy: actor.userId,
+      oldValues: rulesOf(previous),
+      newValues: rulesOf(updated),
+      version: updated.version,
+      client,
+    });
+    this.logger.log({
+      message: 'Password policy updated',
+      policyId: id,
+      isActive: updated.isActive,
+      userId: actor.userId,
+      changedFields,
+    });
+    return updated;
+  }
+
+  /** Make a policy the one in force (every password set from now on follows it). */
+  async activate(
+    id: string,
+    actor: AuthContext,
+    client: ClientInfo,
+  ): Promise<PasswordPolicyResponseDto> {
+    const target = await this.findOrThrow(id);
+    if (!target.isActive) {
+      const previous = await this.policyModel
+        .findOne({ isActive: true })
+        .lean();
+      // Partial unique index: switch the old one off first.
+      await this.policyModel.updateMany(
+        { isActive: true, _id: { $ne: id } },
+        { $set: { isActive: false, updatedBy: actor.userId } },
+      );
+      await this.policyModel.updateOne(
+        { _id: id },
+        { $set: { isActive: true, updatedBy: actor.userId } },
+      );
+      this.cache = null;
+      await this.policyAuditService.record({
+        target: 'policy',
+        changedBy: actor.userId,
+        oldValues: { activePolicy: previous?.policyName ?? 'built-in default' },
+        newValues: { activePolicy: target.policyName },
+        version: target.version,
+        client,
+      });
+      this.logger.log({
+        message: 'Active password policy changed',
+        policyId: id,
+        previousPolicyId: previous?._id ?? null,
+        userId: actor.userId,
+      });
+    }
+    return this.getById(id);
+  }
+
+  /** A copy to adjust (not active). */
+  async duplicate(
+    id: string,
+    actor: AuthContext,
+    client: ClientInfo,
+  ): Promise<PasswordPolicyResponseDto> {
+    const source = await this.findOrThrow(id);
+    const rules = structuredClone({
+      ...rulesOf(source),
+      policyName: `${source.policyName} (copy)`.slice(0, 100),
+    }) as unknown as PasswordPolicyRules;
+    return this.createPolicy(rules, actor, client, false);
+  }
+
+  async remove(
+    id: string,
+    actor: AuthContext,
+    client: ClientInfo,
+  ): Promise<{ id: string }> {
+    const policy = await this.findOrThrow(id);
+    if (policy.isActive) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        ErrorCode.Conflict,
+        'This policy is active. Activate another policy first.',
+      );
+    }
+    await this.policyModel.deleteOne({ _id: id });
+    await this.policyAuditService.record({
+      target: 'policy',
+      changedBy: actor.userId,
+      oldValues: rulesOf(policy),
+      newValues: { deletedPolicy: policy.policyName },
+      version: policy.version,
+      client,
+    });
+    this.logger.log({
+      message: 'Password policy deleted',
+      policyId: id,
+      userId: actor.userId,
+    });
+    return { id };
+  }
+
+  private async findOrThrow(id: string): Promise<PasswordPolicy> {
+    const policy = await this.policyModel.findById(id).lean();
+    if (!policy) {
+      throw policyNotFound();
+    }
+    return policy;
+  }
+
+  private async createPolicy(
+    rules: PasswordPolicyRules,
+    actor: AuthContext,
+    client: ClientInfo,
+    isActive: boolean,
+  ): Promise<PasswordPolicyResponseDto> {
+    const id = generateUuid();
+    await this.policyModel.create({
+      _id: id,
+      key: id,
+      ...rules,
+      isActive,
+      version: 1,
+      createdBy: actor.userId,
+      updatedBy: actor.userId,
+    });
+    this.cache = null;
+    const created = await this.getById(id);
+    await this.policyAuditService.record({
+      target: 'policy',
+      changedBy: actor.userId,
+      oldValues: null,
+      newValues: rulesOf(created),
+      version: created.version,
+      client,
+    });
+    this.logger.log({
+      message: 'Password policy created',
+      policyId: id,
+      isActive,
+      userId: actor.userId,
+    });
+    return created;
   }
 
   async getRequirements(): Promise<PasswordRequirementsDto> {
@@ -174,6 +386,13 @@ export class PasswordPolicyService {
     };
   }
 }
+
+const policyNotFound = () =>
+  new AppException(
+    HttpStatus.NOT_FOUND,
+    ErrorCode.NotFound,
+    'Password policy not found',
+  );
 
 /** requireUpperAndLowerCase means "at least 1"; an explicit count can raise it. */
 export function effectiveCaseCount(
@@ -315,6 +534,7 @@ function toResponse(policy: PasswordPolicy): PasswordPolicyResponseDto {
     additionalRules: policy.additionalRules,
     passwordValidity: policy.passwordValidity,
     isDefault: false,
+    isActive: policy.isActive,
     version: policy.version,
     updatedBy: policy.updatedBy,
     createdAt: policy.createdAt,
@@ -327,6 +547,7 @@ function defaultResponse(): PasswordPolicyResponseDto {
     id: null,
     ...structuredClone(DEFAULT_PASSWORD_POLICY),
     isDefault: true,
+    isActive: true,
     version: 0,
     updatedBy: null,
     createdAt: null,

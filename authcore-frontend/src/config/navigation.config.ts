@@ -147,14 +147,12 @@ export const navigationConfig: NavGroup[] = [
         id: 'admin-security',
         title: 'Security settings',
         icon: 'Lock',
-        status: 'planned',
         permission: ['PASSWORD_POLICY_READ', 'USER_SCHEMA_READ'],
         children: [
           {
             id: 'admin-password-policy',
             title: 'Password policy',
             path: paths.admin.passwordPolicy,
-            status: 'planned',
             permission: 'PASSWORD_POLICY_READ',
           },
           {

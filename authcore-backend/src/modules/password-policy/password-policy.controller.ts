@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Header,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Put,
   Query,
@@ -28,6 +30,7 @@ import { PaginationQueryDto } from '@common/dto/pagination-query.dto';
 import type { Paginated } from '@common/interfaces/api-response.interface';
 import type { AuthContext } from '@common/interfaces/auth-context.interface';
 import type { ClientInfo } from '@common/interfaces/client-info.interface';
+import { ParseIdPipe } from '@common/pipes/parse-id.pipe';
 import { PASSWORD_POLICY_PERMISSIONS as PP } from '@modules/access-control/constants/access-control.constants';
 
 import {
@@ -268,5 +271,162 @@ export class PasswordPolicyController {
       SchedulerJob.PasswordExpiryNotification,
       auth,
     );
+  }
+
+  // ---------------------------------------------------------------- several policies
+  // Declared after the fixed paths (history, requirements, schedulers …) so ":id" never
+  // shadows them.
+
+  @Get('all')
+  @RequirePermissions(PP.Read)
+  @ApiBearerAuth('access-token')
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Password policies')
+  @ApiOperation({
+    summary: 'All password policies',
+    description: `${ADMIN_ONLY} The active one first (exactly one is active), then the most recently changed.`,
+  })
+  @ApiWrappedResponse(PasswordPolicyResponseDto, { isArray: true })
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  list(): Promise<PasswordPolicyResponseDto[]> {
+    return this.passwordPolicyService.list();
+  }
+
+  @Post()
+  @RequirePermissions(PP.Manage)
+  @ApiBearerAuth('access-token')
+  @Throttle({ default: POLICY_UPDATE_THROTTLE })
+  @ResponseMessage('Password policy created')
+  @ApiOperation({
+    summary: 'Create a password policy',
+    description: `${ADMIN_ONLY} Saved inactive: activate it to apply it. Same rules as PUT.`,
+  })
+  @ApiWrappedResponse(PasswordPolicyResponseDto, { status: HttpStatus.CREATED })
+  @ApiErrorResponses(
+    HttpStatus.BAD_REQUEST,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+  )
+  create(
+    @CurrentUser() auth: AuthContext,
+    @Body() dto: UpdatePasswordPolicyDto,
+    @ClientInfoParam() client: ClientInfo,
+  ): Promise<PasswordPolicyResponseDto> {
+    return this.passwordPolicyService.create(dto, auth, client);
+  }
+
+  @Get(':id')
+  @RequirePermissions(PP.Read)
+  @ApiBearerAuth('access-token')
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Password policy')
+  @ApiOperation({ summary: 'One password policy', description: ADMIN_ONLY })
+  @ApiWrappedResponse(PasswordPolicyResponseDto)
+  @ApiErrorResponses(
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+    HttpStatus.NOT_FOUND,
+  )
+  getOne(
+    @Param('id', ParseIdPipe) id: string,
+  ): Promise<PasswordPolicyResponseDto> {
+    return this.passwordPolicyService.getById(id);
+  }
+
+  @Put(':id')
+  @RequirePermissions(PP.Manage)
+  @ApiBearerAuth('access-token')
+  @Throttle({ default: POLICY_UPDATE_THROTTLE })
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Password policy updated')
+  @ApiOperation({
+    summary: 'Update a password policy',
+    description: `${ADMIN_ONLY} Send the complete policy. Editing the active policy applies at once (within 15 s on every instance).`,
+  })
+  @ApiWrappedResponse(PasswordPolicyResponseDto)
+  @ApiErrorResponses(
+    HttpStatus.BAD_REQUEST,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+    HttpStatus.NOT_FOUND,
+  )
+  updateOne(
+    @Param('id', ParseIdPipe) id: string,
+    @CurrentUser() auth: AuthContext,
+    @Body() dto: UpdatePasswordPolicyDto,
+    @ClientInfoParam() client: ClientInfo,
+  ): Promise<PasswordPolicyResponseDto> {
+    return this.passwordPolicyService.updateById(id, dto, auth, client);
+  }
+
+  @Post(':id/activate')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions(PP.Manage)
+  @ApiBearerAuth('access-token')
+  @Throttle({ default: POLICY_UPDATE_THROTTLE })
+  @ResponseMessage('Password policy activated')
+  @ApiOperation({
+    summary: 'Make a policy the active one',
+    description: `${ADMIN_ONLY} Every password set from now on follows it; the previous active policy is kept (inactive). Recorded in /history.`,
+  })
+  @ApiWrappedResponse(PasswordPolicyResponseDto)
+  @ApiErrorResponses(
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+    HttpStatus.NOT_FOUND,
+  )
+  activate(
+    @Param('id', ParseIdPipe) id: string,
+    @CurrentUser() auth: AuthContext,
+    @ClientInfoParam() client: ClientInfo,
+  ): Promise<PasswordPolicyResponseDto> {
+    return this.passwordPolicyService.activate(id, auth, client);
+  }
+
+  @Post(':id/duplicate')
+  @RequirePermissions(PP.Manage)
+  @ApiBearerAuth('access-token')
+  @Throttle({ default: POLICY_UPDATE_THROTTLE })
+  @ResponseMessage('Password policy duplicated')
+  @ApiOperation({
+    summary: 'Duplicate a policy',
+    description: `${ADMIN_ONLY} An inactive copy named "<name> (copy)".`,
+  })
+  @ApiWrappedResponse(PasswordPolicyResponseDto, { status: HttpStatus.CREATED })
+  @ApiErrorResponses(
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+    HttpStatus.NOT_FOUND,
+  )
+  duplicate(
+    @Param('id', ParseIdPipe) id: string,
+    @CurrentUser() auth: AuthContext,
+    @ClientInfoParam() client: ClientInfo,
+  ): Promise<PasswordPolicyResponseDto> {
+    return this.passwordPolicyService.duplicate(id, auth, client);
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PP.Manage)
+  @ApiBearerAuth('access-token')
+  @Throttle({ default: POLICY_UPDATE_THROTTLE })
+  @ResponseMessage('Password policy deleted')
+  @ApiOperation({
+    summary: 'Delete a policy',
+    description: `${ADMIN_ONLY} Not the active one (409 — activate another policy first).`,
+  })
+  @ApiWrappedResponse()
+  @ApiErrorResponses(
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+    HttpStatus.NOT_FOUND,
+    HttpStatus.CONFLICT,
+  )
+  remove(
+    @Param('id', ParseIdPipe) id: string,
+    @CurrentUser() auth: AuthContext,
+    @ClientInfoParam() client: ClientInfo,
+  ): Promise<{ id: string }> {
+    return this.passwordPolicyService.remove(id, auth, client);
   }
 }

@@ -93,3 +93,37 @@
     --tooltip-from: -2px 0;
   }
 }
+
+/* Slider with a filled track: set --fill (0%–100%) inline. Thumb in the primary color. */
+@utility range-filled {
+  appearance: none;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--color-primary) var(--fill, 0%),
+    var(--color-muted) var(--fill, 0%)
+  );
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 9999px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-primary);
+    transition: transform 120ms ease-out;
+  }
+  &::-moz-range-thumb {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 9999px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-primary);
+  }
+  &:hover::-webkit-slider-thumb {
+    transform: scale(1.12);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 3px;
+  }
+}

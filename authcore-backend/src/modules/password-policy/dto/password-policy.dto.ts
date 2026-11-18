@@ -314,6 +314,12 @@ export class PasswordPolicyResponseDto {
   isDefault!: boolean;
 
   @ApiProperty({
+    example: true,
+    description: 'The policy in force (exactly one is active)',
+  })
+  isActive!: boolean;
+
+  @ApiProperty({
     example: 1,
     description: 'Incremented on every update; 0 for the built-in default',
   })

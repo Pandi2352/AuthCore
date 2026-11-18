@@ -38,6 +38,8 @@ export const paths = {
     groups: '/admin/access/groups',
     auditLog: '/admin/access/audit-log',
     passwordPolicy: '/admin/security/password-policy',
+    passwordPolicyNew: '/admin/security/password-policy/new',
+    passwordPolicyEdit: (id: string) => `/admin/security/password-policy/${segment(id)}`,
     userSchema: '/admin/security/user-schema',
     activity: '/admin/monitoring/activity',
   },
@@ -68,6 +70,7 @@ export const paths = {
  */
 export const routePatterns = {
   adminUserDetail: '/admin/users/:id',
+  adminPasswordPolicyEdit: '/admin/security/password-policy/:id',
 } as const;
 
 /** Path with query parameters (undefined / empty values are left out). */

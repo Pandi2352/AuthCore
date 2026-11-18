@@ -5,14 +5,18 @@ import { BaseSchema, baseSchemaOptions } from '@database/schemas/base.schema';
 import type { PasswordPolicyRules } from '../interfaces/password-policy-rules.interface';
 
 /**
- * The active password policy: one document (key "global") until
- * multi-tenancy adds one per tenant. Rule groups are validated by the DTOs
- * and stored as sub-documents.
+ * A password policy. Admins keep several; exactly one is active (enforced by a
+ * unique partial index) and applies to every password set. `key` is "global"
+ * for the policy from before multiple policies existed, the id otherwise.
+ * Rule groups are validated by the DTOs and stored as sub-documents.
  */
 @Schema({ ...baseSchemaOptions, collection: 'password_policies' })
 export class PasswordPolicy extends BaseSchema {
   @Prop({ type: String, required: true, unique: true })
   key!: string;
+
+  @Prop({ type: Boolean, default: false })
+  isActive!: boolean;
 
   @Prop({ type: String, required: true, trim: true, maxlength: 100 })
   policyName!: string;
@@ -45,3 +49,8 @@ export class PasswordPolicy extends BaseSchema {
 
 export const PasswordPolicySchema =
   SchemaFactory.createForClass(PasswordPolicy);
+// At most one active policy, enforced by the database.
+PasswordPolicySchema.index(
+  { isActive: 1 },
+  { unique: true, partialFilterExpression: { isActive: true } },
+);
