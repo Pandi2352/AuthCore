@@ -10,6 +10,8 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -21,6 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 
 import { API_TAGS } from '@common/constants/api-tags.constants';
 import {
@@ -70,8 +73,11 @@ import {
   ForcePasswordResetDto,
   PasswordResetSentDto,
   PurgeRunDto,
+  UserReportDto,
+  UserStatsDto,
 } from './dto/admin-user.dto';
 import { UserAdminService } from './services/user-admin.service';
+import { UserReportsService } from './services/user-reports.service';
 
 const WRITE_THROTTLE = { limit: 60, ttl: 60_000 } as const;
 const ERRORS = [
@@ -91,6 +97,7 @@ export class UserAdminController {
   constructor(
     private readonly userAdminService: UserAdminService,
     private readonly activityService: UserActivityService,
+    private readonly reportsService: UserReportsService,
   ) {}
 
   @Get()
@@ -144,6 +151,108 @@ export class UserAdminController {
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
   runPurge(): Promise<PurgeRunDto> {
     return this.userAdminService.runPurge();
+  }
+
+  @Get('stats')
+  @RequirePermissions(U.Read)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('User statistics')
+  @ApiOperation({
+    summary: 'User counts for the search page',
+    description:
+      'Needs USER_READ. Total, active (signed in recently), dormant (active account, no recent sign-in) and inactive (any other status) accounts, plus counts per status. Filter the list with ?activity=ACTIVE|DORMANT|INACTIVE.',
+  })
+  @ApiWrappedResponse(UserStatsDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  stats(): Promise<UserStatsDto> {
+    return this.userAdminService.stats();
+  }
+
+  @Post('reports')
+  @RequirePermissions(U.Read)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ResponseMessage('Report is being prepared')
+  @ApiOperation({
+    summary: 'Generate a user report (CSV)',
+    description:
+      'Needs USER_READ. Same query parameters as GET /admin/users (search, status, role, groupId, activity …; paging ignored). Built in the background — poll GET /admin/users/reports until READY, then download. Kept 7 days; at most 25 000 rows.',
+  })
+  @ApiWrappedResponse(UserReportDto, { status: HttpStatus.CREATED })
+  @ApiErrorResponses(
+    HttpStatus.BAD_REQUEST,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+  )
+  createReport(
+    @Query() query: AdminUserListQueryDto,
+    @CurrentActor() actor: Actor,
+  ): Promise<UserReportDto> {
+    return this.reportsService.create(query, actor.auth);
+  }
+
+  @Get('reports')
+  @RequirePermissions(U.Read)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Reports')
+  @ApiOperation({
+    summary: 'My generated reports ("View downloads")',
+    description: 'Needs USER_READ. Newest first; expired reports are removed.',
+  })
+  @ApiWrappedResponse(UserReportDto, { isArray: true })
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  listReports(@CurrentActor() actor: Actor): Promise<UserReportDto[]> {
+    return this.reportsService.list(actor.auth);
+  }
+
+  @Get('reports/:reportId/download')
+  @RequirePermissions(U.Read)
+  @ApiOperation({
+    summary: 'Download a report',
+    description:
+      'Needs USER_READ. Your own READY reports (409 while it is being prepared).',
+  })
+  @ApiErrorResponses(
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+    HttpStatus.NOT_FOUND,
+    HttpStatus.CONFLICT,
+  )
+  async downloadReport(
+    @Param('reportId', ParseIdPipe) reportId: string,
+    @CurrentActor() actor: Actor,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const { report, stream } = await this.reportsService.download(
+      reportId,
+      actor.auth,
+    );
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${report.fileName}"`,
+    );
+    response.setHeader('Cache-Control', 'no-store');
+    return stream;
+  }
+
+  @Delete('reports/:reportId')
+  @RequirePermissions(U.Read)
+  @ResponseMessage('Report deleted')
+  @ApiOperation({
+    summary: 'Delete a report',
+    description: 'Needs USER_READ. Your own reports.',
+  })
+  @ApiWrappedResponse()
+  @ApiErrorResponses(
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+    HttpStatus.NOT_FOUND,
+  )
+  removeReport(
+    @Param('reportId', ParseIdPipe) reportId: string,
+    @CurrentActor() actor: Actor,
+  ): Promise<{ id: string }> {
+    return this.reportsService.remove(reportId, actor.auth);
   }
 
   @Get('create-config')

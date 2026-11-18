@@ -17,6 +17,8 @@ export enum FilePurpose {
   BrandFavicon = 'BRAND_FAVICON',
   /** POST /uploads: general uploads with a public URL (active storage). Internal. */
   Upload = 'UPLOAD',
+  /** Generated reports (user search export, CSV): private to whoever generated them. Internal. */
+  Report = 'REPORT',
 }
 
 /** Virus-scan outcome stored with each file. */

@@ -56,6 +56,7 @@ import { UserStatus } from '@modules/users/enums/user-status.enum';
 import { UsersService } from '@modules/users/users.service';
 import { PasswordService } from '@shared/password.service';
 
+import { DORMANT_AFTER_DAYS } from '../constants/user-admin.constants';
 import {
   ADMIN_USER_SORT_FIELDS,
   type AdminCreateUserDto,
@@ -70,6 +71,7 @@ import {
   type CreateUserConfigDto,
   type PasswordResetSentDto,
   type PurgeRunDto,
+  type UserStatsDto,
 } from '../dto/admin-user.dto';
 
 /**
@@ -109,6 +111,61 @@ export class UserAdminService {
     query: AdminUserListQueryDto,
   ): Promise<Paginated<AdminUserResponseDto>> {
     const { page, limit, skip } = normalizePagination(query.page, query.limit);
+    const filter = await this.buildFilter(query);
+    const { items, total } = await this.usersService.listForAdmin(
+      filter,
+      this.sortOf(query),
+      skip,
+      limit,
+    );
+    return paginate(items, page, limit, total);
+  }
+
+  /** Users matching a list query (for reports). */
+  async countMatching(query: AdminUserListQueryDto): Promise<number> {
+    const { total } = await this.usersService.listForAdmin(
+      await this.buildFilter(query),
+      { createdAt: -1 },
+      0,
+      1,
+    );
+    return total;
+  }
+
+  sortOf(query: AdminUserListQueryDto): Record<string, 1 | -1> {
+    return buildSort(
+      query.sortBy,
+      query.sortOrder,
+      ADMIN_USER_SORT_FIELDS,
+      'createdAt',
+    );
+  }
+
+  /** Sign-ins before this date make an active account "dormant". */
+  dormantBefore(): Date {
+    return new Date(Date.now() - DORMANT_AFTER_DAYS * 24 * 60 * 60 * 1000);
+  }
+
+  /** The cards on the user search page: total / active / dormant / inactive. */
+  async stats(): Promise<UserStatsDto> {
+    const counts = await this.usersService.countByActivity(
+      { deletedAt: null },
+      this.dormantBefore(),
+    );
+    return {
+      total: counts.total,
+      active: counts.active,
+      dormant: counts.dormant,
+      inactive: counts.total - counts.active - counts.dormant,
+      dormantAfterDays: DORMANT_AFTER_DAYS,
+      byStatus: counts.byStatus,
+    };
+  }
+
+  /** MongoDB filter for a list query (search, filters, activity, groups, custom values). */
+  async buildFilter(
+    query: AdminUserListQueryDto,
+  ): Promise<Record<string, unknown>> {
     const createdAt = buildDateRange(
       'created',
       query.createdFrom,
@@ -120,8 +177,34 @@ export class UserAdminService {
       query.updatedTo,
     );
     const search = query.search ? containsPattern(query.search) : null;
+    const searchPaths = search
+      ? await this.attributeValuesService.searchablePaths()
+      : [];
     const deleted = query.deleted ?? 'EXCLUDE';
-    const filter = {
+    const and: Record<string, unknown>[] = [];
+    if (query.activity) {
+      const dormantBefore = this.dormantBefore();
+      and.push(
+        query.activity === 'ACTIVE'
+          ? { status: UserStatus.Active, lastLoginAt: { $gte: dormantBefore } }
+          : query.activity === 'DORMANT'
+            ? {
+                status: UserStatus.Active,
+                $or: [
+                  { lastLoginAt: null },
+                  { lastLoginAt: { $lt: dormantBefore } },
+                ],
+              }
+            : { status: { $ne: UserStatus.Active } },
+      );
+    }
+    if (query.groupId?.length) {
+      and.push({
+        _id: { $in: await this.resolver.userIdsInGroups(query.groupId) },
+      });
+    }
+    return {
+      ...(and.length > 0 ? { $and: and } : {}),
       ...(deleted === 'EXCLUDE'
         ? { deletedAt: null }
         : deleted === 'ONLY'
@@ -134,11 +217,12 @@ export class UserAdminService {
               { username: search },
               { firstName: search },
               { lastName: search },
+              ...searchPaths.map((p) => ({ [p]: search })),
             ],
           }
         : {}),
-      ...(query.status ? { status: query.status } : {}),
-      ...(query.role ? { role: query.role } : {}),
+      ...(query.status?.length ? { status: { $in: query.status } } : {}),
+      ...(query.role?.length ? { role: { $in: query.role } } : {}),
       ...(query.source ? { source: query.source } : {}),
       ...(query.isEmailVerified !== undefined
         ? { isEmailVerified: query.isEmailVerified }
@@ -154,18 +238,6 @@ export class UserAdminService {
         ? await this.attributeValuesService.searchFilter(query.attr)
         : {}),
     };
-    const { items, total } = await this.usersService.listForAdmin(
-      filter,
-      buildSort(
-        query.sortBy,
-        query.sortOrder,
-        ADMIN_USER_SORT_FIELDS,
-        'createdAt',
-      ),
-      skip,
-      limit,
-    );
-    return paginate(items, page, limit, total);
   }
 
   async get(id: string): Promise<AdminUserDetailsDto> {

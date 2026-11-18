@@ -301,6 +301,49 @@ export class UserAttributeValuesService {
     return filter;
   }
 
+  /**
+   * Custom variables marked "include in search filter" that hold text (employee ID, phone …):
+   * the free-text user search also looks in them. Returned as document paths.
+   */
+  async searchablePaths(): Promise<string[]> {
+    const textTypes: readonly string[] = [
+      T.Text,
+      T.TextArea,
+      T.Email,
+      T.Mobile,
+      T.Url,
+      T.Dropdown,
+    ];
+    const defs = await this.schemaService.definitions();
+    return defs
+      .filter(
+        (d) =>
+          d.parentId === null &&
+          d.includeInSearchFilter &&
+          d.coreField === null &&
+          d.dataType !== null &&
+          textTypes.includes(d.dataType),
+      )
+      .map((d) => `attributes.${d.name}`);
+  }
+
+  /** Top-level custom (non-system) fields, label + name, for exports, in display order. */
+  async exportColumns(): Promise<{ name: string; label: string }[]> {
+    const defs = await this.schemaService.definitions();
+    return defs
+      .filter(
+        (d) =>
+          d.parentId === null &&
+          d.coreField === null &&
+          !d.isSystem &&
+          !d.isPassword &&
+          !d.isMatchEnabled &&
+          d.kind === AttributeKind.Field,
+      )
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((d) => ({ name: d.name, label: d.label }));
+  }
+
   /** Top-level variables that can be used as the sign-in identifier. */
   async usernameAttributeNames(): Promise<string[]> {
     const defs = await this.schemaService.definitions();

@@ -391,6 +391,86 @@ export class UsersService {
     return { items: users.map(toAdminUserResponse), total };
   }
 
+  /** A page of users with their custom values (reports). */
+  async listForExport(
+    filter: Record<string, unknown>,
+    sort: Record<string, 1 | -1>,
+    skip: number,
+    limit: number,
+  ): Promise<
+    Array<AdminUserResponseDto & { attributes: Record<string, unknown> }>
+  > {
+    const users = await this.userModel
+      .find(filter)
+      .collation({ locale: 'en', strength: 2 })
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    return users.map((user) =>
+      Object.assign(toAdminUserResponse(user), {
+        // Older accounts may have no attributes field at all.
+        attributes:
+          (user.attributes as Record<string, unknown> | undefined) ?? {},
+      }),
+    );
+  }
+
+  /** Counts for the user search cards (one aggregation). */
+  async countByActivity(
+    base: Record<string, unknown>,
+    dormantBefore: Date,
+  ): Promise<{
+    total: number;
+    active: number;
+    dormant: number;
+    byStatus: Record<string, number>;
+  }> {
+    const [result] = await this.userModel.aggregate<{
+      total: { n: number }[];
+      active: { n: number }[];
+      dormant: { n: number }[];
+      byStatus: { _id: string; n: number }[];
+    }>([
+      { $match: base },
+      {
+        $facet: {
+          total: [{ $count: 'n' }],
+          active: [
+            {
+              $match: {
+                status: 'ACTIVE',
+                lastLoginAt: { $gte: dormantBefore },
+              },
+            },
+            { $count: 'n' },
+          ],
+          dormant: [
+            {
+              $match: {
+                status: 'ACTIVE',
+                $or: [
+                  { lastLoginAt: null },
+                  { lastLoginAt: { $lt: dormantBefore } },
+                ],
+              },
+            },
+            { $count: 'n' },
+          ],
+          byStatus: [{ $group: { _id: '$status', n: { $sum: 1 } } }],
+        },
+      },
+    ]);
+    return {
+      total: result?.total[0]?.n ?? 0,
+      active: result?.active[0]?.n ?? 0,
+      dormant: result?.dormant[0]?.n ?? 0,
+      byStatus: Object.fromEntries(
+        (result?.byStatus ?? []).map((s) => [s._id, s.n]),
+      ),
+    };
+  }
+
   async findByEmail(email: string): Promise<UserResponseDto | null> {
     const user = await this.userModel
       .findOne({ email, deletedAt: null })

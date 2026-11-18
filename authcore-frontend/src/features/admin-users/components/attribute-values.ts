@@ -150,3 +150,80 @@ export const countFields = (attributes: FormAttribute[]): number =>
 
 /** "Employee ID" → "employee ID" (keeps acronyms readable in "Enter …" texts). */
 export const lowerFirst = (label: string): string => label.charAt(0).toLowerCase() + label.slice(1);
+
+/** A stored value → the form's representation (strings for inputs, local time for date & time). */
+function fromApiField(attribute: FormAttribute, value: unknown): FieldValue {
+  if (attribute.dataType === 'BOOLEAN') return value === true;
+  if (attribute.dataType === 'MULTI_SELECT') {
+    return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+  }
+  if (value === null || value === undefined) return '';
+  if (attribute.dataType === 'DATETIME' && typeof value === 'string') {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return local.toISOString().slice(0, 16);
+  }
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '';
+}
+
+function fromApiGroup(group: FormAttribute, value: unknown): GroupValue {
+  const entry = emptyGroupEntry(group);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return entry;
+  const stored = value as Record<string, unknown>;
+  for (const child of group.children ?? [])
+    entry[child.name] = fromApiField(child, stored[child.name]);
+  return entry;
+}
+
+/** A user's stored values (GET /admin/users/:id → attributes) as form values. */
+export function fromApiValues(
+  attributes: FormAttribute[],
+  stored: Record<string, unknown>,
+): AttributeValues {
+  return Object.fromEntries(
+    attributes.map((a) => {
+      const value = stored[a.name];
+      if (a.kind === 'GROUP') {
+        return [
+          a.name,
+          a.groupType === 'LIST'
+            ? (Array.isArray(value) ? value : []).map((entry) => fromApiGroup(a, entry))
+            : fromApiGroup(a, value),
+        ];
+      }
+      return [a.name, fromApiField(a, value)];
+    }),
+  );
+}
+
+function apiValueOf(attribute: FormAttribute, value: AttributeValues[string] | undefined): unknown {
+  if (attribute.kind === 'FIELD') return toApiValue(attribute, value as FieldValue | undefined);
+  if (attribute.groupType === 'LIST') {
+    const list = ((value as GroupValue[] | undefined) ?? [])
+      .map((entry) => groupToApi(attribute, entry))
+      .filter((entry) => entry !== undefined);
+    return list.length > 0 ? list : undefined;
+  }
+  return groupToApi(attribute, (value as GroupValue | undefined) ?? {});
+}
+
+/**
+ * PATCH body for an edit: only the variables that changed; a cleared value becomes null
+ * (the API removes it). Undefined when nothing changed.
+ */
+export function toAttributesPatch(
+  attributes: FormAttribute[],
+  values: AttributeValues,
+  initial: AttributeValues,
+): Record<string, unknown> | undefined {
+  const patch: Record<string, unknown> = {};
+  for (const a of attributes) {
+    const next = apiValueOf(a, values[a.name]);
+    const before = apiValueOf(a, initial[a.name]);
+    if (JSON.stringify(next) !== JSON.stringify(before)) patch[a.name] = next ?? null;
+  }
+  return Object.keys(patch).length > 0 ? patch : undefined;
+}

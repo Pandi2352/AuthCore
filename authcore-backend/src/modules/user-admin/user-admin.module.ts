@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 
 import { AccessControlModule } from '@modules/access-control/access-control.module';
 import { AccountModule } from '@modules/account/account.module';
@@ -8,7 +9,9 @@ import { SessionsModule } from '@modules/sessions/sessions.module';
 import { UserSchemaModule } from '@modules/user-schema/user-schema.module';
 import { UsersModule } from '@modules/users/users.module';
 
+import { UserReport, UserReportSchema } from './schemas/user-report.schema';
 import { UserAdminService } from './services/user-admin.service';
+import { UserReportsService } from './services/user-reports.service';
 import { UserAdminController } from './user-admin.controller';
 
 /** User administration (/admin/users). */
@@ -21,8 +24,11 @@ import { UserAdminController } from './user-admin.controller';
     PasswordPolicyModule,
     AccountModule,
     UserSchemaModule,
+    MongooseModule.forFeature([
+      { name: UserReport.name, schema: UserReportSchema },
+    ]),
   ],
   controllers: [UserAdminController],
-  providers: [UserAdminService],
+  providers: [UserAdminService, UserReportsService],
 })
 export class UserAdminModule {}

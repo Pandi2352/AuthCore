@@ -37,6 +37,12 @@ import { UserRole } from '@modules/users/enums/user-role.enum';
 import { UserSource } from '@modules/users/enums/user-source.enum';
 import { UserStatus } from '@modules/users/enums/user-status.enum';
 
+import {
+  DORMANT_AFTER_DAYS,
+  USER_ACTIVITIES,
+  type UserActivity,
+} from '../constants/user-admin.constants';
+
 export const ADMIN_USER_SORT_FIELDS = [
   'email',
   'firstName',
@@ -62,18 +68,72 @@ const lowerIds = ({ value }: { value: unknown }): unknown =>
       )
     : value;
 
-export class AdminUserListQueryDto extends ListQueryDto {
-  @ApiPropertyOptional({ enum: UserStatus })
-  @IsEnum(UserStatus)
-  @Transform(trimUpper)
-  @IsOptional()
-  status?: UserStatus;
+/** "A,B" or repeated params → ['A', 'B'] (upper case). */
+const upperList = ({ value }: { value: unknown }): unknown =>
+  value === undefined || value === ''
+    ? undefined
+    : (Array.isArray(value)
+        ? value
+        : typeof value === 'string'
+          ? value.split(',')
+          : []
+      )
+        .map((v) => (typeof v === 'string' ? v.trim().toUpperCase() : ''))
+        .filter(Boolean);
+const lowerList = ({ value }: { value: unknown }): unknown =>
+  value === undefined || value === ''
+    ? undefined
+    : (Array.isArray(value)
+        ? value
+        : typeof value === 'string'
+          ? value.split(',')
+          : []
+      )
+        .map((v) => (typeof v === 'string' ? v.trim().toLowerCase() : ''))
+        .filter(Boolean);
 
-  @ApiPropertyOptional({ enum: UserRole })
-  @IsEnum(UserRole)
+export class AdminUserListQueryDto extends ListQueryDto {
+  @ApiPropertyOptional({
+    enum: UserStatus,
+    isArray: true,
+    description: 'One or more, comma-separated: ?status=ACTIVE,SUSPENDED',
+  })
+  @IsEnum(UserStatus, { each: true })
+  @IsArray()
+  @Transform(upperList)
+  @IsOptional()
+  status?: UserStatus[];
+
+  @ApiPropertyOptional({
+    enum: UserRole,
+    isArray: true,
+    description: 'One or more, comma-separated',
+  })
+  @IsEnum(UserRole, { each: true })
+  @IsArray()
+  @Transform(upperList)
+  @IsOptional()
+  role?: UserRole[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Members of any of these groups (comma-separated ids)',
+  })
+  @IsUUID('all', { each: true })
+  @ArrayMaxSize(50)
+  @IsArray()
+  @Transform(lowerList)
+  @IsOptional()
+  groupId?: string[];
+
+  @ApiPropertyOptional({
+    enum: USER_ACTIVITIES,
+    description: `ACTIVE = active account, signed in within ${DORMANT_AFTER_DAYS} days; DORMANT = active account, no sign-in for ${DORMANT_AFTER_DAYS} days (or never); INACTIVE = any other status`,
+  })
+  @IsIn(USER_ACTIVITIES)
   @Transform(trimUpper)
   @IsOptional()
-  role?: UserRole;
+  activity?: UserActivity;
 
   @ApiPropertyOptional({ enum: UserSource })
   @IsEnum(UserSource)
@@ -491,4 +551,74 @@ export class AvailabilityDto {
     description: 'null when no username was asked about',
   })
   isUsernameAvailable!: boolean | null;
+}
+
+export class UserStatsDto {
+  @ApiProperty({ example: 10174, description: 'Every account (not deleted)' })
+  total!: number;
+
+  @ApiProperty({
+    example: 1031,
+    description: 'Active accounts that signed in recently',
+  })
+  active!: number;
+
+  @ApiProperty({
+    example: 8424,
+    description: 'Active accounts with no recent sign-in (or none ever)',
+  })
+  dormant!: number;
+
+  @ApiProperty({
+    example: 719,
+    description:
+      'Accounts in any other status (pending, inactive, suspended …)',
+  })
+  inactive!: number;
+
+  @ApiProperty({ example: 30 })
+  dormantAfterDays!: number;
+
+  @ApiProperty({
+    type: Object,
+    example: { ACTIVE: 9455, SUSPENDED: 12 },
+    description: 'Accounts per status',
+  })
+  byStatus!: Record<string, number>;
+}
+
+export class UserReportDto {
+  @ApiProperty() id!: string;
+
+  @ApiProperty({ enum: ['PENDING', 'READY', 'FAILED'] })
+  status!: 'PENDING' | 'READY' | 'FAILED';
+
+  @ApiProperty({ example: 'CSV' }) format!: 'CSV';
+
+  @ApiProperty({ example: 'users-2026-11-18-1030.csv' }) fileName!: string;
+
+  @ApiProperty({ type: Number, nullable: true, example: 1031 })
+  rowCount!: number | null;
+
+  @ApiProperty({ type: Number, nullable: true, example: 184320 })
+  fileSize!: number | null;
+
+  @ApiProperty({
+    type: Object,
+    example: { activity: 'ACTIVE', search: 'skill' },
+    description: 'The filters the report was made with',
+  })
+  filters!: Record<string, unknown>;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'More users matched than one report holds (the first rows are included)',
+  })
+  isTruncated!: boolean;
+
+  @ApiProperty({ type: String, nullable: true }) error!: string | null;
+  @ApiProperty() createdAt!: Date;
+  @ApiProperty({ type: Date, nullable: true }) completedAt!: Date | null;
+  @ApiProperty() expiresAt!: Date;
 }

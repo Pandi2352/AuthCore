@@ -109,8 +109,8 @@ export const adminRoutes: RouteObject[] = [
   {
     path: paths.admin.users,
     handle: {
-      title: 'Users',
-      breadcrumb: [{ label: 'Administration' }, { label: 'Users' }],
+      title: 'Search users',
+      breadcrumb: [{ label: 'Administration' }, { label: 'Users' }, { label: 'Search users' }],
       featureFlag: 'admin.enabled',
       permission: 'USER_READ',
     } satisfies RouteHandle,

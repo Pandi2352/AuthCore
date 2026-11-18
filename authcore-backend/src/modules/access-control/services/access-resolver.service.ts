@@ -82,6 +82,19 @@ export class AccessResolverService {
     return { groups, roles, permissions };
   }
 
+  /** Users who are (directly, not expired) members of any of these groups. */
+  async userIdsInGroups(groupIds: string[]): Promise<string[]> {
+    if (groupIds.length === 0) {
+      return [];
+    }
+    const ids = await this.mappingModel.distinct('userId', {
+      type: MappingType.GroupUser,
+      groupId: { $in: groupIds },
+      ...notExpired(),
+    });
+    return ids.filter((id): id is string => typeof id === 'string');
+  }
+
   /** Permission keys a set of groups grants to its members. */
   async permissionKeysOfGroups(groupIds: string[]): Promise<Set<string>> {
     const groups = await this.activeGroupsWithInherited(groupIds);

@@ -1000,7 +1000,10 @@ Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWO
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /admin/users` | List: search (email, username, names), status, role, source, isEmailVerified, isPendingDeletion, `deleted=EXCLUDE\|ONLY\|INCLUDE`, dates, sort, `attr[name]=value` (searchable custom variables) |
+| `GET /admin/users` | List: search (email, username, names **and custom variables marked "include in search filter"**, e.g. employee ID), `status` / `role` (one or more, comma-separated), `groupId` (members of these groups), `activity=ACTIVE\|DORMANT\|INACTIVE`, source, isEmailVerified, isPendingDeletion, `deleted=EXCLUDE\|ONLY\|INCLUDE`, dates, sort, `attr[name]=value` |
+| `GET /admin/users/stats` | Search page cards: total, active (signed in within 30 days), dormant (active account, no sign-in for 30 days or never), inactive (any other status), counts per status |
+| `POST /admin/users/reports` | Generate report: CSV of the users matching the same query parameters as the list (background job, max 25 000 rows, private file kept 7 days; formula-looking cells are escaped) |
+| `GET /admin/users/reports` · `GET …/reports/:id/download` · `DELETE …/reports/:id` | My reports ("View downloads"), download a READY one (409 while preparing), delete |
 | `GET /admin/users/:id` | User info: profile, status history, active sessions, groups, effective permissions, sign-in lock, `lastActivityAt`, custom variable values |
 | `GET /admin/users/create-config` | Create form setup (USER_CREATE): name fields as configured in the user schema (label / enabled / required), the custom variables to show (enabled, incl. internal), active password rules, defaults, whether groups can be picked |
 | `GET /admin/users/availability?email=&username=` | Live "already taken" check for the create form (POST still decides with 409) |

@@ -1,4 +1,4 @@
-import { Eye, MoreHorizontal, RotateCcw, Trash2, UserX } from 'lucide-react';
+import { Copy, MoreHorizontal, Pencil, RotateCcw, UserX } from 'lucide-react';
 import { useState } from 'react';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
@@ -16,78 +16,109 @@ import { adminUsersApi } from '../api/admin-users.api';
 import type { AdminUser } from '../types/admin-user.types';
 import { fullName } from './user-labels';
 
-/** Always-visible ⋯ menu per row (never hover-only); delete is confirmed. */
+/** Edit (always visible) + ⋯ menu; status changes are confirmed. */
 export function UserRowActions({
   user,
-  onOpen,
+  canUpdate,
+  onEdit,
   onChanged,
 }: {
   user: AdminUser;
-  onOpen: (user: AdminUser) => void;
+  canUpdate: boolean;
+  onEdit: (user: AdminUser) => void;
   onChanged: () => void;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirm, setConfirm] = useState(false);
   const name = fullName(user);
-  const suspended = user.status === 'suspended';
+  const isBlocked =
+    user.status === 'SUSPENDED' || user.status === 'INACTIVE' || user.status === 'BANNED';
 
-  const setStatus = async () => {
+  const changeStatus = async () => {
     try {
-      await adminUsersApi.setStatus(
-        { mode: 'ids', ids: [user.id] },
-        suspended ? 'active' : 'suspended',
-      );
-      notifySuccess(suspended ? `${name} reactivated` : `${name} suspended`);
+      await adminUsersApi.setStatus(user.id, { status: isBlocked ? 'ACTIVE' : 'SUSPENDED' });
+      notifySuccess(isBlocked ? `${name} reactivated` : `${name} suspended`, {
+        description: isBlocked
+          ? 'They can sign in again.'
+          : 'They were signed out everywhere and cannot sign in.',
+      });
       onChanged();
     } catch (error) {
       notifyError(error, 'Could not change the status');
+      throw error;
+    }
+  };
+
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(user.email);
+      notifySuccess('Email copied');
+    } catch (error) {
+      notifyError(error, 'Could not copy');
     }
   };
 
   return (
-    <>
+    <span className="flex items-center justify-end gap-1">
+      {canUpdate && (
+        <IconButton
+          aria-label={`Edit ${name}`}
+          icon={<Pencil />}
+          variant="outline"
+          size="sm"
+          className="size-7! pointer-coarse:size-11!"
+          onClick={() => onEdit(user)}
+        />
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <IconButton
-            aria-label={`Actions for ${name}`}
+            aria-label={`More actions for ${name}`}
             icon={<MoreHorizontal />}
             variant="ghost"
             size="sm"
+            showTooltip={false}
             // size-7!: tailwind-merge does not see size-control-sm as a size class.
             className="size-7! pointer-coarse:size-11!"
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
-          <DropdownMenuItem icon={<Eye />} onSelect={() => onOpen(user)}>
-            View details
+          {canUpdate && (
+            <DropdownMenuItem icon={<Pencil />} onSelect={() => onEdit(user)}>
+              Edit user
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem icon={<Copy />} onSelect={() => void copyEmail()}>
+            Copy email
           </DropdownMenuItem>
-          <DropdownMenuItem
-            icon={suspended ? <RotateCcw /> : <UserX />}
-            onSelect={() => void setStatus()}
-          >
-            {suspended ? 'Reactivate' : 'Suspend'}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem destructive icon={<Trash2 />} onSelect={() => setConfirmDelete(true)}>
-            Delete user
-          </DropdownMenuItem>
+          {canUpdate && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                destructive={!isBlocked}
+                icon={isBlocked ? <RotateCcw /> : <UserX />}
+                onSelect={() => setConfirm(true)}
+              >
+                {isBlocked ? 'Reactivate' : 'Suspend'}
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
-      {confirmDelete && (
+      {confirm && (
         <ConfirmDialog
           open
-          onOpenChange={setConfirmDelete}
-          title={`Delete ${name}?`}
-          description="The account and its data are removed permanently. This cannot be undone."
-          confirmText="Delete user"
-          destructive
-          onConfirm={async () => {
-            await adminUsersApi.remove({ mode: 'ids', ids: [user.id] });
-            notifySuccess(`${name} deleted`);
-            setConfirmDelete(false);
-            onChanged();
-          }}
+          onOpenChange={setConfirm}
+          title={isBlocked ? `Reactivate ${name}?` : `Suspend ${name}?`}
+          description={
+            isBlocked
+              ? 'They can sign in again right away.'
+              : 'They are signed out everywhere and cannot sign in until reactivated.'
+          }
+          confirmText={isBlocked ? 'Reactivate' : 'Suspend'}
+          destructive={!isBlocked}
+          onConfirm={changeStatus}
         />
       )}
-    </>
+    </span>
   );
 }

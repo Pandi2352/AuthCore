@@ -97,6 +97,15 @@ export const FILE_PURPOSES: Record<FilePurpose, FilePurposeRule> = {
     imageMode: 'document',
     isDirectUpload: false,
   },
+  // Generated reports: private (the person who generated it, or FILE_READ); never uploaded directly.
+  [FilePurpose.Report]: {
+    mimeTypes: ['text/csv'],
+    visibility: FileVisibility.Private,
+    sizeLimit: 'default',
+    isSingle: false,
+    imageMode: 'document',
+    isDirectUpload: false,
+  },
 };
 
 /** Purposes the generic POST /files endpoint accepts. */

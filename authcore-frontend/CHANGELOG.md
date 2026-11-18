@@ -10,6 +10,10 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### User search
+
+- _Additive:_ Users → **Search users** now uses the real API (the sample data is gone): cards for total / active / dormant / inactive users (click to filter), search by name, email or employee ID (any custom field marked searchable), filters for activity, status, role and group (kept in the URL), # / user / email (verified mark) / status (+ Dormant) / role / last sign-in columns, an **Edit** drawer (names, email, username, email verified, status with reason and email notice, every custom field), suspend / reactivate (row and bulk), and **Generate report** (CSV of the current results, built in the background with a toast when ready) with **View downloads**.
+
 ### Emoji icon style
 
 - _Additive:_ Appearance → Icon style **Emoji**: colorful Microsoft Fluent Emoji (flat) for the navigation. Only the icons in use are copied into `src/config/emoji-icons.ts` (`npm run icons:emoji`, ~30 KB, own chunk loaded only for this style) from the dev dependency `@iconify-json/fluent-emoji-flat` (MIT, © Microsoft). Icons picked to stay legible in dark mode.
