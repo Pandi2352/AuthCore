@@ -19,6 +19,7 @@ import type {
 } from '@/features/auth/types/auth.types';
 import type { User } from '@/features/auth/types/user.types';
 import { apiClient } from '@/lib/api';
+import { ERROR_CODES } from '@/lib/constants';
 import { setFormatDefaults } from '@/lib/format';
 
 import { AuthContext, type AuthContextType } from './auth-context';
@@ -89,8 +90,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       logoutLocally();
     });
-    const offForbidden = apiClient.on('forbidden', () => {
+    const offForbidden = apiClient.on('forbidden', (error) => {
       if (!tokenStore.get()) return;
+      // Password change required (admin-forced or expired): RequireAuth sends the user to Security.
+      if (error.code === ERROR_CODES.AUTH_PASSWORD_EXPIRED) {
+        setUser((prev) =>
+          prev && !prev.mustChangePassword ? { ...prev, mustChangePassword: true } : prev,
+        );
+        return;
+      }
       if (Date.now() - lastAccessReload.current < ACCESS_RELOAD_MIN_INTERVAL_MS) return;
       void fetchEffectiveAccess();
     });

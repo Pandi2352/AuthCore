@@ -318,12 +318,37 @@ const USER_SCHEMA_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
   ],
 };
 
+/** Permissions protecting business settings (site name, description, logos, favicon). */
+export const BUSINESS_SETTINGS_PERMISSIONS = {
+  Read: 'BUSINESS_SETTINGS_READ',
+  Manage: 'BUSINESS_SETTINGS_MANAGE',
+} as const;
+
+const BUSINESS_SETTINGS_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
+  BUSINESS_SETTINGS_READ: [
+    'View business settings',
+    'View the site name, description, logos and favicon with file details',
+    'business-settings',
+    'READ',
+  ],
+  BUSINESS_SETTINGS_MANAGE: [
+    'Manage business settings',
+    'Change the site name and description, upload or remove logos and the favicon',
+    'business-settings',
+    'MANAGE',
+  ],
+};
+
 export const SYSTEM_PERMISSIONS = [
   ...toSystemPermissions('access-control', SYSTEM_PERMISSION_DETAILS),
   ...toSystemPermissions('password-policy', PASSWORD_POLICY_PERMISSION_DETAILS),
   ...toSystemPermissions('users', USER_PERMISSION_DETAILS),
   ...toSystemPermissions('user-schema', USER_SCHEMA_PERMISSION_DETAILS),
   ...toSystemPermissions('files', FILE_PERMISSION_DETAILS),
+  ...toSystemPermissions(
+    'business-settings',
+    BUSINESS_SETTINGS_PERMISSION_DETAILS,
+  ),
 ];
 
 /** Seeded roles: protected, each holding the listed system permissions. */
@@ -355,6 +380,14 @@ export const SYSTEM_ROLES = [
       ...Object.keys(USER_SCHEMA_PERMISSION_DETAILS),
       ...Object.keys(FILE_PERMISSION_DETAILS),
     ],
+  },
+  {
+    roleKey: 'BUSINESS_SETTINGS_ADMIN',
+    roleName: 'Business Settings Administrator',
+    category: SYSTEM_ROLE_CATEGORY,
+    description:
+      'Manages the site name, description, logos and favicon. System role: cannot be edited or deleted.',
+    permissionKeys: Object.keys(BUSINESS_SETTINGS_PERMISSION_DETAILS),
   },
 ];
 

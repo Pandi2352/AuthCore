@@ -15,6 +15,7 @@ import { StatusGeometricFlanks } from './StatusGeometricFlanks';
  * Expands to full available viewport height so no bottom gap or dark letterboxing occurs.
  */
 export function StatusPage({
+  icon,
   code,
   title,
   description,
@@ -47,6 +48,9 @@ export function StatusPage({
 
       {/* Main Content Stage */}
       <div className="relative z-10 mx-auto flex max-w-xl flex-col items-center">
+        {/* Optional 3D Vector Illustration */}
+        {icon && <div className="mb-3 flex items-center justify-center">{icon}</div>}
+
         {/* Floating Code Pill */}
         {code && (
           <div className="mb-4 inline-flex items-center justify-center rounded-md border border-border bg-surface/90 px-3.5 py-1 text-xs font-bold tracking-wider text-muted-foreground shadow-card backdrop-blur-md">

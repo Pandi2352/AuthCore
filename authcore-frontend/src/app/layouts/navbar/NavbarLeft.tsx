@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 
 import { Logo } from '@/components/common/Logo';
 import { IconButton } from '@/components/ui';
-import { appConfig, layoutConfig, paths } from '@/config';
+import { layoutConfig, paths } from '@/config';
+import { useBranding } from '@/hooks';
 import { modKeyLabel } from '@/lib/utils';
 
 import { Breadcrumbs } from '../components/Breadcrumbs';
@@ -14,6 +15,7 @@ export function NavbarLeft() {
   const { isDesktop, collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebar();
   const { sidebar, navbar } = layoutConfig;
   const position = useSidebarPosition();
+  const { siteName } = useBranding();
   const sidebarVisible = sidebar.enabled && isDesktop;
   const showLogo =
     navbar.showLogo === 'always' ||
@@ -44,7 +46,7 @@ export function NavbarLeft() {
       {showLogo && (
         <Link
           to={paths.dashboard}
-          aria-label={`${appConfig.name} home`}
+          aria-label={`${siteName} home`}
           className="shrink-0 cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Logo hideName={!isDesktop} />

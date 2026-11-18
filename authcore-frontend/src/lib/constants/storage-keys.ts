@@ -1,4 +1,4 @@
-import { appConfig } from '../../config/app.config';
+import { appConfig } from '../../config/app.config.ts';
 
 /**
  * Every localStorage entry the app uses — one list, so names never collide and a version
@@ -12,6 +12,8 @@ export const STORAGE_KEYS = {
   devCounter: { name: 'dev-counter', version: 1 },
   // DataTable layouts (density, column order / visibility / widths), keyed by table + user
   dataTables: { name: 'data-tables', version: 1 },
+  // Business settings (site name, description, logo / favicon URLs): applied before the first paint
+  branding: { name: 'branding', version: 1 },
 } as const satisfies Record<string, { name: string; version: number }>;
 
 export type StorageKeyId = keyof typeof STORAGE_KEYS;

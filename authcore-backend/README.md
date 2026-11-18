@@ -1048,6 +1048,20 @@ The fields a user profile has. Needs `USER_SCHEMA_READ` / `USER_SCHEMA_MANAGE` (
 - **System variables** (seeded; cannot be deleted; structure and security flags fixed): the OpenID Connect claims given_name, family_name, middle_name, nickname, preferred_username, profile, picture, website, email, email_verified, gender, birthdate, zoneinfo, locale, phone_number, phone_number_verified, address (formatted, street_address, locality, region, postal_code, country), password, confirm_password. Core ones map to built-in user fields; email and password keep their own endpoints.
 - Values are stored on the user (`attributes`) and validated on every write; all problems come back at once (`attributes.<path>`). Changes are audited (`entityType=USER_ATTRIBUTE`).
 
+### Business settings (branding): `/api/v1/settings/business`
+
+Site name, description, logos and favicon, shown by the frontend on every page. Reading the public part needs no sign-in; the rest needs `BUSINESS_SETTINGS_READ` / `BUSINESS_SETTINGS_MANAGE` (system role `BUSINESS_SETTINGS_ADMIN`, or `ADMIN`). Until the first save the values come from `project.config.json`.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /settings/business/public` | Public: name, description, image URLs (null = default); `Cache-Control: no-cache` |
+| `GET /settings/business` | With file details, `isDefault`, `version`, `updatedBy` |
+| `PATCH /settings/business` | `siteName` (1–60), `siteDescription` (0–300); optimistic `version` (409 `VERSION_CONFLICT`) |
+| `POST /settings/business/assets/:slot` | multipart `file`; slot `logo` · `logo-mark` · `auth-logo` · `favicon`; PNG / WebP / JPEG (no SVG), scanned, re-encoded (logos fit 1024 × 512, mark / favicon on 256 × 256); replaces the previous one |
+| `DELETE /settings/business/assets/:slot` | Remove an image (default again) |
+
+Images are public files of internal purposes (`BRAND_*`): the generic `/files` endpoints cannot upload or delete them. Guide: `docs/frontend/business-settings.md`.
+
 ### Files (common uploads): `/api/v1/files`
 
 One module every feature uses for uploads: inject `FilesService` (`upload`, `list`, `get`, `content`, `remove`, `removeAllOf`) and put `@UseInterceptors(FileUploadInterceptor)` on a multipart route. Bytes go through a storage driver (`STORAGE_DRIVER=local` → `STORAGE_LOCAL_DIR`, default `./uploads` in the project, git-ignored); metadata is in the `files` collection.

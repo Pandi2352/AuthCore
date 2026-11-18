@@ -46,6 +46,11 @@ export const API_TAGS = {
     name: 'User Invites',
     description: 'Invite people by email; they accept and create their account',
   },
+  BusinessSettings: {
+    name: 'Business Settings',
+    description:
+      'Site name, description, logos and favicon (admin); public branding for every page',
+  },
   Files: {
     name: 'Files',
     description:

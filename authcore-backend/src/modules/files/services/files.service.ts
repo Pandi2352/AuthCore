@@ -139,7 +139,7 @@ export class FilesService {
       ? await this.imageProcessing.process(
           file.buffer,
           mimeType,
-          purpose === FilePurpose.Avatar ? 'avatar' : 'document',
+          rule.imageMode,
         )
       : { buffer: file.buffer, width: null, height: null };
     const content = processed.buffer;
@@ -147,7 +147,8 @@ export class FilesService {
     const extension = MIME_EXTENSIONS[mimeType];
     const id = generateUuid();
     const now = new Date();
-    const storageKey = `${purpose.toLowerCase()}/${String(now.getUTCFullYear())}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${id}.${extension}`;
+    // Folder per purpose ("BRAND_LOGO" → "brand-logo": keys allow a-z, 0-9 and "-").
+    const storageKey = `${purpose.toLowerCase().replace(/_/g, '-')}/${String(now.getUTCFullYear())}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${id}.${extension}`;
     await this.storage.put(storageKey, content);
     let created: StoredFile;
     try {
@@ -260,6 +261,15 @@ export class FilesService {
     }
     if (file.ownerId !== auth.userId) {
       await this.assertPermission(auth, FILE_PERMISSIONS.Delete, true);
+    }
+    // Files owned by a module (branding) are removed through that module, so it never
+    // points at a missing file.
+    if (!FILE_PURPOSES[file.purpose].isDirectUpload) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        ErrorCode.Conflict,
+        'This file is managed by its own settings page; remove it there',
+      );
     }
     await this.deleteFile(file);
     this.logger.log({

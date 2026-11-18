@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { ErrorAlert } from '@/components/feedback';
 import { Button, Input } from '@/components/ui';
-import { appConfig, paths } from '@/config';
+import { paths } from '@/config';
 import { AuthCard } from '@/features/auth/components/AuthCard';
 import {
   meetsPasswordRequirements,
@@ -12,6 +12,7 @@ import {
 } from '@/features/auth/components/password-checks';
 import { PasswordRequirements } from '@/features/auth/components/PasswordRequirements';
 import { useAuth } from '@/features/auth/session/useAuth';
+import { useBranding } from '@/hooks';
 import { useApiError } from '@/hooks/useApiError';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { ApiError } from '@/lib/api';
@@ -45,6 +46,7 @@ const rules: FormRules<RegisterValues> = {
 
 export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
+  const { siteName } = useBranding();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -139,7 +141,7 @@ export const RegisterPage: React.FC = () => {
   return (
     <AuthCard
       title="Create your account"
-      description={`Join ${appConfig.name} — it only takes a minute.`}
+      description={`Join ${siteName} — it only takes a minute.`}
       footer={
         <p>
           Already have an account?{' '}

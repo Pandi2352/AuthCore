@@ -4,6 +4,7 @@
  * features/auth.
  */
 export { useApiError } from './useApiError';
+export { useBranding } from './useBranding';
 export { useClickOutside } from './useClickOutside';
 export { useControllableState } from './useControllableState';
 export { useCopyToClipboard } from './useCopyToClipboard';

@@ -113,6 +113,28 @@ export const navigationConfig: NavGroup[] = [
         ],
       },
       {
+        // Settings menu: new settings pages go in as children. Hidden when none is visible.
+        id: 'settings',
+        title: 'Settings',
+        icon: 'Settings',
+        children: [
+          {
+            id: 'settings-appearance',
+            title: 'Appearance',
+            path: paths.settings.appearance,
+            icon: 'Palette',
+            featureFlag: 'ui.themeCustomizer',
+          },
+          {
+            id: 'settings-business',
+            title: 'Business settings',
+            path: paths.settings.business,
+            icon: 'Building2',
+            permission: 'BUSINESS_SETTINGS_READ',
+          },
+        ],
+      },
+      {
         id: 'admin-security',
         title: 'Security settings',
         icon: 'Lock',
@@ -147,23 +169,8 @@ export const navigationConfig: NavGroup[] = [
   },
 ];
 
-/** Footer area of the sidebar (settings, help). */
+/** Footer area of the sidebar (help links …); empty = no footer list. */
 export const navigationFooterConfig: NavGroup = {
   id: 'footer',
-  items: [
-    {
-      id: 'settings-appearance',
-      title: 'Appearance',
-      path: paths.settings.appearance,
-      icon: 'Palette',
-      featureFlag: 'ui.themeCustomizer',
-    },
-    {
-      id: 'settings',
-      title: 'Settings',
-      path: paths.settings.general,
-      icon: 'Settings',
-      status: 'planned',
-    },
-  ],
+  items: [],
 };

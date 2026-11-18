@@ -9,6 +9,7 @@ import {
 } from 'react-router-dom';
 
 import { CopyButton } from '@/components/common/CopyButton';
+import { ErrorAlertIllustration } from '@/components/feedback';
 import { Button, Spinner } from '@/components/ui';
 import { env, paths } from '@/config';
 import { getRequestId } from '@/lib/api';
@@ -74,6 +75,7 @@ export function RouteErrorPage() {
   return (
     <StatusPage
       fullScreen
+      icon={<ErrorAlertIllustration size="default" />}
       code="500"
       title="Something went wrong!"
       description="Oops! An unexpected error occurred while loading this page. Please try again or return to the dashboard."

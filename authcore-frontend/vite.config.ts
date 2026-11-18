@@ -8,6 +8,7 @@ import packageJson from './package.json' with { type: 'json' };
 import { buildNoFlashScript } from './src/app/theme/theme-core.ts';
 import { themeRuntimeOptions } from './src/app/theme/theme-options.ts';
 import { appConfig } from './src/config/app.config.ts';
+import { keyOf } from './src/lib/constants/storage-keys.ts';
 
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -59,9 +60,33 @@ function themeNoFlash(): Plugin {
   };
 }
 
+/**
+ * Applies the cached Business settings (site name, description, favicon; lib/branding) before
+ * the first paint, so a renamed site never shows the old name or icon while the app loads.
+ * Runs at the end of <head> (after the tags it updates). Only http(s) / same-origin favicons.
+ */
+function brandingNoFlash(): Plugin {
+  const key = JSON.stringify(keyOf('branding'));
+  const script = String.raw`(function(){try{
+var b=JSON.parse(localStorage.getItem(${key})||'null');
+if(!b||typeof b.siteName!=='string'||!b.siteName)return;
+document.title=b.siteName;
+var m=function(n,v){var e=document.querySelector('meta[name="'+n+'"]');if(e&&typeof v==='string')e.content=v;};
+m('description',b.siteDescription);m('application-name',b.siteName);m('apple-mobile-web-app-title',b.siteName);
+var f=b.assets&&b.assets.favicon;
+if(typeof f==='string'&&/^(https?:\/\/|\/(?!\/))/i.test(f)){var l=document.querySelector('link[rel="icon"]');if(l)l.setAttribute('href',f);}
+}catch(e){}})();`;
+  return {
+    name: 'branding-no-flash',
+    transformIndexHtml() {
+      return [{ tag: 'script', children: script, injectTo: 'head' }];
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
-  plugins: [react(), tailwindcss(), appConfigHtml(), themeNoFlash()],
+  plugins: [react(), tailwindcss(), appConfigHtml(), themeNoFlash(), brandingNoFlash()],
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
     // true only in the dev server: dev-only routes (/dev/ui) are removed from production builds

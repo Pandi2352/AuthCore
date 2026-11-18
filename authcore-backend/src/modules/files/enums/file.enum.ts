@@ -7,6 +7,14 @@ export enum FilePurpose {
   Avatar = 'AVATAR',
   /** Private document (ID proof, certificate …): owner and FILE_READ only. */
   Document = 'DOCUMENT',
+  /** Business settings → full logo (expanded sidebar, emails). Internal: set via /settings/business. */
+  BrandLogo = 'BRAND_LOGO',
+  /** Business settings → square mark (collapsed sidebar). Internal. */
+  BrandLogoMark = 'BRAND_LOGO_MARK',
+  /** Business settings → logo on sign-in / sign-up pages. Internal. */
+  BrandAuthLogo = 'BRAND_AUTH_LOGO',
+  /** Business settings → browser tab icon. Internal. */
+  BrandFavicon = 'BRAND_FAVICON',
 }
 
 /** Virus-scan outcome stored with each file. */

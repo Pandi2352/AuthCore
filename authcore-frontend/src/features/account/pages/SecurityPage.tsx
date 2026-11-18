@@ -13,6 +13,7 @@ import {
   meetsPasswordRequirements,
   PASSWORD_REQUIREMENTS_MESSAGE,
   PasswordRequirements,
+  useAuth,
 } from '@/features/auth';
 import { useApiError } from '@/hooks/useApiError';
 import { useFormValidation } from '@/hooks/useFormValidation';
@@ -54,6 +55,7 @@ const deactivateRules: FormRules<{ deactivatePassword: string; deactivateReason:
 
 export const SecurityPage: React.FC = () => {
   const location = useLocation();
+  const { user, updateUser, refreshEffectiveAccess } = useAuth();
   const initialAlert = (location.state as { message?: string })?.message || null;
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -94,6 +96,11 @@ export const SecurityPage: React.FC = () => {
       setSuccess(
         `Password changed successfully. ${res.revokedSessionCount} other device(s) have been signed out.`,
       );
+      // The server cleared the requirement: unlock the other pages and load the user's access.
+      if (user?.mustChangePassword) {
+        updateUser({ mustChangePassword: false });
+        void refreshEffectiveAccess();
+      }
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');

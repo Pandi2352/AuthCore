@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { AccessDeniedIllustration } from '@/components/feedback';
 import { Button } from '@/components/ui';
 import { paths } from '@/config';
 
@@ -11,6 +12,7 @@ export function ForbiddenPage() {
   const navigate = useNavigate();
   return (
     <StatusPage
+      icon={<AccessDeniedIllustration size="default" />}
       code="403"
       title="Access denied!"
       description="Oops! It looks like you don't have permission to access this page. Please check your credentials or contact an administrator."

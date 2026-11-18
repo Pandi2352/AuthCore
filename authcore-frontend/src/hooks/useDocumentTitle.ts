@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 
-import { appConfig } from '@/config';
+import { brandingStore } from '@/lib/branding';
 
-/** "Priya Raman · AuthCore" (or just the app name). */
-export const formatDocumentTitle = (title: string | null | undefined): string =>
-  title ? `${title} · ${appConfig.name}` : appConfig.name;
+/** "Priya Raman · AuthCore" (or just the site name from Business settings). */
+export const formatDocumentTitle = (
+  title: string | null | undefined,
+  siteName: string = brandingStore.get().siteName,
+): string => (title ? `${title} · ${siteName}` : siteName);
 
 /**
  * Sets document.title for data-dependent titles (e.g. the user being viewed).

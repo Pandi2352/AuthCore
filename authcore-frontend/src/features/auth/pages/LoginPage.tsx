@@ -4,9 +4,10 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 
 import { ErrorAlert } from '@/components/feedback';
 import { Alert, Button, Checkbox, Field, Input, PasswordInput } from '@/components/ui';
-import { appConfig, featuresConfig, paths } from '@/config';
+import { featuresConfig, paths } from '@/config';
 import { AuthCard } from '@/features/auth/components/AuthCard';
 import { useAuth } from '@/features/auth/session/useAuth';
+import { useBranding } from '@/hooks';
 import { useApiError } from '@/hooks/useApiError';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { ApiError } from '@/lib/api';
@@ -35,6 +36,7 @@ const rules: FormRules<LoginValues> = {
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
+  const { siteName } = useBranding();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -92,12 +94,12 @@ export const LoginPage: React.FC = () => {
   return (
     <AuthCard
       title="Welcome back"
-      description={`Sign in to your ${appConfig.name} account to continue.`}
+      description={`Sign in to your ${siteName} account to continue.`}
       footer={
         <>
           {featuresConfig.auth.allowRegistration && (
             <p>
-              New to {appConfig.name}?{' '}
+              New to {siteName}?{' '}
               <Link to={paths.auth.register} className="font-semibold text-primary hover:underline">
                 Create an account
               </Link>

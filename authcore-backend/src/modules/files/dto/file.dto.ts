@@ -1,21 +1,24 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsDefined, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsDefined, IsEnum, IsIn, IsOptional, IsUUID } from 'class-validator';
 
 import { PaginationQueryDto } from '@common/dto/pagination-query.dto';
 import { trimLower, trimUpper } from '@common/utils/transform.util';
 
+import { DIRECT_UPLOAD_PURPOSES } from '../constants/file.constants';
 import { FilePurpose, FileVisibility, ScanStatus } from '../enums/file.enum';
 
 /** Multipart fields next to `file`. */
 export class UploadFileDto {
   @ApiProperty({
-    enum: FilePurpose,
+    enum: DIRECT_UPLOAD_PURPOSES,
     example: FilePurpose.Document,
     description:
       'What the file is for (decides allowed types, size and visibility)',
   })
-  @IsEnum(FilePurpose)
+  @IsIn(DIRECT_UPLOAD_PURPOSES, {
+    message: `purpose must be one of: ${DIRECT_UPLOAD_PURPOSES.join(', ')}`,
+  })
   @Transform(trimUpper)
   @IsDefined({ message: 'purpose is required' })
   purpose!: FilePurpose;

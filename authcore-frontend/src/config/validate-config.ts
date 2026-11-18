@@ -134,7 +134,9 @@ function checkNavigation(
   for (const group of groups) {
     if (ids.has(group.id)) at(`group "${group.id}"`, 'duplicate id');
     ids.add(group.id);
-    if (group.items.length === 0) at(`group "${group.id}"`, 'has no items');
+    // The footer may be empty (no footer list is drawn); main groups need items.
+    if (group.items.length === 0 && group.id !== 'footer')
+      at(`group "${group.id}"`, 'has no items');
     checkFlag(`group "${group.id}"`, group.featureFlag);
     for (const item of group.items) checkItem(item, 0);
   }

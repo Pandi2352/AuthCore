@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Logo } from '@/components/common/Logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { appConfig, layoutConfig } from '@/config';
+import { useBranding } from '@/hooks';
 import { cn } from '@/lib/utils';
 
 const YEAR = new Date().getFullYear();
@@ -48,6 +49,7 @@ function LegalLinks() {
  */
 export function AuthLayout() {
   const { variant, sideImage } = layoutConfig.auth;
+  const { siteName, siteDescription } = useBranding();
 
   return (
     <div className="flex min-h-dvh bg-background text-foreground">
@@ -60,9 +62,9 @@ export function AuthLayout() {
             <img src={sideImage} alt="" className="absolute inset-0 size-full object-cover" />
           ) : (
             <>
-              <span className="text-xl font-bold">{appConfig.name}</span>
+              <span className="text-xl font-bold">{siteName}</span>
               <div className="max-w-md space-y-3">
-                <p className="text-3xl leading-tight font-bold">{appConfig.description}</p>
+                <p className="text-3xl leading-tight font-bold">{siteDescription}</p>
                 {appConfig.branding.companyName && (
                   <p className="text-sm text-primary-foreground/80">
                     {appConfig.branding.companyName}
@@ -77,7 +79,7 @@ export function AuthLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           {/* Split layout on large screens: the brand panel already shows the name. */}
-          <Logo className={cn(variant === 'split' && 'lg:invisible')} />
+          <Logo variant="auth" className={cn(variant === 'split' && 'lg:invisible')} />
           <ThemeToggle />
         </header>
 

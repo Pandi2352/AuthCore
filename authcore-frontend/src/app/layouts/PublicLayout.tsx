@@ -4,6 +4,7 @@ import { Logo } from '@/components/common/Logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Button } from '@/components/ui';
 import { appConfig, featuresConfig, paths } from '@/config';
+import { useBranding } from '@/hooks';
 
 import { SkipLink } from './components/SkipLink';
 
@@ -13,6 +14,7 @@ const YEAR = new Date().getFullYear();
 export function PublicLayout() {
   const { companyName, supportEmail } = appConfig.branding;
   const { privacyUrl, termsUrl } = appConfig.legal;
+  const { siteName } = useBranding();
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <SkipLink />
@@ -23,7 +25,7 @@ export function PublicLayout() {
         <div className="mx-auto flex h-(--navbar-height) max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link
             to={paths.root}
-            aria-label={`${appConfig.name} home`}
+            aria-label={`${siteName} home`}
             className="cursor-pointer rounded-md"
           >
             <Logo />
@@ -47,7 +49,7 @@ export function PublicLayout() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:px-6">
           <span>
-            © {YEAR} {companyName ?? appConfig.name}
+            © {YEAR} {companyName ?? siteName}
           </span>
           <div className="flex gap-4">
             {privacyUrl && (

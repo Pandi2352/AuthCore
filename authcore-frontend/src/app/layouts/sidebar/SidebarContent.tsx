@@ -18,14 +18,14 @@ const rows = (root: HTMLElement) =>
  * through the rows, ↑/↓/Home/End move between rows, →/← open / close submenus.
  */
 export function SidebarContent({ className }: { className?: string }) {
-  const { groups } = useVisibleNavigation();
+  const { groups, footer } = useVisibleNavigation();
   const { pathname } = useLocation();
   const { setExpanded } = useSidebar();
   const navRef = useRef<HTMLElement | null>(null);
 
   // Auto-expand the branch that contains the current page (once per page change: the id is a
-  // string, so the effect doesn't re-run on unrelated re-renders).
-  const activeBranchId = groups
+  // string, so the effect doesn't re-run on unrelated re-renders). Footer menus (Settings) too.
+  const activeBranchId = [...groups, footer]
     .flatMap((group) => group.items)
     .find((item) => item.children?.length && containsActive(item, pathname))?.id;
   useEffect(() => {

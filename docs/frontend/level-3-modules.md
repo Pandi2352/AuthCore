@@ -75,7 +75,7 @@ Start after Level 2. Each module is optional per project; the starter kit stays 
 - [ ] Code generators: `npm run gen:feature <name>`, `gen:page`, `gen:component` (folders, files, routes, nav entry)
 - [ ] Starter-kit versioning: changelog and upgrade notes so projects copied earlier can pull improvements
 - [ ] Shared packages (optional, monorepo): `@org/ui` (design system), `@org/config-types` when several projects need the same components without copy-paste
-- [ ] Public config endpoint idea: backend exposes non-secret project identity (name, branding, enabled auth flows, login identifiers) so the frontend can read them instead of duplicating `project.config.json`
+- [~] Public config endpoint: backend exposes non-secret project identity *(done for branding: `GET /settings/business/public` — name, description, logos, favicon; see business-settings.md. Still open: enabled auth flows, login identifiers)*
 - [ ] Feature flags from a remote source (optional)
 
 ---

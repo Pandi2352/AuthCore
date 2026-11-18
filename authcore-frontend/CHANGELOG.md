@@ -10,6 +10,13 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### Business settings
+
+- _Additive:_ sidebar **Settings** menu (Administration, above Security settings) with submenu Appearance and Business settings — add future settings pages as its `children` in `navigation.config.ts`. The sidebar footer is empty now (an empty footer is allowed and not drawn); footer menus with children would open like the main ones.
+- _Additive:_ **Settings → Business settings** (`/settings/business`, permission `BUSINESS_SETTINGS_READ`, editing `BUSINESS_SETTINGS_MANAGE`): site name, description, logo (expanded sidebar), logo mark (collapsed sidebar), sign-in logo and favicon, with live preview, drag-and-drop uploads, toasts, unsaved-changes guard. Guide: `docs/frontend/business-settings.md`.
+- _Additive:_ runtime branding: `lib/branding` (store + localStorage cache + `applyBrandingToHead`), `useBranding()`, `BrandingSync` in the root layout, a no-flash script for name / description / favicon. `Logo` gained `variant="auth"`.
+- **Breaking (small):** the site name shown in the UI (tab title, sidebar, sign-in texts, home links) now comes from `useBranding()` / the backend instead of `appConfig.name`; `app.config.ts` values are the fallback. `formatDocumentTitle(title, siteName?)`.
+
 ### Appearance page
 
 - _Additive:_ redesigned **Settings → Appearance**: quick presets, mode + auto dark at night, accent chips + custom color, radius / density / sidebar / navbar / icon cards, typography (20 fonts, Google Fonts loaded only when selected; text size 13–18 px), contrast & effects, preferences, live preview, configuration summary, live accessibility (contrast) check, copy settings, reset. Guide: `docs/frontend/theme-system.md#appearance-page`.

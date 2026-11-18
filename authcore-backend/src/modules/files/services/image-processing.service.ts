@@ -13,7 +13,13 @@ export interface ProcessedImage {
   height: number;
 }
 
-export type ImageMode = 'avatar' | 'document';
+import type { ImageMode } from '../constants/file.constants';
+
+export type { ImageMode };
+
+/** Branding sizes: logos fit 1024 × 512, icons (mark, favicon) on a 256 × 256 canvas. */
+const LOGO_BOX = { width: 1024, height: 512 } as const;
+const ICON_SIZE = 256;
 
 const IMAGE_TYPES = new Set([
   'image/jpeg',
@@ -74,16 +80,7 @@ export class ImageProcessingService implements OnModuleInit {
         animated: isAnimated,
         sequentialRead: true,
       }).rotate();
-      pipeline =
-        mode === 'avatar'
-          ? pipeline.resize(this.avatarSize, this.avatarSize, {
-              fit: 'cover',
-              position: 'centre',
-            })
-          : pipeline.resize(this.maxDimension, this.maxDimension, {
-              fit: 'inside',
-              withoutEnlargement: true,
-            });
+      pipeline = this.resize(pipeline, mode, mimeType);
       const { data, info } = await this.encode(pipeline, mimeType).toBuffer({
         resolveWithObject: true,
       });
@@ -110,6 +107,35 @@ export class ImageProcessingService implements OnModuleInit {
           },
         ],
       );
+    }
+  }
+
+  private resize(pipeline: Sharp, mode: ImageMode, mimeType: string): Sharp {
+    switch (mode) {
+      case 'avatar':
+        return pipeline.resize(this.avatarSize, this.avatarSize, {
+          fit: 'cover',
+          position: 'centre',
+        });
+      case 'logo':
+        return pipeline.resize(LOGO_BOX.width, LOGO_BOX.height, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        });
+      case 'icon':
+        // Whole image kept, centred on a square canvas: transparent (PNG / WebP) or white (JPEG).
+        return pipeline.resize(ICON_SIZE, ICON_SIZE, {
+          fit: 'contain',
+          background:
+            mimeType === 'image/jpeg'
+              ? { r: 255, g: 255, b: 255, alpha: 1 }
+              : { r: 0, g: 0, b: 0, alpha: 0 },
+        });
+      default:
+        return pipeline.resize(this.maxDimension, this.maxDimension, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        });
     }
   }
 

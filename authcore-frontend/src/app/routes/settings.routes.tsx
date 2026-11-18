@@ -18,4 +18,16 @@ export const settingsRoutes: RouteObject[] = [
       'AppearanceSettingsPage',
     ),
   },
+  {
+    path: paths.settings.business,
+    handle: {
+      title: 'Business settings',
+      breadcrumb: [{ label: 'Settings' }, { label: 'Business settings' }],
+      permission: 'BUSINESS_SETTINGS_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(
+      () => import('@/features/settings/pages/BusinessSettingsPage'),
+      'BusinessSettingsPage',
+    ),
+  },
 ];
