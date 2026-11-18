@@ -10,6 +10,12 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### Appearance: organization look and sync
+
+- _Additive:_ admins publish an **organization appearance** (their current look) and **lock** sections for everyone (Settings → Appearance, `APPEARANCE_SETTINGS_READ` / `_MANAGE`); locked sections are read-only with "Set by your organization". _Reset to default_ returns to the organization look.
+- _Additive:_ **Sync across devices**: signed-in users' looks are saved to their account and restored on other devices (`AppearanceSync` in the root layout; header chip shows Synced / Syncing / Saved in this browser).
+- _Additive:_ theme engine: `withOrganization()` (theme-core, also in the no-flash script), `useTheme()` → `organization`, `lockedOptions`, `isLocked()`, `setOrganization()`, `defaults`; `SettingCard lockKeys`.
+
 ### File storage
 
 - _Additive:_ **Settings → File storage** (`/settings/storage`, `STORAGE_SETTINGS_READ`, editing `STORAGE_SETTINGS_MANAGE`): add Amazon S3, Backblaze B2, Tigris, Supabase or S3-compatible buckets (form generated from the backend provider definitions), test the connection, make one active, edit / delete, try an upload. Guide: `docs/backend/file-storage.md`.

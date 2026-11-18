@@ -2,3 +2,4 @@
 export { ThemeProvider } from './ThemeProvider';
 export { useOptionalTheme, useTheme } from './useTheme';
 export type { ThemeContextValue } from './theme-context';
+export type { OrganizationAppearance } from './theme-core';

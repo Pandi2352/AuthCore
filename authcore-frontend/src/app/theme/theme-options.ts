@@ -8,9 +8,12 @@ import type { ThemeRuntimeOptions } from './theme-core.ts';
 
 /** Storage key of the user's theme choice; bump the version when the stored shape changes. */
 export const THEME_STORAGE_KEY = `${appConfig.slug}:theme:v1`;
+/** Cached organization appearance (defaults + locked options), applied before the user's. */
+export const THEME_ORG_STORAGE_KEY = `${appConfig.slug}:theme-org:v1`;
 
 export const themeRuntimeOptions: ThemeRuntimeOptions = {
   storageKey: THEME_STORAGE_KEY,
+  orgStorageKey: THEME_ORG_STORAGE_KEY,
   defaults: themeConfig.defaults,
   customizable: themeConfig.userCustomizable,
   allowed: {

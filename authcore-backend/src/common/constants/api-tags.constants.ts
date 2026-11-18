@@ -51,6 +51,11 @@ export const API_TAGS = {
     description:
       'Site name, description, logos and favicon (admin); public branding for every page',
   },
+  Appearance: {
+    name: 'Appearance',
+    description:
+      'Organization default look and locked options (admin; public to every page) and each user’s look synced across devices',
+  },
   StorageSettings: {
     name: 'Storage Settings',
     description:

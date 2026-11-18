@@ -360,6 +360,28 @@ const STORAGE_SETTINGS_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
   ],
 };
 
+/** Permissions protecting the organization appearance (default look, locked options). */
+export const APPEARANCE_SETTINGS_PERMISSIONS = {
+  Read: 'APPEARANCE_SETTINGS_READ',
+  Manage: 'APPEARANCE_SETTINGS_MANAGE',
+} as const;
+
+const APPEARANCE_SETTINGS_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS =
+  {
+    APPEARANCE_SETTINGS_READ: [
+      'View organization appearance',
+      'View the organization default look and which options are locked',
+      'appearance-settings',
+      'READ',
+    ],
+    APPEARANCE_SETTINGS_MANAGE: [
+      'Manage organization appearance',
+      'Publish the organization default look and lock options for everyone',
+      'appearance-settings',
+      'MANAGE',
+    ],
+  };
+
 export const SYSTEM_PERMISSIONS = [
   ...toSystemPermissions('access-control', SYSTEM_PERMISSION_DETAILS),
   ...toSystemPermissions('password-policy', PASSWORD_POLICY_PERMISSION_DETAILS),
@@ -373,6 +395,10 @@ export const SYSTEM_PERMISSIONS = [
   ...toSystemPermissions(
     'storage-settings',
     STORAGE_SETTINGS_PERMISSION_DETAILS,
+  ),
+  ...toSystemPermissions(
+    'appearance-settings',
+    APPEARANCE_SETTINGS_PERMISSION_DETAILS,
   ),
 ];
 
@@ -421,6 +447,14 @@ export const SYSTEM_ROLES = [
     description:
       'Manages file storage providers, their credentials and the active storage. System role: cannot be edited or deleted.',
     permissionKeys: Object.keys(STORAGE_SETTINGS_PERMISSION_DETAILS),
+  },
+  {
+    roleKey: 'APPEARANCE_ADMIN',
+    roleName: 'Appearance Administrator',
+    category: SYSTEM_ROLE_CATEGORY,
+    description:
+      'Publishes the organization default look and locks options. System role: cannot be edited or deleted.',
+    permissionKeys: Object.keys(APPEARANCE_SETTINGS_PERMISSION_DETAILS),
   },
 ];
 

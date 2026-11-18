@@ -28,6 +28,7 @@ import {
 import { PROJECT } from '@config/project';
 import { DatabaseModule } from '@database/database.module';
 import { AccountModule } from '@modules/account/account.module';
+import { AppearanceModule } from '@modules/appearance/appearance.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { BootstrapModule } from '@modules/bootstrap/bootstrap.module';
 import { BusinessSettingsModule } from '@modules/business-settings/business-settings.module';
@@ -83,6 +84,7 @@ import { AppService } from './app.service';
     StorageModule,
     FilesModule,
     BusinessSettingsModule,
+    AppearanceModule,
     BootstrapModule,
     MetricsModule,
     AuthModule,

@@ -11,6 +11,7 @@ import {
   SIDEBAR_LABEL,
 } from './appearance-labels';
 import { ChoiceCard, ChoiceGroup, SettingCard } from './AppearanceParts';
+import { lockKeysOf } from './lock-groups';
 
 const DENSITY_GAP = { compact: 2, comfortable: 4, spacious: 6 } as const;
 
@@ -19,6 +20,7 @@ export function RadiusSection() {
   return (
     <SettingCard
       title="Corner radius"
+      lockKeys={lockKeysOf('radius')}
       description="How curved buttons, cards and fields feel."
       badge={RADIUS_LABEL[appearance.radius].title}
     >
@@ -50,6 +52,7 @@ export function DensitySection() {
   return (
     <SettingCard
       title="Density"
+      lockKeys={lockKeysOf('density')}
       description="Spacing between and inside elements."
       badge={DENSITY_LABEL[appearance.density].title}
     >
@@ -82,6 +85,7 @@ export function SidebarSection() {
   return (
     <SettingCard
       title="Sidebar style"
+      lockKeys={lockKeysOf('sidebar')}
       description="Shape of the main navigation panel."
       badge={SIDEBAR_LABEL[appearance.sidebar].title}
     >
@@ -120,6 +124,7 @@ export function NavbarSection() {
   return (
     <SettingCard
       title="Navbar style"
+      lockKeys={lockKeysOf('navbar')}
       description="Shape of the top bar."
       badge={NAVBAR_LABEL[appearance.navbar].title}
     >

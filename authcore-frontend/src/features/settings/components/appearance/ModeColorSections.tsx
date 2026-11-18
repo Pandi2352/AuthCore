@@ -9,6 +9,7 @@ import type { ColorMode } from '@/types/theme.types';
 
 import { MODE_LABEL } from './appearance-labels';
 import { ChoiceCard, ChoiceGroup, SettingCard } from './AppearanceParts';
+import { lockKeysOf } from './lock-groups';
 
 const MODE_ICON = { light: Sun, dark: Moon, system: Monitor } as const;
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -18,6 +19,7 @@ export function ModeSection() {
   return (
     <SettingCard
       title="Mode"
+      lockKeys={lockKeysOf('mode')}
       description="Light, dark, or follow your device."
       badge={mode === 'system' ? `System (${resolvedMode})` : MODE_LABEL[mode].title}
     >
@@ -67,6 +69,7 @@ export function ColorSection() {
   return (
     <SettingCard
       title="Color"
+      lockKeys={lockKeysOf('color')}
       description="Accent used for buttons, links and highlights."
       badge={findThemePreset(preset)?.label ?? preset}
     >

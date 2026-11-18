@@ -32,6 +32,19 @@ export interface ThemeRuntimeOptions {
   themeColor: { light: string; dark: string };
   /** Font id → CSS family + Google Fonts stylesheet (null = no download). config/fonts.ts */
   fonts: Record<string, { family: string; url: string | null }>;
+  /** localStorage key of the cached organization appearance (Settings → Appearance, admin). */
+  orgStorageKey: string;
+}
+
+/**
+ * The organization's look (set by an admin): defaults for everyone, and options users may not
+ * change (`locked`: "mode", "preset" or appearance keys).
+ */
+export interface OrganizationAppearance {
+  mode?: string;
+  preset?: string;
+  appearance?: Record<string, string>;
+  locked?: string[];
 }
 
 /** Stored value → valid theme. Unknown or non-customizable values fall back to the defaults. */
@@ -66,6 +79,53 @@ export function resolveThemeState(stored: unknown, options: ThemeRuntimeOptions)
     }
   }
   return { mode, preset, appearance };
+}
+
+/**
+ * Options with the organization applied: its values become the defaults (only allowed
+ * values), and locked options are no longer user-customizable — so resolveThemeState()
+ * makes them follow the organization. Self-contained: serialized into the no-flash script.
+ */
+export function withOrganization(options: ThemeRuntimeOptions, org: unknown): ThemeRuntimeOptions {
+  if (org === null || typeof org !== 'object') return options;
+  const source = org as {
+    mode?: unknown;
+    preset?: unknown;
+    appearance?: Record<string, unknown>;
+    locked?: unknown;
+  };
+  const locked = Array.isArray(source.locked)
+    ? source.locked.filter((key): key is string => typeof key === 'string')
+    : [];
+  const defaults = {
+    mode: options.allowed.modes.includes(source.mode as ColorMode)
+      ? (source.mode as ColorMode)
+      : options.defaults.mode,
+    preset: options.allowed.presets.includes(source.preset as ThemePresetId)
+      ? (source.preset as ThemePresetId)
+      : options.defaults.preset,
+    appearance: { ...options.defaults.appearance },
+  };
+  const values =
+    source.appearance !== null && typeof source.appearance === 'object' ? source.appearance : {};
+  for (const key of Object.keys(defaults.appearance) as AppearanceOption[]) {
+    const value = values[key];
+    if (typeof value !== 'string') continue;
+    const isValid =
+      key === 'customColor'
+        ? /^#[0-9a-f]{6}$/i.test(value) || value === ''
+        : options.allowed.appearance[key].includes(value);
+    if (isValid) (defaults.appearance as Record<string, string>)[key] = value;
+  }
+  return {
+    ...options,
+    defaults,
+    customizable: {
+      mode: options.customizable.mode && !locked.includes('mode'),
+      preset: options.customizable.preset && !locked.includes('preset'),
+      appearance: options.customizable.appearance.filter((key) => !locked.includes(key)),
+    },
+  };
 }
 
 /** Theme → data-* attributes, color-scheme, brand variables and theme-color meta on <html>. */
@@ -170,6 +230,8 @@ export function buildNoFlashScript(options: ThemeRuntimeOptions): string {
   return [
     '(function(){try{',
     `var o=${JSON.stringify(options).replace(/</g, '\\u003c')};`,
+    'var org=null;try{org=JSON.parse(window.localStorage.getItem(o.orgStorageKey)||"null")}catch(e){}',
+    `o=(${withOrganization.toString()})(o,org);`,
     'var raw=null;try{raw=JSON.parse(window.localStorage.getItem(o.storageKey)||"null")}catch(e){}',
     `var s=(${resolveThemeState.toString()})(raw,o);`,
     'var h=new Date().getHours();',

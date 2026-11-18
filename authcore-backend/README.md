@@ -1062,6 +1062,10 @@ Site name, description, logos and favicon, shown by the frontend on every page. 
 
 Images are public files of internal purposes (`BRAND_*`): the generic `/files` endpoints cannot upload or delete them. Guide: `docs/frontend/business-settings.md`.
 
+### Appearance: `/api/v1/settings/appearance`, `/api/v1/users/me/appearance`
+
+The organization look (admin, `APPEARANCE_SETTINGS_READ` / `APPEARANCE_SETTINGS_MANAGE`, role `APPEARANCE_ADMIN`): mode, color preset and appearance options that every user starts from, plus `locked` options users cannot change. `GET /settings/appearance/public` (no sign-in) feeds every page; `PUT` publishes (optimistic `version`), `DELETE` removes it. Each user's own look is saved with `PUT /users/me/appearance` (`syncEnabled`, `theme`) and pulled on their other devices; turning sync off deletes it from the server. Guide: `docs/frontend/theme-system.md#organization-look-and-sync`.
+
 ### File storage and uploads: `/api/v1/settings/storage`, `/api/v1/uploads`
 
 One active storage receives every upload: the built-in local folder (`STORAGE_LOCAL_DIR`) or a bucket on Amazon S3, Backblaze B2, Tigris, Supabase Storage or any S3-compatible service. Admins add storages (credentials encrypted with `STORAGE_SECRETS_KEY`, never returned), test them and pick the active one (`STORAGE_SETTINGS_READ` / `STORAGE_SETTINGS_MANAGE`, role `STORAGE_ADMIN`). Files remember their storage, so switching never breaks older files.
