@@ -94,3 +94,26 @@ export interface PasswordRequirementsResponse {
   requiresDigit: boolean;
   requiresSpecialChar: boolean;
 }
+
+/** POST /user-invites/public/info */
+export interface InviteInfo {
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  invitedByName: string;
+  appName: string;
+  expiresAt: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
+  /** Pending and not expired. */
+  isAcceptable: boolean;
+}
+
+/** POST /user-invites/accept */
+export interface AcceptInvitePayload {
+  token: string;
+  password: string;
+  confirmPassword: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+}

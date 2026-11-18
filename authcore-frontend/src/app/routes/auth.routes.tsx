@@ -53,4 +53,17 @@ export const openAuthRoutes: RouteObject[] = [
     handle: handle('Reset password'),
     lazy: lazyPage(() => import('@/features/auth/pages/ResetPasswordPage'), 'ResetPasswordPage'),
   },
+  ...(featuresConfig.auth.enableInvites
+    ? [
+        {
+          // Works signed in or out: the invite is for whoever has the link.
+          path: paths.auth.acceptInvite,
+          handle: handle('Accept invite'),
+          lazy: lazyPage(
+            () => import('@/features/auth/pages/AcceptInvitePage'),
+            'AcceptInvitePage',
+          ),
+        },
+      ]
+    : []),
 ];

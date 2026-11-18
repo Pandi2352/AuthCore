@@ -1,7 +1,9 @@
 import type {
+  AcceptInvitePayload,
   ChangePasswordPayload,
   ChangePasswordResponse,
   ForgotPasswordPayload,
+  InviteInfo,
   LoginCredentials,
   LoginResponse,
   PasswordRequirementsResponse,
@@ -55,6 +57,14 @@ export const authApi = {
     ),
 
   getMe: () => apiClient.get<User>('/auth/me'),
+
+  /** Invite link → who invited, expiry, isAcceptable (the token goes in the body, never the URL). */
+  inviteInfo: (token: string) =>
+    apiClient.post<InviteInfo>('/user-invites/public/info', { token }, PUBLIC),
+
+  /** Creates the account (verified email) and joins the invite's groups. */
+  acceptInvite: (payload: AcceptInvitePayload) =>
+    apiClient.post<{ user: User; groupsJoined: number }>('/user-invites/accept', payload, PUBLIC),
 
   forgotPassword: (payload: ForgotPasswordPayload) =>
     apiClient.post<null>('/auth/forgot-password', payload, PUBLIC),

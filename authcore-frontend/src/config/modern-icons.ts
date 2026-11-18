@@ -21,9 +21,11 @@ import {
   ShieldIcon,
   SlidersHorizontalIcon,
   SquaresFourIcon,
+  StackIcon,
   SunIcon,
   TreeStructureIcon,
   UserIcon,
+  UserPlusIcon,
   UsersThreeIcon,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
@@ -50,6 +52,7 @@ export const modernIcons = {
   History: ClockCounterClockwiseIcon,
   KeyRound: KeyIcon,
   LayoutDashboard: SquaresFourIcon,
+  Layers: StackIcon,
   ListTree: ListBulletsIcon,
   Lock: LockSimpleIcon,
   MailPlus: EnvelopeSimpleIcon,
@@ -63,6 +66,7 @@ export const modernIcons = {
   ShieldCheck: ShieldCheckIcon,
   SlidersHorizontal: SlidersHorizontalIcon,
   Sun: SunIcon,
+  UserPlus: UserPlusIcon,
   UserRound: UserIcon,
   Users: UsersThreeIcon,
 } satisfies Record<IconName, PhosphorIcon>;

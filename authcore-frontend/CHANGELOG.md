@@ -10,6 +10,12 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### Users menu and invitations
+
+- _Additive:_ Administration → **Users** submenu: Search users, **Invite users**, Create user (planned), Bulk user operations (planned).
+- _Additive:_ **Invite users** (`/admin/invites`, `features/user-invites`): tabs Pending users (waiting / expired / revoked), Accepted users and Registered users (self sign-ups, `GET /admin/users?source=REGISTRATION`) with counts, search and pagination; _Invite people_ drawer for one person or up to 100 pasted at once (live preview, skipped emails with reasons, optional groups and message); Resend / Reinvite, Revoke and Delete with confirmations and toasts.
+- _Additive:_ **Accept invite** page (`/accept-invite?token=…`, the link in the email): shows who invited you, prefilled names, optional username, password with the policy checks; the token is removed from the address bar.
+
 ### Schemas (custom user variables)
 
 - _Additive:_ Administration → Security settings → **Schemas** (was "User schema", now `/admin/security/schemas`, `features/user-schema`): every variable as a tree table (groups expand to their children, dotted names like `address.locality`), stat tiles, search by name / label / description, filters by type, source (system / custom) and status, an inline enable switch, and _Create variable_ / _Create group_ in a drawer (11 data types, dropdown options, length / number limits, scopes, locales, behaviour and access rules). Uses the existing `/user-schema` API.

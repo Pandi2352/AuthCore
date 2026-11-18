@@ -31,6 +31,8 @@ export const paths = {
   admin: {
     root: '/admin',
     users: '/admin/users',
+    userCreate: '/admin/users/new',
+    usersBulk: '/admin/users/bulk',
     userDetail: (id: string) => `/admin/users/${segment(id)}`,
     invites: '/admin/invites',
     roles: '/admin/access/roles',
