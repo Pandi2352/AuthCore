@@ -54,6 +54,13 @@ export class StoredFile extends BaseSchema {
   @Prop({ type: String, required: true, unique: true })
   storageKey!: string;
 
+  /**
+   * Storage config the bytes were written to (Settings → File storage). null = files from
+   * before storage settings existed: the built-in local folder.
+   */
+  @Prop({ type: String, default: null, index: true })
+  storageConfigId!: string | null;
+
   /** Who uploaded it (the owner, or an admin uploading for them). */
   @Prop({ type: String, required: true })
   uploadedBy!: string;

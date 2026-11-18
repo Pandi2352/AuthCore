@@ -132,6 +132,13 @@ export const navigationConfig: NavGroup[] = [
             icon: 'Building2',
             permission: 'BUSINESS_SETTINGS_READ',
           },
+          {
+            id: 'settings-storage',
+            title: 'File storage',
+            path: paths.settings.storage,
+            icon: 'HardDrive',
+            permission: 'STORAGE_SETTINGS_READ',
+          },
         ],
       },
       {

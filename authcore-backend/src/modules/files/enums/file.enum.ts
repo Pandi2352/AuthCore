@@ -15,6 +15,8 @@ export enum FilePurpose {
   BrandAuthLogo = 'BRAND_AUTH_LOGO',
   /** Business settings → browser tab icon. Internal. */
   BrandFavicon = 'BRAND_FAVICON',
+  /** POST /uploads: general uploads with a public URL (active storage). Internal. */
+  Upload = 'UPLOAD',
 }
 
 /** Virus-scan outcome stored with each file. */

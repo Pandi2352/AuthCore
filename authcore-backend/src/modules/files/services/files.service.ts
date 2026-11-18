@@ -19,6 +19,7 @@ import { normalizePagination, paginate } from '@common/utils/pagination.util';
 import { generateUuid } from '@common/utils/uuid.util';
 import { FILE_PERMISSIONS } from '@modules/access-control/constants/access-control.constants';
 import { AccessResolverService } from '@modules/access-control/services/access-resolver.service';
+import { StorageManagerService } from '@modules/storage/services/storage-manager.service';
 import { UserRole } from '@modules/users/enums/user-role.enum';
 
 import {
@@ -29,10 +30,6 @@ import {
 } from '../constants/file.constants';
 import type { FileListQueryDto, FileResponseDto } from '../dto/file.dto';
 import { FilePurpose, FileVisibility, ScanStatus } from '../enums/file.enum';
-import {
-  STORAGE_DRIVER,
-  type StorageDriver,
-} from '../interfaces/storage-driver.interface';
 import {
   VIRUS_SCANNER,
   type VirusScanner,
@@ -64,7 +61,7 @@ export class FilesService {
 
   constructor(
     @InjectModel(StoredFile.name) private readonly fileModel: Model<StoredFile>,
-    @Inject(STORAGE_DRIVER) private readonly storage: StorageDriver,
+    private readonly storageManager: StorageManagerService,
     private readonly configService: ConfigService,
     private readonly accessResolver: AccessResolverService,
     private readonly imageProcessing: ImageProcessingService,
@@ -103,7 +100,7 @@ export class FilesService {
         [{ field: UPLOAD_FIELD_NAME, message: `max ${formatBytes(maxBytes)}` }],
       );
     }
-    const mimeType = detectMimeType(file.buffer);
+    const mimeType = detectMimeType(file.buffer, file.originalname);
     if (!mimeType || !rule.mimeTypes.includes(mimeType)) {
       const allowed = rule.mimeTypes
         .map((t) => MIME_EXTENSIONS[t].toUpperCase())
@@ -149,7 +146,9 @@ export class FilesService {
     const now = new Date();
     // Folder per purpose ("BRAND_LOGO" → "brand-logo": keys allow a-z, 0-9 and "-").
     const storageKey = `${purpose.toLowerCase().replace(/_/g, '-')}/${String(now.getUTCFullYear())}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${id}.${extension}`;
-    await this.storage.put(storageKey, content);
+    // Every upload goes to the active storage (Settings → File storage).
+    const target = await this.storageManager.active();
+    await target.driver.put(storageKey, content, { contentType: mimeType });
     let created: StoredFile;
     try {
       created = (
@@ -171,13 +170,14 @@ export class FilesService {
           height: processed.height,
           scanStatus,
           sha256: createHash('sha256').update(content).digest('hex'),
-          storageDriver: this.storage.name,
+          storageDriver: target.driver.name,
+          storageConfigId: target.configId,
           storageKey,
           uploadedBy,
         })
       ).toObject<StoredFile>({ transform: false });
     } catch (error) {
-      await this.storage.delete(storageKey).catch(() => undefined);
+      await target.driver.delete(storageKey).catch(() => undefined);
       throw error;
     }
     if (rule.isSingle) {
@@ -200,6 +200,27 @@ export class FilesService {
       scanStatus,
     });
     return this.toResponse(created);
+  }
+
+  /**
+   * Upload, then the file's direct URL on its storage (bucket / CDN; the API URL when the
+   * storage has none) and its key inside the bucket. Used by POST /uploads.
+   */
+  async uploadForUrl(
+    file: IncomingFile | undefined,
+    purpose: FilePurpose,
+    userId: string,
+  ): Promise<FileResponseDto & { objectKey: string }> {
+    const uploaded = await this.upload(file, purpose, userId, userId);
+    const record = await this.fileModel.findById(uploaded.id).lean();
+    if (!record) {
+      throw notFound();
+    }
+    const storage = await this.storageManager.forConfig(record.storageConfigId);
+    return Object.assign({}, uploaded, {
+      url: storage.publicUrl(record.storageKey) ?? uploaded.url,
+      objectKey: storage.driver.objectKey(record.storageKey),
+    });
   }
 
   async list(
@@ -313,8 +334,19 @@ export class FilesService {
     return files.length;
   }
 
-  isHealthy(): Promise<boolean> {
-    return this.storage.isHealthy();
+  async isHealthy(): Promise<boolean> {
+    return (await this.storageManager.active()).driver.isHealthy();
+  }
+
+  /**
+   * Direct URL of a public file on its storage (bucket / CDN), or the API URL
+   * (GET /files/public/:id) when the storage has no public address.
+   */
+  async directUrl(
+    file: Pick<StoredFile, '_id' | 'storageKey' | 'storageConfigId'>,
+  ): Promise<string> {
+    const storage = await this.storageManager.forConfig(file.storageConfigId);
+    return storage.publicUrl(file.storageKey) ?? this.publicUrl(file._id);
   }
 
   /** null when scanning is disabled. */
@@ -393,7 +425,8 @@ export class FilesService {
 
   private async open(file: StoredFile): Promise<FileContent> {
     try {
-      const stream = await this.storage.read(file.storageKey);
+      const storage = await this.storageManager.forConfig(file.storageConfigId);
+      const stream = await storage.driver.read(file.storageKey);
       return {
         file,
         stream: new StreamableFile(stream, {
@@ -418,7 +451,8 @@ export class FilesService {
   private async deleteFile(file: StoredFile): Promise<void> {
     await this.fileModel.deleteOne({ _id: file._id });
     try {
-      await this.storage.delete(file.storageKey);
+      const storage = await this.storageManager.forConfig(file.storageConfigId);
+      await storage.driver.delete(file.storageKey);
     } catch (error) {
       this.logger.warn({
         message: 'Could not delete file bytes',

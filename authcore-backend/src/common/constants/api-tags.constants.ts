@@ -51,6 +51,15 @@ export const API_TAGS = {
     description:
       'Site name, description, logos and favicon (admin); public branding for every page',
   },
+  StorageSettings: {
+    name: 'Storage Settings',
+    description:
+      'File storage providers (local folder, S3, Backblaze B2, Tigris, Supabase, S3-compatible): credentials, test, active provider',
+  },
+  Uploads: {
+    name: 'Uploads',
+    description: 'Upload a file to the active storage and get its URL',
+  },
   Files: {
     name: 'Files',
     description:

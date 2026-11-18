@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState, type DragEvent, type ReactNode } fr
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { DateTime } from '@/components/common/DateTime';
+import { ImageCropDialog } from '@/components/common/ImageCropDialog';
 import { notifyError, notifySuccess } from '@/components/feedback';
 import { Badge, Button, Progress } from '@/components/ui';
 import { getErrorMessage, isAbortError } from '@/lib/api';
@@ -32,6 +33,8 @@ export interface BrandAssetFieldProps {
   fallbackLabel: string;
   canManage: boolean;
   onChange: (settings: BusinessSettings) => void;
+  /** Shape and size the picked image is cropped to before upload. */
+  crop: { aspect: number; width: number; height: number };
 }
 
 /** Client checks before uploading (the backend checks the real content again). */
@@ -57,6 +60,7 @@ export function BrandAssetField({
   fallbackLabel,
   canManage,
   onChange,
+  crop,
 }: BrandAssetFieldProps) {
   const inputId = useId();
   const errorId = useId();
@@ -65,12 +69,15 @@ export function BrandAssetField({
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  /** Picked file waiting in the crop dialog. */
+  const [cropping, setCropping] = useState<File | null>(null);
   const isUploading = progress !== null;
 
   // Leaving the page cancels an upload in progress.
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  const upload = async (file: File) => {
+  /** Checked first, then cropped to the slot's shape, then uploaded. */
+  const pick = (file: File) => {
     const problem = checkFile(file);
     if (problem) {
       setError(problem);
@@ -78,6 +85,11 @@ export function BrandAssetField({
       return;
     }
     setError(null);
+    setCropping(file);
+  };
+
+  const upload = async (file: File) => {
+    setCropping(null);
     setProgress(0);
     const controller = new AbortController();
     controllerRef.current = controller;
@@ -114,7 +126,7 @@ export function BrandAssetField({
     setIsDragging(false);
     if (!canManage || isUploading) return;
     const file = event.dataTransfer.files[0];
-    if (file) void upload(file);
+    if (file) pick(file);
   };
 
   return (
@@ -203,7 +215,7 @@ export function BrandAssetField({
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 e.target.value = '';
-                if (file) void upload(file);
+                if (file) pick(file);
               }}
             />
             <Button
@@ -239,6 +251,20 @@ export function BrandAssetField({
           </div>
         )}
       </div>
+      <ImageCropDialog
+        file={cropping}
+        aspect={crop.aspect}
+        outputWidth={crop.width}
+        outputHeight={crop.height}
+        title={`Adjust the ${title.toLowerCase()}`}
+        description={
+          crop.aspect === 1
+            ? 'Square: drag to position, zoom so the icon fills the frame.'
+            : 'Wide, like the sidebar header: drag to position, zoom so the logo fills the frame.'
+        }
+        onCancel={() => setCropping(null)}
+        onConfirm={(file) => void upload(file)}
+      />
     </div>
   );
 }

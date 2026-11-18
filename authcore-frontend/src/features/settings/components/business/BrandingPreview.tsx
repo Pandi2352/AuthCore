@@ -55,7 +55,7 @@ function FullLogo({
   mark: string | null;
 }) {
   return logo ? (
-    <img src={logo} alt="" className="h-7 w-auto max-w-full object-contain object-left" />
+    <img src={logo} alt="" className="h-8 w-full object-contain object-center" />
   ) : (
     <span className="flex min-w-0 items-center gap-2">
       <Mark name={name} src={mark} size="sm" />

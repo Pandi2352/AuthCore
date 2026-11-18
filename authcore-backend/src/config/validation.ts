@@ -232,6 +232,9 @@ export const envValidationSchema = Joi.object({
   FILES_PUBLIC_BASE_URL: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .default('http://localhost:3000/api/v1/files/public'),
+  // Encrypts storage credentials saved on Settings → File storage. Empty = derived from
+  // JWT_ACCESS_SECRET (changing that secret then means re-entering the keys).
+  STORAGE_SECRETS_KEY: Joi.string().min(32).allow('').default(''),
   UPLOAD_MAX_FILE_SIZE_MB: Joi.number().min(1).max(100).default(10),
   UPLOAD_AVATAR_MAX_SIZE_MB: Joi.number().min(0.1).max(20).default(2),
   // Orphan cleanup: stored bytes without a record (crashes, failed deletes). 0 = off

@@ -7,6 +7,13 @@ export const MIME_EXTENSIONS = {
   'image/webp': 'webp',
   'image/gif': 'gif',
   'application/pdf': 'pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+    'docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+    'pptx',
+  'text/csv': 'csv',
+  'text/plain': 'txt',
 } as const;
 
 export type DetectedMimeType = keyof typeof MIME_EXTENSIONS;
@@ -71,6 +78,25 @@ export const FILE_PURPOSES: Record<FilePurpose, FilePurposeRule> = {
   [FilePurpose.BrandLogoMark]: brandRule('icon'),
   [FilePurpose.BrandAuthLogo]: brandRule('logo'),
   [FilePurpose.BrandFavicon]: brandRule('icon'),
+  // POST /uploads: any signed-in user, public URL, many per user. Office / text files are
+  // stored as uploaded (only images are re-encoded).
+  [FilePurpose.Upload]: {
+    mimeTypes: [
+      ...IMAGES,
+      'image/gif',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/csv',
+      'text/plain',
+    ],
+    visibility: FileVisibility.Public,
+    sizeLimit: 'default',
+    isSingle: false,
+    imageMode: 'document',
+    isDirectUpload: false,
+  },
 };
 
 /** Purposes the generic POST /files endpoint accepts. */

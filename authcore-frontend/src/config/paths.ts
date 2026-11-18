@@ -47,6 +47,7 @@ export const paths = {
     general: '/settings/general',
     appearance: '/settings/appearance',
     business: '/settings/business',
+    storage: '/settings/storage',
   },
 
   errors: {

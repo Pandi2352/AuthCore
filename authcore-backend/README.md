@@ -1062,6 +1062,12 @@ Site name, description, logos and favicon, shown by the frontend on every page. 
 
 Images are public files of internal purposes (`BRAND_*`): the generic `/files` endpoints cannot upload or delete them. Guide: `docs/frontend/business-settings.md`.
 
+### File storage and uploads: `/api/v1/settings/storage`, `/api/v1/uploads`
+
+One active storage receives every upload: the built-in local folder (`STORAGE_LOCAL_DIR`) or a bucket on Amazon S3, Backblaze B2, Tigris, Supabase Storage or any S3-compatible service. Admins add storages (credentials encrypted with `STORAGE_SECRETS_KEY`, never returned), test them and pick the active one (`STORAGE_SETTINGS_READ` / `STORAGE_SETTINGS_MANAGE`, role `STORAGE_ADMIN`). Files remember their storage, so switching never breaks older files.
+
+`POST /uploads` (any signed-in user, multipart `file`) → `{ id, name, key, url, fileType, fileSize, filePages }` — images, PDF, DOCX / XLSX / PPTX, CSV, TXT. Guide: `docs/backend/file-storage.md`.
+
 ### Files (common uploads): `/api/v1/files`
 
 One module every feature uses for uploads: inject `FilesService` (`upload`, `list`, `get`, `content`, `remove`, `removeAllOf`) and put `@UseInterceptors(FileUploadInterceptor)` on a multipart route. Bytes go through a storage driver (`STORAGE_DRIVER=local` → `STORAGE_LOCAL_DIR`, default `./uploads` in the project, git-ignored); metadata is in the `files` collection.

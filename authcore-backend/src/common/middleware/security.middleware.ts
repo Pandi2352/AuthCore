@@ -19,10 +19,10 @@ const ALLOWED_METHODS = new Set<string>(ALLOWED_HTTP_METHODS);
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 /**
  * Upload routes: the only ones that accept multipart/form-data (POST /files, POST …/avatar,
- * POST /settings/business/assets/:slot).
+ * POST /settings/business/assets/:slot, POST /uploads).
  */
 const MULTIPART_ROUTE =
-  /\/v\d+\/(files|users\/me\/avatar|admin\/users\/[^/]+\/avatar|settings\/business\/assets\/[^/]+)$/;
+  /\/v\d+\/(files|uploads|users\/me\/avatar|admin\/users\/[^/]+\/avatar|settings\/business\/assets\/[^/]+)$/;
 
 /** A request body is present (Content-Length > 0 or chunked). */
 function hasBody(request: Request): boolean {

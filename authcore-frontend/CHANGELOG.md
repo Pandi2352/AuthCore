@@ -10,8 +10,16 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### File storage
+
+- _Additive:_ **Settings → File storage** (`/settings/storage`, `STORAGE_SETTINGS_READ`, editing `STORAGE_SETTINGS_MANAGE`): add Amazon S3, Backblaze B2, Tigris, Supabase or S3-compatible buckets (form generated from the backend provider definitions), test the connection, make one active, edit / delete, try an upload. Guide: `docs/backend/file-storage.md`.
+- _Additive:_ `uploadToStorage(file, { onProgress })` and `UPLOAD_ACCEPT` in `@/lib/api` — the one upload call for every feature (`POST /uploads` → `{ id, name, key, url, fileType, fileSize, filePages }`).
+- _Additive:_ error code `STORAGE_CONNECTION_FAILED`; `HardDrive` navigation icon.
+- _Additive:_ provider logos (`src/assets/file-storage-providers`), usage bars (local: server disk used / free; buckets: used vs the optional "Storage limit (GB)"), "Bucket allows public reads" switch (off = private bucket, files served through the API), wider add / edit drawer with a two-column form.
+
 ### Business settings
 
+- _Additive:_ `ImageCropDialog` (components/common): crop to a fixed shape before upload — drag, zoom (slider / wheel / + −), arrows, Fit / Fill / Center, PNG output with transparency. Business settings uses it: logos 5 : 1 (1000 × 200, the sidebar header shape), mark and favicon square (256 × 256). The sidebar logo fills the header width, centred (`<Logo fill />`).
 - _Additive:_ sidebar **Settings** menu (Administration, above Security settings) with submenu Appearance and Business settings — add future settings pages as its `children` in `navigation.config.ts`. The sidebar footer is empty now (an empty footer is allowed and not drawn); footer menus with children would open like the main ones.
 - _Additive:_ **Settings → Business settings** (`/settings/business`, permission `BUSINESS_SETTINGS_READ`, editing `BUSINESS_SETTINGS_MANAGE`): site name, description, logo (expanded sidebar), logo mark (collapsed sidebar), sign-in logo and favicon, with live preview, drag-and-drop uploads, toasts, unsaved-changes guard. Guide: `docs/frontend/business-settings.md`.
 - _Additive:_ runtime branding: `lib/branding` (store + localStorage cache + `applyBrandingToHead`), `useBranding()`, `BrandingSync` in the root layout, a no-flash script for name / description / favicon. `Logo` gained `variant="auth"`.

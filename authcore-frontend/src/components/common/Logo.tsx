@@ -12,6 +12,8 @@ export interface LogoProps {
   variant?: 'full' | 'mark' | 'auth';
   /** Hide the site name next to the mark when there is no full logo image. */
   hideName?: boolean;
+  /** An uploaded logo image uses the full width, centred (sidebar header). */
+  fill?: boolean;
   className?: string;
 }
 
@@ -19,7 +21,7 @@ export interface LogoProps {
  * Project logo. Images and name come from Business settings (uploaded by an admin), falling
  * back to app.config.ts (light / dark images, mark) and finally to the site's initial + name.
  */
-export function Logo({ variant = 'full', hideName = false, className }: LogoProps) {
+export function Logo({ variant = 'full', hideName = false, fill = false, className }: LogoProps) {
   const theme = useOptionalTheme();
   const { siteName, assets } = useBranding();
   const isDark = theme?.resolvedMode === 'dark';
@@ -37,7 +39,12 @@ export function Logo({ variant = 'full', hideName = false, className }: LogoProp
       <img
         src={fullImage}
         alt={siteName}
-        className={cn('h-8 w-auto max-w-48 object-contain object-left', className)}
+        className={cn(
+          fill
+            ? 'h-10 w-full object-contain object-center'
+            : 'h-8 w-auto max-w-48 object-contain object-left',
+          className,
+        )}
       />
     );
   }

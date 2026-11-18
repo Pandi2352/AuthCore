@@ -87,6 +87,9 @@ export enum ErrorCode {
   FileUnreadable = 'FILE_UNREADABLE',
   FileInfected = 'FILE_INFECTED',
   FileScanUnavailable = 'FILE_SCAN_UNAVAILABLE',
+
+  // Storage settings
+  StorageConnectionFailed = 'STORAGE_CONNECTION_FAILED',
 }
 
 /** Default code and safe client message for each HTTP status. */

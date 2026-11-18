@@ -205,6 +205,8 @@ export const storageConfig = registerAs('storage', () => ({
   driver: env('STORAGE_DRIVER'),
   localDir: env('STORAGE_LOCAL_DIR'),
   publicBaseUrl: env('FILES_PUBLIC_BASE_URL').replace(/\/+$/, ''),
+  /** Empty = derived from the JWT access secret. */
+  secretsKey: env('STORAGE_SECRETS_KEY'),
   maxFileSizeBytes: Number(env('UPLOAD_MAX_FILE_SIZE_MB')) * 1024 * 1024,
   avatarMaxSizeBytes: Number(env('UPLOAD_AVATAR_MAX_SIZE_MB')) * 1024 * 1024,
   maxFilesPerUser: Number(env('UPLOAD_MAX_FILES_PER_USER')),

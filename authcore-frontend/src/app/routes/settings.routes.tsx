@@ -30,4 +30,16 @@ export const settingsRoutes: RouteObject[] = [
       'BusinessSettingsPage',
     ),
   },
+  {
+    path: paths.settings.storage,
+    handle: {
+      title: 'File storage',
+      breadcrumb: [{ label: 'Settings' }, { label: 'File storage' }],
+      permission: 'STORAGE_SETTINGS_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(
+      () => import('@/features/settings/pages/StorageSettingsPage'),
+      'StorageSettingsPage',
+    ),
+  },
 ];

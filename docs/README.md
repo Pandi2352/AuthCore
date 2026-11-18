@@ -24,6 +24,7 @@ Planning and setup documents for both applications.
 | [frontend/project-setup-checklist.md](frontend/project-setup-checklist.md) | Tooling and foundation checklist with an audit of the current code |
 | [frontend/folder-structure.md](frontend/folder-structure.md) | Target structure, import rules, naming, migration of current files, recipes |
 | [frontend/data-table.md](frontend/data-table.md) | Reusable data table: usage, server paging, checklist mapping |
+| [backend/file-storage.md](backend/file-storage.md) | File storage: local folder / S3 / Backblaze B2 / Tigris / Supabase, active storage, POST /uploads, adding a provider |
 | [frontend/business-settings.md](frontend/business-settings.md) | Business settings: site name, description, logos, favicon — API, runtime branding, admin page |
 | [frontend/api-integration-checklist.md](frontend/api-integration-checklist.md) | Connecting backend APIs: shared foundation status + per-module checklist |
 | [frontend/theme-system.md](frontend/theme-system.md) | Color mode, presets, appearance, design tokens, no-flash loading |

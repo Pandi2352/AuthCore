@@ -86,6 +86,9 @@ export const API_ERROR_CODES = {
   FILE_UNREADABLE: 'FILE_UNREADABLE',
   FILE_INFECTED: 'FILE_INFECTED',
   FILE_SCAN_UNAVAILABLE: 'FILE_SCAN_UNAVAILABLE',
+
+  // Storage settings
+  STORAGE_CONNECTION_FAILED: 'STORAGE_CONNECTION_FAILED',
 } as const;
 
 /** Codes created by the frontend API client itself (no HTTP response from the backend). */

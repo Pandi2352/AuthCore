@@ -5,6 +5,9 @@
  * rounded-md, h-control-md, p-card, shadow-card …
  */
 @theme inline {
+  /* Third-party logos (white backgrounds): always shown on a white tile, light and dark */
+  --color-logo-tile: #ffffff;
+
   /* Page and surfaces */
   --color-background: var(--background);
   --color-foreground: var(--foreground);

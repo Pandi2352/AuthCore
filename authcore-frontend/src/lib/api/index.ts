@@ -14,4 +14,5 @@ export {
 export { downloadFile, saveBlob, type DownloadOptions } from './download';
 export { getErrorMessage, getFieldErrors, getRequestId } from './get-error-message';
 export { uploadFile, type UploadOptions, type UploadProgress } from './upload';
+export { UPLOAD_ACCEPT, uploadToStorage, type UploadedFile } from './storage-upload';
 export type * from './types';

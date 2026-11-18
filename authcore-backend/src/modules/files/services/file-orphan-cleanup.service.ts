@@ -12,12 +12,13 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import type { Connection, Model } from 'mongoose';
 
 import { schedulerConfig, storageConfig } from '@config/configuration';
+import { LOCAL_STORAGE_CONFIG_ID } from '@modules/storage/constants/storage.constants';
+import {
+  type ResolvedStorage,
+  StorageManagerService,
+} from '@modules/storage/services/storage-manager.service';
 
 import type { OrphanCleanupResultDto } from '../dto/file.dto';
-import {
-  STORAGE_DRIVER,
-  type StorageDriver,
-} from '../interfaces/storage-driver.interface';
 import { StoredFile } from '../schemas/stored-file.schema';
 
 const JOB = 'FILE_ORPHAN_CLEANUP';
@@ -26,7 +27,8 @@ const BATCH = 500;
 const HOUR_MS = 3_600_000;
 
 /**
- * Removes stored bytes that no `files` record points to (a crash between
+ * For every configured storage (local folder and buckets), removes stored bytes that no
+ * `files` record points to (a crash between
  * writing a file and saving its record, a delete whose byte removal failed)
  * and stale temp files from interrupted writes. Files younger than
  * FILES_ORPHAN_GRACE_MINUTES are never touched (uploads in progress).
@@ -45,7 +47,7 @@ export class FileOrphanCleanupService
   constructor(
     @InjectConnection() private readonly connection: Connection,
     @InjectModel(StoredFile.name) private readonly fileModel: Model<StoredFile>,
-    @Inject(STORAGE_DRIVER) private readonly storage: StorageDriver,
+    private readonly storageManager: StorageManagerService,
     @Inject(storageConfig.KEY)
     private readonly config: ConfigType<typeof storageConfig>,
     @Inject(schedulerConfig.KEY)
@@ -87,28 +89,18 @@ export class FileOrphanCleanupService
     }
     try {
       const cutoff = now.getTime() - this.config.orphanGraceMinutes * 60_000;
-      const onDisk = new Set<string>();
-      let batch: string[] = [];
-      for await (const entry of this.storage.list()) {
-        result.scannedCount++;
-        if (entry.isTemp) {
-          if (entry.modifiedAt.getTime() < cutoff) {
-            await this.storage.delete(entry.key);
-            result.tempCount++;
-          }
-          continue;
-        }
-        onDisk.add(entry.key);
-        if (entry.modifiedAt.getTime() < cutoff) {
-          batch.push(entry.key);
-        }
-        if (batch.length >= BATCH) {
-          result.orphanCount += await this.removeUnreferenced(batch);
-          batch = [];
+      for (const storage of await this.storageManager.all()) {
+        try {
+          await this.cleanStorage(storage, cutoff, result);
+        } catch (error) {
+          // One unreachable bucket must not stop the others.
+          this.logger.warn({
+            message: 'Orphan cleanup skipped a storage',
+            storageConfigId: storage.configId,
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       }
-      result.orphanCount += await this.removeUnreferenced(batch);
-      result.missingBytesCount = await this.countMissingBytes(onDisk);
       if (
         result.orphanCount + result.tempCount + result.missingBytesCount >
         0
@@ -126,8 +118,43 @@ export class FileOrphanCleanupService
     }
   }
 
+  private async cleanStorage(
+    storage: ResolvedStorage,
+    cutoff: number,
+    result: OrphanCleanupResultDto,
+  ): Promise<void> {
+    const stored = new Set<string>();
+    let batch: string[] = [];
+    for await (const entry of storage.driver.list()) {
+      result.scannedCount++;
+      if (entry.isTemp) {
+        if (entry.modifiedAt.getTime() < cutoff) {
+          await storage.driver.delete(entry.key);
+          result.tempCount++;
+        }
+        continue;
+      }
+      stored.add(entry.key);
+      if (entry.modifiedAt.getTime() < cutoff) {
+        batch.push(entry.key);
+      }
+      if (batch.length >= BATCH) {
+        result.orphanCount += await this.removeUnreferenced(storage, batch);
+        batch = [];
+      }
+    }
+    result.orphanCount += await this.removeUnreferenced(storage, batch);
+    result.missingBytesCount += await this.countMissingBytes(
+      storage.configId,
+      stored,
+    );
+  }
+
   /** Deletes the keys no record points to; returns how many. */
-  private async removeUnreferenced(keys: string[]): Promise<number> {
+  private async removeUnreferenced(
+    storage: ResolvedStorage,
+    keys: string[],
+  ): Promise<number> {
     if (keys.length === 0) {
       return 0;
     }
@@ -141,18 +168,25 @@ export class FileOrphanCleanupService
     let removed = 0;
     for (const key of keys) {
       if (!known.has(key)) {
-        await this.storage.delete(key);
+        await storage.driver.delete(key);
         removed++;
       }
     }
     return removed;
   }
 
-  /** Records of this storage driver whose bytes are not on disk. */
-  private async countMissingBytes(onDisk: Set<string>): Promise<number> {
+  /** Records of this storage whose bytes are not there (null id = legacy local files). */
+  private async countMissingBytes(
+    configId: string,
+    onDisk: Set<string>,
+  ): Promise<number> {
     let missing = 0;
+    const filter =
+      configId === LOCAL_STORAGE_CONFIG_ID
+        ? { storageConfigId: { $in: [null, configId] } }
+        : { storageConfigId: configId };
     const cursor = this.fileModel
-      .find({ storageDriver: this.storage.name }, { storageKey: 1 })
+      .find(filter, { storageKey: 1 })
       .lean()
       .cursor();
     for await (const file of cursor) {

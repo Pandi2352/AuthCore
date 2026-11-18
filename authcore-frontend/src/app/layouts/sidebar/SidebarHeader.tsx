@@ -22,9 +22,16 @@ export function SidebarHeader() {
       <Link
         to={paths.dashboard}
         aria-label={`${siteName} home`}
-        className="flex min-w-0 cursor-pointer items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className={cn(
+          'flex min-w-0 cursor-pointer items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+          !collapsed && 'w-full',
+        )}
       >
-        <Logo variant={collapsed ? 'mark' : 'full'} hideName={!layoutConfig.sidebar.showAppName} />
+        <Logo
+          variant={collapsed ? 'mark' : 'full'}
+          hideName={!layoutConfig.sidebar.showAppName}
+          fill={!collapsed}
+        />
       </Link>
     </div>
   );

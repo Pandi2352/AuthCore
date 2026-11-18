@@ -46,6 +46,7 @@ Images: PNG, WebP or JPEG up to `UPLOAD_AVATAR_MAX_SIZE_MB` (2 MB). **SVG is ref
 ### The page
 
 - **Site identity:** name and description with counters, client rules + backend field errors, *Save changes* / *Discard* in the header (Ctrl / Cmd + S saves), status chip (Project defaults · Unsaved changes · Saved · time). Leaving with unsaved text asks first (in-app) or warns (closing the tab).
+- **Crop before upload:** picking or dropping an image opens a crop window in the slot's shape — logos 5 : 1 (saved 1000 × 200, the sidebar header is about 208 × 40 px), logo mark and favicon square (256 × 256). Drag, zoom, Fit / Fill / Center; empty areas stay transparent. In the sidebar the logo fills the header width, centred.
 - **Logos / Favicon:** one card per image — checkerboard preview (shows transparency), *Default* / *Custom* badge, size advice, file details, *Upload / Replace* (button or drag and drop), progress bar, *Remove* with confirmation. Type and size are checked before uploading.
 - **Live preview:** browser tab, sidebar expanded and collapsed, sign-in card, search result — from the unsaved text and the current images.
 - **Toasts:** success for save / upload / remove (with what happens next); errors as toasts plus an inline message (field errors under the field, upload errors under the image). A version conflict shows a toast with a *Reload* action.

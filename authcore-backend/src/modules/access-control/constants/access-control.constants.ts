@@ -339,6 +339,27 @@ const BUSINESS_SETTINGS_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
   ],
 };
 
+/** Permissions protecting file storage settings (buckets, credentials, active provider). */
+export const STORAGE_SETTINGS_PERMISSIONS = {
+  Read: 'STORAGE_SETTINGS_READ',
+  Manage: 'STORAGE_SETTINGS_MANAGE',
+} as const;
+
+const STORAGE_SETTINGS_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
+  STORAGE_SETTINGS_READ: [
+    'View file storage settings',
+    'View the configured storages (credentials stay hidden) and which one is active',
+    'storage-settings',
+    'READ',
+  ],
+  STORAGE_SETTINGS_MANAGE: [
+    'Manage file storage settings',
+    'Add, edit, test, activate and delete storages and their credentials',
+    'storage-settings',
+    'MANAGE',
+  ],
+};
+
 export const SYSTEM_PERMISSIONS = [
   ...toSystemPermissions('access-control', SYSTEM_PERMISSION_DETAILS),
   ...toSystemPermissions('password-policy', PASSWORD_POLICY_PERMISSION_DETAILS),
@@ -348,6 +369,10 @@ export const SYSTEM_PERMISSIONS = [
   ...toSystemPermissions(
     'business-settings',
     BUSINESS_SETTINGS_PERMISSION_DETAILS,
+  ),
+  ...toSystemPermissions(
+    'storage-settings',
+    STORAGE_SETTINGS_PERMISSION_DETAILS,
   ),
 ];
 
@@ -388,6 +413,14 @@ export const SYSTEM_ROLES = [
     description:
       'Manages the site name, description, logos and favicon. System role: cannot be edited or deleted.',
     permissionKeys: Object.keys(BUSINESS_SETTINGS_PERMISSION_DETAILS),
+  },
+  {
+    roleKey: 'STORAGE_ADMIN',
+    roleName: 'Storage Administrator',
+    category: SYSTEM_ROLE_CATEGORY,
+    description:
+      'Manages file storage providers, their credentials and the active storage. System role: cannot be edited or deleted.',
+    permissionKeys: Object.keys(STORAGE_SETTINGS_PERMISSION_DETAILS),
   },
 ];
 

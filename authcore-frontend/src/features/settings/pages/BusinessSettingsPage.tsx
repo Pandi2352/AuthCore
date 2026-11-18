@@ -28,6 +28,10 @@ import {
 
 const FORM_ID = 'business-identity';
 
+/** Logos: the sidebar header is about 208 × 40 px → 5 : 1 (2× for sharp screens: 1000 × 200). */
+const WIDE_CROP = { aspect: 5, width: 1000, height: 200 };
+const SQUARE_CROP = { aspect: 1, width: 256, height: 256 };
+
 interface IdentityValues {
   siteName: string;
   siteDescription: string;
@@ -328,8 +332,9 @@ function BusinessSettingsForm({
                 slot="logo"
                 title="Logo"
                 description="Company logo in the expanded sidebar, the navbar on small screens and public pages."
-                recommendation="Wide image, about 4 : 1 (e.g. 640 × 160). Shrunk to fit 1024 × 512."
+                recommendation="Cropped to 5 : 1 (1000 × 200), the shape of the sidebar header. PNG with transparency looks best."
                 shape="wide"
+                crop={WIDE_CROP}
                 asset={data.assets.logo}
                 fallback={
                   <>
@@ -348,8 +353,9 @@ function BusinessSettingsForm({
                 slot="logo-mark"
                 title="Logo mark"
                 description="Square icon in the collapsed sidebar (and next to the name when there is no logo)."
-                recommendation="Square image, at least 128 × 128. Placed on a 256 × 256 square."
+                recommendation="Cropped to a square (256 × 256)."
                 shape="square"
+                crop={SQUARE_CROP}
                 asset={data.assets.logoMark}
                 fallback={
                   <>
@@ -365,8 +371,9 @@ function BusinessSettingsForm({
                 slot="auth-logo"
                 title="Sign-in logo"
                 description="Top-left of the sign-in, sign-up and password pages. Optional: the logo is used otherwise."
-                recommendation="Same format as the logo; use a different one only if it needs another colour."
+                recommendation="Cropped to 5 : 1 like the logo; use a different one only if it needs another colour."
                 shape="wide"
+                crop={WIDE_CROP}
                 asset={data.assets.authLogo}
                 fallback={
                   data.assets.logo ? (
@@ -403,8 +410,9 @@ function BusinessSettingsForm({
                 slot="favicon"
                 title="Favicon"
                 description="Shown at 16–32 px: keep it simple, high-contrast, without small text."
-                recommendation="Square PNG, at least 64 × 64 (256 × 256 ideal). Placed on a 256 × 256 square."
+                recommendation="Cropped to a square (256 × 256); shown at 16–32 px."
                 shape="square"
+                crop={SQUARE_CROP}
                 asset={data.assets.favicon}
                 fallback={
                   <>

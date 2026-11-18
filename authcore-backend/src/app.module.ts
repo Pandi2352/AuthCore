@@ -36,6 +36,7 @@ import { HealthModule } from '@modules/health/health.module';
 import { MailModule } from '@modules/mail/mail.module';
 import { MetricsModule } from '@modules/metrics/metrics.module';
 import { HttpMetricsMiddleware } from '@modules/metrics/middleware/http-metrics.middleware';
+import { StorageModule } from '@modules/storage/storage.module';
 import { UserActivityModule } from '@modules/user-activity/user-activity.module';
 import { UserAdminModule } from '@modules/user-admin/user-admin.module';
 import { UserInvitesModule } from '@modules/user-invites/user-invites.module';
@@ -79,6 +80,7 @@ import { AppService } from './app.service';
     HealthModule,
     UserActivityModule,
     UserSchemaModule,
+    StorageModule,
     FilesModule,
     BusinessSettingsModule,
     BootstrapModule,
