@@ -30,9 +30,10 @@ function Mark({
   src: string | null;
   size?: 'sm' | 'md';
 }) {
+  const markSrc = src ?? appConfig.logos.mark;
   const box = size === 'sm' ? 'size-6 text-xs' : 'size-8 text-sm';
-  return src ? (
-    <img src={src} alt="" className={cn(box, 'shrink-0 rounded-md object-contain')} />
+  return markSrc ? (
+    <img src={markSrc} alt="" className={cn(box, 'shrink-0 rounded-md object-contain')} />
   ) : (
     <span
       className={cn(
@@ -54,8 +55,9 @@ function FullLogo({
   logo: string | null;
   mark: string | null;
 }) {
-  return logo ? (
-    <img src={logo} alt="" className="h-8 w-full object-contain object-center" />
+  const logoSrc = logo ?? appConfig.logos.light;
+  return logoSrc ? (
+    <img src={logoSrc} alt="" className="h-8 w-full object-contain object-center" />
   ) : (
     <span className="flex min-w-0 items-center gap-2">
       <Mark name={name} src={mark} size="sm" />
@@ -157,7 +159,13 @@ export function BrandingPreview({ siteName, siteDescription, assets }: PreviewPr
           <Label>Sign-in page</Label>
           <div className="rounded-md border border-border bg-background p-3">
             <div className="mb-3 flex h-7 items-center">
-              <FullLogo name={name} logo={assets.authLogo ?? assets.logo} mark={assets.logoMark} />
+              <FullLogo
+                name={name}
+                logo={
+                  assets.authLogo ?? assets.logo ?? appConfig.logos.auth ?? appConfig.logos.light
+                }
+                mark={assets.logoMark}
+              />
             </div>
             <div className="rounded-md border border-border bg-surface p-3">
               <p className="text-sm font-semibold text-foreground">Welcome back</p>

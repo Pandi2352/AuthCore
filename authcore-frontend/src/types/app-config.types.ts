@@ -21,6 +21,10 @@ export interface AppConfig {
     dark: string | null;
     /** Square mark for the collapsed sidebar and small spaces. */
     mark: string | null;
+    /** Logo on sign-in / sign-up screens (falls back to `light`). */
+    auth?: string | null;
+    /** Logo on sign-in / sign-up screens in dark mode (falls back to `auth`). */
+    authDark?: string | null;
   };
   favicon: string;
   locale: {

@@ -27,9 +27,12 @@ export function Logo({ variant = 'full', hideName = false, fill = false, classNa
   const isDark = theme?.resolvedMode === 'dark';
   const { logos } = appConfig;
   const configFull = isDark ? (logos.dark ?? logos.light) : logos.light;
+  const configAuth = isDark
+    ? (logos.authDark ?? logos.auth ?? configFull)
+    : (logos.auth ?? configFull);
   const fullImage =
     variant === 'auth'
-      ? (assets.authLogo ?? assets.logo ?? configFull)
+      ? (assets.authLogo ?? assets.logo ?? configAuth)
       : (assets.logo ?? configFull);
   const markImage = assets.logoMark ?? logos.mark;
   const labelled = variant === 'mark' || hideName;

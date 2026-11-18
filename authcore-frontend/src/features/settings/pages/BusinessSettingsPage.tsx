@@ -337,15 +337,28 @@ function BusinessSettingsForm({
                 crop={WIDE_CROP}
                 asset={data.assets.logo}
                 fallback={
-                  <>
-                    <span className="flex items-center gap-2">
-                      <InitialMark name={name} />
-                      <span className="text-sm font-bold text-foreground">{name}</span>
-                    </span>
-                    <FallbackCaption>Initial and site name</FallbackCaption>
-                  </>
+                  appConfig.logos.light ? (
+                    <>
+                      <img
+                        src={appConfig.logos.light}
+                        alt=""
+                        className="max-h-12 max-w-[80%] object-contain"
+                      />
+                      <FallbackCaption>Default logo</FallbackCaption>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-2">
+                        <InitialMark name={name} />
+                        <span className="text-sm font-bold text-foreground">{name}</span>
+                      </span>
+                      <FallbackCaption>Initial and site name</FallbackCaption>
+                    </>
+                  )
                 }
-                fallbackLabel="The initial and site name"
+                fallbackLabel={
+                  appConfig.logos.light ? 'The default logo' : 'The initial and site name'
+                }
                 canManage={canManage}
                 onChange={onChange}
               />
@@ -358,12 +371,23 @@ function BusinessSettingsForm({
                 crop={SQUARE_CROP}
                 asset={data.assets.logoMark}
                 fallback={
-                  <>
-                    <InitialMark name={name} />
-                    <FallbackCaption>Initial</FallbackCaption>
-                  </>
+                  appConfig.logos.mark ? (
+                    <>
+                      <img
+                        src={appConfig.logos.mark}
+                        alt=""
+                        className="size-10 rounded-md object-contain"
+                      />
+                      <FallbackCaption>Default mark</FallbackCaption>
+                    </>
+                  ) : (
+                    <>
+                      <InitialMark name={name} />
+                      <FallbackCaption>Initial</FallbackCaption>
+                    </>
+                  )
                 }
-                fallbackLabel="The site's initial"
+                fallbackLabel={appConfig.logos.mark ? 'The default mark' : "The site's initial"}
                 canManage={canManage}
                 onChange={onChange}
               />
@@ -385,6 +409,15 @@ function BusinessSettingsForm({
                       />
                       <FallbackCaption>Uses the logo</FallbackCaption>
                     </>
+                  ) : (appConfig.logos.auth ?? appConfig.logos.light) ? (
+                    <>
+                      <img
+                        src={appConfig.logos.auth ?? appConfig.logos.light!}
+                        alt=""
+                        className="max-h-12 max-w-[80%] object-contain"
+                      />
+                      <FallbackCaption>Default sign-in logo</FallbackCaption>
+                    </>
                   ) : (
                     <>
                       <span className="flex items-center gap-2">
@@ -395,7 +428,13 @@ function BusinessSettingsForm({
                     </>
                   )
                 }
-                fallbackLabel={data.assets.logo ? 'The logo' : 'The initial and site name'}
+                fallbackLabel={
+                  data.assets.logo
+                    ? 'The logo'
+                    : (appConfig.logos.auth ?? appConfig.logos.light)
+                      ? 'The default sign-in logo'
+                      : 'The initial and site name'
+                }
                 canManage={canManage}
                 onChange={onChange}
               />

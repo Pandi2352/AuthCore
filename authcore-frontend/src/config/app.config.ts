@@ -13,11 +13,13 @@ export const appConfig: AppConfig = {
   description: 'Reusable authentication and authorization service',
   themeColor: { light: '#ffffff', dark: '#0f172a' },
   logos: {
-    light: null,
-    dark: null,
-    mark: null,
+    light: '/assets/logo/logo.png',
+    dark: '/assets/logo/logo-dark.png',
+    mark: '/assets/logo/logo-mark.png',
+    auth: '/assets/logo/auth-logo.png',
+    authDark: '/assets/logo/auth-logo-dark.png',
   },
-  favicon: '/favicon.svg',
+  favicon: '/assets/logo/favicon.png',
   locale: {
     defaultLanguage: 'en',
     defaultTimeZone: 'UTC',
