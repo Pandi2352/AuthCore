@@ -19,6 +19,6 @@ const sameTheme = (a: ThemeState, b: ThemeState) =>
 
 /** The quick preset matching the current theme exactly, if any. */
 export function useActiveQuickPreset(): QuickPreset | undefined {
-  const { mode, preset, appearance } = useTheme();
+  const { defaultMode: mode, preset, appearance } = useTheme();
   return QUICK_PRESETS.find((p) => sameTheme(presetTarget(p), { mode, preset, appearance }));
 }

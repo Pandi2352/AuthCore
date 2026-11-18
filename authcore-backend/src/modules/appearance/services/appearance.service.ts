@@ -10,21 +10,14 @@ import {
   APPEARANCE_CACHE_TTL_MS,
   APPEARANCE_KEYS,
   GLOBAL_APPEARANCE_KEY,
-  LOCKABLE_KEYS,
   OPTION_VALUE,
 } from '../constants/appearance.constants';
 import type {
-  MyAppearanceDto,
-  OrgAppearanceAdminDto,
-  OrgAppearanceDto,
-  ThemeValuesDto,
-  UpdateMyAppearanceDto,
-  UpdateOrgAppearanceDto,
+  AppearanceAdminDto,
+  AppearanceDto,
+  UpdateAppearanceDto,
 } from '../dto/appearance.dto';
-import {
-  AppearanceSettings,
-  UserAppearance,
-} from '../schemas/appearance-settings.schema';
+import { AppearanceSettings } from '../schemas/appearance-settings.schema';
 
 const KNOWN_KEYS = new Set<string>(APPEARANCE_KEYS);
 
@@ -32,21 +25,20 @@ const versionConflict = () =>
   new AppException(
     HttpStatus.CONFLICT,
     ErrorCode.VersionConflict,
-    'Someone else changed the organization appearance. Reload and try again.',
+    'Someone else changed the appearance. Reload and try again.',
   );
 
 /** Appearance map → only known keys with short token / #rrggbb values (400 otherwise). */
 function cleanAppearance(
-  input: Record<string, unknown> | undefined,
-  field: string,
-) {
+  input: Record<string, unknown>,
+): Record<string, string> {
   const out: Record<string, string> = {};
   const errors: Array<{ field: string; message: string }> = [];
-  for (const [key, value] of Object.entries(input ?? {})) {
+  for (const [key, value] of Object.entries(input)) {
     if (!KNOWN_KEYS.has(key)) {
-      errors.push({ field: `${field}.${key}`, message: 'unknown option' });
+      errors.push({ field: `appearance.${key}`, message: 'unknown option' });
     } else if (typeof value !== 'string' || !OPTION_VALUE.test(value)) {
-      errors.push({ field: `${field}.${key}`, message: 'invalid value' });
+      errors.push({ field: `appearance.${key}`, message: 'invalid value' });
     } else {
       out[key] = value;
     }
@@ -63,8 +55,8 @@ function cleanAppearance(
 }
 
 /**
- * Appearance: the organization's look (admin; defaults + locked options, public to every
- * page) and each user's own look synced across their devices.
+ * The application's look: one document, set by the super admin on Settings → Appearance,
+ * read by every page (public). Cached per instance; writes clear the cache at once.
  */
 @Injectable()
 export class AppearanceService {
@@ -74,40 +66,32 @@ export class AppearanceService {
 
   constructor(
     @InjectModel(AppearanceSettings.name)
-    private readonly orgModel: Model<AppearanceSettings>,
-    @InjectModel(UserAppearance.name)
-    private readonly userModel: Model<UserAppearance>,
+    private readonly model: Model<AppearanceSettings>,
   ) {}
 
-  // ---------------------------------------------------------------- organization
-
-  async getPublic(): Promise<OrgAppearanceDto> {
-    return this.toOrgDto(await this.loadOrg());
+  async getPublic(): Promise<AppearanceDto> {
+    return this.toDto(await this.load());
   }
 
-  async getAdmin(): Promise<OrgAppearanceAdminDto> {
-    const stored = await this.orgModel
+  async getAdmin(): Promise<AppearanceAdminDto> {
+    const stored = await this.model
       .findOne({ key: GLOBAL_APPEARANCE_KEY })
       .lean();
-    return Object.assign(this.toOrgDto(stored), {
+    return Object.assign(this.toDto(stored), {
       updatedBy: stored?.updatedBy ?? null,
-      lockableKeys: LOCKABLE_KEYS,
     });
   }
 
-  /** Publish the organization's look (replaces the previous one). */
-  async updateOrg(
-    dto: UpdateOrgAppearanceDto,
+  async update(
+    dto: UpdateAppearanceDto,
     actor: AuthContext,
-  ): Promise<OrgAppearanceAdminDto> {
-    const appearance = cleanAppearance(dto.appearance, 'appearance');
+  ): Promise<AppearanceAdminDto> {
     const values = {
-      mode: dto.mode ?? null,
-      preset: dto.preset ?? null,
-      appearance,
-      locked: [...new Set(dto.locked)],
+      mode: dto.mode,
+      preset: dto.preset,
+      appearance: cleanAppearance(dto.appearance),
     };
-    const current = await this.orgModel
+    const current = await this.model
       .findOne({ key: GLOBAL_APPEARANCE_KEY })
       .lean();
     const currentVersion = current?.version ?? 0;
@@ -116,7 +100,7 @@ export class AppearanceService {
     }
     if (!current) {
       try {
-        await this.orgModel.create({
+        await this.model.create({
           key: GLOBAL_APPEARANCE_KEY,
           ...values,
           version: 1,
@@ -130,7 +114,7 @@ export class AppearanceService {
         throw error;
       }
     } else {
-      const updated = await this.orgModel.findOneAndUpdate(
+      const updated = await this.model.findOneAndUpdate(
         { key: GLOBAL_APPEARANCE_KEY, version: currentVersion },
         {
           $set: {
@@ -145,104 +129,30 @@ export class AppearanceService {
       }
     }
     this.cache = null;
-    this.logger.log({
-      message: 'Organization appearance updated',
-      locked: values.locked,
-      by: actor.userId,
-    });
+    this.logger.log({ message: 'Appearance updated', by: actor.userId });
     return this.getAdmin();
   }
 
-  /** Remove the organization's look: everyone follows the built-in defaults again. */
-  async resetOrg(actor: AuthContext): Promise<OrgAppearanceAdminDto> {
-    await this.orgModel.deleteOne({ key: GLOBAL_APPEARANCE_KEY });
-    this.cache = null;
-    this.logger.log({
-      message: 'Organization appearance removed',
-      by: actor.userId,
-    });
-    return this.getAdmin();
-  }
-
-  // ---------------------------------------------------------------- per user
-
-  async getMine(userId: string): Promise<MyAppearanceDto> {
-    const stored = await this.userModel.findOne({ userId }).lean();
-    return this.toMyDto(stored);
-  }
-
-  async updateMine(
-    userId: string,
-    dto: UpdateMyAppearanceDto,
-  ): Promise<MyAppearanceDto> {
-    const theme: ThemeValuesDto | null = dto.theme
-      ? {
-          mode: dto.theme.mode ?? null,
-          preset: dto.theme.preset ?? null,
-          appearance: cleanAppearance(dto.theme.appearance, 'theme.appearance'),
-        }
-      : null;
-    const saved = await this.userModel
-      .findOneAndUpdate(
-        { userId },
-        {
-          $set: {
-            syncEnabled: dto.syncEnabled,
-            // Sync off or no theme: nothing personal is kept on the server.
-            mode: dto.syncEnabled ? (theme?.mode ?? null) : null,
-            preset: dto.syncEnabled ? (theme?.preset ?? null) : null,
-            appearance: dto.syncEnabled ? (theme?.appearance ?? {}) : {},
-          },
-          $setOnInsert: { userId },
-        },
-        { upsert: true, new: true },
-      )
-      .lean();
-    return this.toMyDto(saved);
-  }
-
-  // ---------------------------------------------------------------- internals
-
-  private async loadOrg(): Promise<AppearanceSettings | null> {
+  private async load(): Promise<AppearanceSettings | null> {
     if (
       this.cache &&
       Date.now() - this.cache.loadedAt < APPEARANCE_CACHE_TTL_MS
     ) {
       return this.cache.value;
     }
-    const value = await this.orgModel
+    const value = await this.model
       .findOne({ key: GLOBAL_APPEARANCE_KEY })
       .lean();
     this.cache = { value, loadedAt: Date.now() };
     return value;
   }
 
-  private toOrgDto(stored: AppearanceSettings | null): OrgAppearanceDto {
+  private toDto(stored: AppearanceSettings | null): AppearanceDto {
     return {
       mode: stored?.mode ?? null,
       preset: stored?.preset ?? null,
       appearance: stored?.appearance ?? {},
-      locked: stored?.locked ?? [],
       version: stored?.version ?? 0,
-      updatedAt: stored?.updatedAt ?? null,
-    };
-  }
-
-  private toMyDto(stored: UserAppearance | null): MyAppearanceDto {
-    const hasTheme =
-      stored !== null &&
-      (stored.mode !== null ||
-        stored.preset !== null ||
-        Object.keys(stored.appearance).length > 0);
-    return {
-      syncEnabled: stored?.syncEnabled ?? true,
-      theme: hasTheme
-        ? {
-            mode: stored.mode,
-            preset: stored.preset,
-            appearance: stored.appearance,
-          }
-        : null,
       updatedAt: stored?.updatedAt ?? null,
     };
   }

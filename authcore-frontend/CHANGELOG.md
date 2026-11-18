@@ -10,11 +10,10 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
-### Appearance: organization look and sync
+### Appearance: one look, set by the super admin
 
-- _Additive:_ admins publish an **organization appearance** (their current look) and **lock** sections for everyone (Settings → Appearance, `APPEARANCE_SETTINGS_READ` / `_MANAGE`); locked sections are read-only with "Set by your organization". _Reset to default_ returns to the organization look.
-- _Additive:_ **Sync across devices**: signed-in users' looks are saved to their account and restored on other devices (`AppearanceSync` in the root layout; header chip shows Synced / Syncing / Saved in this browser).
-- _Additive:_ theme engine: `withOrganization()` (theme-core, also in the no-flash script), `useTheme()` → `organization`, `lockedOptions`, `isLocked()`, `setOrganization()`, `defaults`; `SettingCard lockKeys`.
+- **Breaking:** Settings → Appearance sets the look for **every user** (and the sign-in pages); only `APPEARANCE_SETTINGS_MANAGE` (super admin) sees it. Changes save automatically (`PUT /settings/appearance`); everyone gets them on the next page load. Users keep only their own light / dark choice (`setMode`, storage key `theme:v2` — older per-browser looks are ignored).
+- _Additive:_ `AppearanceSync` (root layout), `useTheme()` → `setDefaultMode`, `defaultMode`, `organization`, `canEdit`, `setOrganization`; `withOrganization()` in theme-core (also in the no-flash script).
 
 ### File storage
 

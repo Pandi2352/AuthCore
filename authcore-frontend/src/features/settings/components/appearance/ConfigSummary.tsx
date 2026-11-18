@@ -19,7 +19,7 @@ import { useActiveQuickPreset } from './quick-preset-state';
 
 /** Everything currently selected, in one list. */
 export function ConfigSummary() {
-  const { mode, resolvedMode, preset, appearance: a } = useTheme();
+  const { defaultMode: mode, preset, appearance: a } = useTheme();
   const active = useActiveQuickPreset();
   const prefs = [
     a.striped === 'on' && 'Striped rows',
@@ -30,7 +30,7 @@ export function ConfigSummary() {
     a.autoDark === 'on' && 'Auto dark',
   ].filter(Boolean);
   const rows: Array<[string, string]> = [
-    ['Mode', mode === 'system' ? `System (${resolvedMode})` : MODE_LABEL[mode].title],
+    ['Default mode', MODE_LABEL[mode].title],
     [
       'Accent',
       preset === 'custom' ? `Custom ${a.customColor}` : (findThemePreset(preset)?.label ?? preset),

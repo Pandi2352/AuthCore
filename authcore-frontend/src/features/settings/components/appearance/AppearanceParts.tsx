@@ -1,31 +1,22 @@
-import { Lock } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { useTheme } from '@/app/theme';
 import { Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
-/**
- * One settings card: title, description, current value badge, content. With `lockKeys`,
- * the card turns read-only when the organization locked all of those options.
- */
+/** One settings card: title, description, current value badge, content. */
 export function SettingCard({
   title,
   description,
   badge,
   children,
   className,
-  lockKeys,
 }: {
   title: string;
   description?: string;
   badge?: ReactNode;
   children: ReactNode;
   className?: string;
-  lockKeys?: readonly string[];
 }) {
-  const { isLocked } = useTheme();
-  const locked = Boolean(lockKeys?.length) && (lockKeys ?? []).every((key) => isLocked(key));
   return (
     <section
       aria-label={title}
@@ -39,31 +30,13 @@ export function SettingCard({
           <h2 className="text-base font-semibold text-foreground">{title}</h2>
           {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
         </div>
-        {locked ? (
-          <Badge tone="neutral" className="shrink-0">
-            <Lock aria-hidden="true" /> Set by your organization
+        {badge !== undefined && badge !== null && (
+          <Badge tone="primary" variant="soft" className="shrink-0">
+            {badge}
           </Badge>
-        ) : (
-          badge !== undefined &&
-          badge !== null && (
-            <Badge tone="primary" variant="soft" className="shrink-0">
-              {badge}
-            </Badge>
-          )
         )}
       </header>
-      {locked ? (
-        // Native disabled fieldset: every control inside is read-only for keyboard and mouse.
-        <fieldset
-          disabled
-          className="flex min-w-0 flex-col gap-4 opacity-60 [&_*]:cursor-not-allowed"
-        >
-          <legend className="sr-only">{title} (locked by your organization)</legend>
-          {children}
-        </fieldset>
-      ) : (
-        children
-      )}
+      {children}
     </section>
   );
 }

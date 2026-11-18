@@ -9,19 +9,18 @@ import type { ColorMode } from '@/types/theme.types';
 
 import { MODE_LABEL } from './appearance-labels';
 import { ChoiceCard, ChoiceGroup, SettingCard } from './AppearanceParts';
-import { lockKeysOf } from './lock-groups';
 
 const MODE_ICON = { light: Sun, dark: Moon, system: Monitor } as const;
 const HEX = /^#[0-9a-f]{6}$/i;
 
 export function ModeSection() {
-  const { mode, resolvedMode, setMode, appearance, setAppearance } = useTheme();
+  // The default for everyone; each person can still flip light / dark in the navbar.
+  const { defaultMode: mode, setDefaultMode: setMode, appearance, setAppearance } = useTheme();
   return (
     <SettingCard
       title="Mode"
-      lockKeys={lockKeysOf('mode')}
-      description="Light, dark, or follow your device."
-      badge={mode === 'system' ? `System (${resolvedMode})` : MODE_LABEL[mode].title}
+      description="Default for everyone. People can still switch light / dark for themselves."
+      badge={MODE_LABEL[mode].title}
     >
       <ChoiceGroup legend="Color mode" columns={3}>
         {(Object.keys(MODE_LABEL) as ColorMode[]).map((value) => {
@@ -69,7 +68,6 @@ export function ColorSection() {
   return (
     <SettingCard
       title="Color"
-      lockKeys={lockKeysOf('color')}
       description="Accent used for buttons, links and highlights."
       badge={findThemePreset(preset)?.label ?? preset}
     >

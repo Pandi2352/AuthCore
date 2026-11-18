@@ -18,6 +18,7 @@ export interface ThemeContextValue extends ThemeState {
   userCustomizable: ThemeConfig['userCustomizable'];
   /** Presets offered to users, in order. */
   presets: readonly ThemePresetId[];
+  /** Personal light / dark / system (stored in this browser). */
   setMode: (mode: ColorMode) => void;
   setPreset: (preset: ThemePresetId) => void;
   setAppearance: (changes: Partial<Appearance>) => void;
@@ -27,19 +28,21 @@ export interface ThemeContextValue extends ThemeState {
     preset?: ThemePresetId;
     appearance?: Partial<Appearance>;
   }) => void;
-  /** Back to the project defaults (clears the stored choice). */
+  /** The application look back to the built-in defaults (editors). */
   reset: () => void;
-  /** True when anything differs from the defaults (organization's look, else theme.config.ts). */
+  /** True when the application look differs from the built-in defaults. */
   isCustomized: boolean;
-  /** The organization's look set by an admin (null = none). */
+  /** Everyone's default mode (Appearance page); `setMode` is the personal choice. */
+  setDefaultMode: (mode: ColorMode) => void;
+  /** The application look (null = never saved: built-in defaults). */
   organization: OrganizationAppearance | null;
-  /** What "Reset to default" goes back to. */
-  defaults: ThemeState;
-  /** Options the organization locked ("mode", "preset", appearance keys). */
-  lockedOptions: readonly string[];
-  isLocked: (key: string) => boolean;
-  /** Apply / cache a new organization appearance (from the API). */
-  setOrganization: (organization: OrganizationAppearance | null) => void;
+  /** The application's default mode (the personal `mode` may differ). */
+  defaultMode: ColorMode;
+  /** True for users allowed to change the application look (APPEARANCE_SETTINGS_MANAGE). */
+  canEdit: boolean;
+  setCanEdit: (canEdit: boolean) => void;
+  /** Apply / cache the look from the server. */
+  setOrganization: (look: OrganizationAppearance | null) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);

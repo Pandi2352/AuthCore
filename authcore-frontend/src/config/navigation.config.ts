@@ -124,6 +124,8 @@ export const navigationConfig: NavGroup[] = [
             path: paths.settings.appearance,
             icon: 'Palette',
             featureFlag: 'ui.themeCustomizer',
+            // One look for everyone: only the super admin (APPEARANCE_SETTINGS_MANAGE) sets it.
+            permission: 'APPEARANCE_SETTINGS_MANAGE',
           },
           {
             id: 'settings-business',

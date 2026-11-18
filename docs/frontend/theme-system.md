@@ -171,17 +171,15 @@ Components read the defaults from the theme context (`useTheme().appearance.card
 
 Switching appearance must never change layout dimensions unexpectedly: control heights come from the density tokens, borders reserve their width (transparent when hidden).
 
-## Organization look and sync
+## One application look (super admin)
 
-Three layers decide the look, lowest first:
+The look is the same for everyone and is set by the super admin on **Settings → Appearance** (route and menu need `APPEARANCE_SETTINGS_MANAGE`; the ADMIN role always has it). Other users don't see the page.
 
-1. **Built-in defaults** — `theme.config.ts`.
-2. **Organization look** — published by an admin on Settings → Appearance (`APPEARANCE_SETTINGS_MANAGE`): replaces the defaults for everyone; **locked** options (one switch per section: mode, color, radius, density, sidebar, navbar, icons, typography, effects, preferences) cannot be changed by users. Public endpoint `GET /settings/appearance/public`, cached in localStorage (`<slug>:theme-org:v1`) and applied by the no-flash script before the first paint.
-3. **The user's look** — localStorage (`<slug>:theme:v1`) and, signed in with *Sync across devices* on, the account (`GET / PUT /users/me/appearance`). Pulled once per sign-in (the account wins), then every change is pushed after 1 s.
+- **Stored on the server** (`GET /settings/appearance/public`, no sign-in; `PUT /settings/appearance`), cached in localStorage (`<slug>:theme-org:v1`) and applied before the first paint — also on the sign-in pages.
+- **Editing:** every change on the page applies at once and is saved automatically ~1 s later (`AppearanceSync`; header chip: Applies to everyone · Saving… · Saved for everyone). *Reset to default* puts everyone back on `theme.config.ts` (after a confirmation).
+- **Personal light / dark:** the only per-person choice (navbar toggle, user menu, command menu → `setMode`), stored per browser (`<slug>:theme:v2`). The Mode card on the Appearance page sets everyone's *default* mode (`setDefaultMode`).
 
-How locks work: `withOrganization(options, org)` (theme-core, also in the no-flash script) makes the organization values the defaults and removes locked keys from `customizable`, so `resolveThemeState` and every setter ignore them. `useTheme()` exposes `organization`, `lockedOptions`, `isLocked(key)`, `setOrganization()`; `SettingCard lockKeys` turns a section read-only (native disabled fieldset) when all its keys are locked. *Reset to default* goes back to the organization look. Values are checked twice: the API accepts known keys with short token / #rrggbb values; the frontend applies only whitelisted values.
-
-Pieces: `app/layouts/components/AppearanceSync.tsx` (organization + user sync), `features/settings/appearance-sync.ts` (sync status store), `features/settings/components/appearance/OrganizationAppearanceCard.tsx` and `lock-groups.ts`; backend `modules/appearance`.
+How it works: the cached look is applied through `withOrganization(options, look)` with every option locked except `mode`, so `resolveThemeState` (and the no-flash script) always use the application look. `useTheme()` → `organization` (the look), `defaultMode`, `canEdit` (set from the permission), `setOrganization()`; the look setters (`setPreset`, `setAppearance`, `applyTheme`, `reset`, `setDefaultMode`) only act when `canEdit`. Backend: `modules/appearance` (known option keys + value shape; the frontend applies only whitelisted values).
 
 ## Configuration
 

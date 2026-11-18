@@ -1,10 +1,10 @@
-import { Check, Cloud, CloudAlert, Copy, HardDrive, Loader2, Lock, RotateCcw } from 'lucide-react';
+import { Check, Cloud, CloudAlert, Copy, Loader2, RotateCcw, Users } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
 import { useTheme } from '@/app/theme';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { PageContainer, PageHeader } from '@/components/page';
-import { Alert, Button } from '@/components/ui';
-import { usePermissions } from '@/features/auth';
+import { Button } from '@/components/ui';
 import { useCopyToClipboard } from '@/hooks';
 
 import { appearanceSyncStore } from '../appearance-sync';
@@ -18,38 +18,35 @@ import {
   SidebarSection,
 } from '../components/appearance/LayoutSections';
 import { LivePreview } from '../components/appearance/LivePreview';
-import { lockedGroups } from '../components/appearance/lock-groups';
 import { ColorSection, ModeSection } from '../components/appearance/ModeColorSections';
-import { OrganizationAppearanceCard } from '../components/appearance/OrganizationAppearanceCard';
 import { QuickPresets } from '../components/appearance/QuickPresets';
 import { IconSection, TypographySection } from '../components/appearance/StyleSections';
 
+/**
+ * The application look for everyone (super admin, APPEARANCE_SETTINGS_MANAGE). Every change
+ * applies at once and is saved automatically (AppearanceSync); other users get it on their
+ * next page load.
+ */
 export function AppearanceSettingsPage() {
-  const { mode, preset, appearance, reset, isCustomized, lockedOptions, organization } = useTheme();
+  const { defaultMode, preset, appearance, reset, isCustomized } = useTheme();
   const { copied, copy } = useCopyToClipboard();
-  const { hasPermission } = usePermissions();
-  const sync = useSyncExternalStore(appearanceSyncStore.subscribe, appearanceSyncStore.get);
-  const isSynced = sync.isAvailable && sync.syncEnabled;
-  const lockedCount = lockedGroups(lockedOptions).size;
+  const save = useSyncExternalStore(appearanceSyncStore.subscribe, appearanceSyncStore.get);
 
-  const chip = !isSynced
-    ? { icon: HardDrive, text: 'Saved in this browser' }
-    : sync.status === 'saving'
-      ? { icon: Loader2, text: 'Syncing…' }
-      : sync.status === 'error'
-        ? { icon: CloudAlert, text: 'Sync failed — saved in this browser' }
-        : { icon: Cloud, text: 'Synced across devices' };
+  const chip =
+    save.status === 'saving'
+      ? { icon: Loader2, text: 'Saving…', spin: true }
+      : save.status === 'error'
+        ? { icon: CloudAlert, text: 'Not saved — check your connection', spin: false }
+        : save.status === 'saved'
+          ? { icon: Cloud, text: 'Saved for everyone', spin: false }
+          : { icon: Users, text: 'Applies to everyone', spin: false };
   const ChipIcon = chip.icon;
 
   return (
     <PageContainer>
       <PageHeader
         title="Appearance"
-        description={
-          isSynced
-            ? 'Personalize how the application looks and feels — on every device you sign in on.'
-            : 'Personalize how the application looks and feels on this device.'
-        }
+        description="The look of the application for every user, including the sign-in pages. Changes are saved automatically."
         actions={
           <div className="flex items-center gap-2">
             <output
@@ -57,9 +54,7 @@ export function AppearanceSettingsPage() {
               className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border bg-muted px-2.5 text-xs font-medium whitespace-nowrap text-muted-foreground"
             >
               <ChipIcon
-                className={
-                  sync.status === 'saving' && isSynced ? 'size-3.5 animate-spin' : 'size-3.5'
-                }
+                className={chip.spin ? 'size-3.5 animate-spin' : 'size-3.5'}
                 aria-hidden="true"
               />
               <span className="sr-only sm:not-sr-only">{chip.text}</span>
@@ -69,39 +64,34 @@ export function AppearanceSettingsPage() {
               size="sm"
               className="shrink-0 whitespace-nowrap"
               leftIcon={copied ? <Check /> : <Copy />}
-              onClick={() => void copy(JSON.stringify({ mode, preset, appearance }, null, 2))}
+              onClick={() =>
+                void copy(JSON.stringify({ mode: defaultMode, preset, appearance }, null, 2))
+              }
             >
               {copied ? 'Copied' : 'Copy settings'}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 whitespace-nowrap"
-              leftIcon={<RotateCcw />}
-              disabled={!isCustomized}
-              title={
-                organization ? "Back to your organization's look" : 'Back to the built-in defaults'
+            <ConfirmDialog
+              trigger={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 whitespace-nowrap"
+                  leftIcon={<RotateCcw />}
+                  disabled={!isCustomized}
+                >
+                  Reset to default
+                </Button>
               }
-              onClick={reset}
-            >
-              Reset to default
-            </Button>
+              title="Reset the look for everyone?"
+              description="Colors, layout, fonts and preferences go back to the built-in defaults for every user."
+              confirmText="Reset"
+              onConfirm={reset}
+            />
           </div>
         }
       />
 
       <div className="@container space-y-6">
-        {lockedCount > 0 && (
-          <Alert
-            variant="info"
-            icon={<Lock />}
-            title={`Your organization set ${lockedCount} section${lockedCount === 1 ? '' : 's'}`}
-            message="Locked sections follow the organization's look; everything else is yours to change."
-          />
-        )}
-        {hasPermission('APPEARANCE_SETTINGS_READ') && (
-          <OrganizationAppearanceCard canManage={hasPermission('APPEARANCE_SETTINGS_MANAGE')} />
-        )}
         <QuickPresets />
         <div className="grid items-start gap-6 @5xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] @7xl:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
           <div className="grid min-w-0 gap-6 @3xl:grid-cols-2">

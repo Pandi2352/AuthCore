@@ -54,7 +54,7 @@ export const API_TAGS = {
   Appearance: {
     name: 'Appearance',
     description:
-      'Organization default look and locked options (admin; public to every page) and each user’s look synced across devices',
+      'The application look set by the super admin (public to every page)',
   },
   StorageSettings: {
     name: 'Storage Settings',

@@ -360,7 +360,7 @@ const STORAGE_SETTINGS_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS = {
   ],
 };
 
-/** Permissions protecting the organization appearance (default look, locked options). */
+/** Permissions protecting the application look (Settings → Appearance; the super admin has them). */
 export const APPEARANCE_SETTINGS_PERMISSIONS = {
   Read: 'APPEARANCE_SETTINGS_READ',
   Manage: 'APPEARANCE_SETTINGS_MANAGE',
@@ -369,14 +369,14 @@ export const APPEARANCE_SETTINGS_PERMISSIONS = {
 const APPEARANCE_SETTINGS_PERMISSION_DETAILS: typeof SYSTEM_PERMISSION_DETAILS =
   {
     APPEARANCE_SETTINGS_READ: [
-      'View organization appearance',
-      'View the organization default look and which options are locked',
+      'View appearance settings',
+      'View the application look applied to every user',
       'appearance-settings',
       'READ',
     ],
     APPEARANCE_SETTINGS_MANAGE: [
-      'Manage organization appearance',
-      'Publish the organization default look and lock options for everyone',
+      'Manage appearance',
+      'Change the application look (colors, layout, fonts …) for every user',
       'appearance-settings',
       'MANAGE',
     ],
@@ -453,7 +453,7 @@ export const SYSTEM_ROLES = [
     roleName: 'Appearance Administrator',
     category: SYSTEM_ROLE_CATEGORY,
     description:
-      'Publishes the organization default look and locks options. System role: cannot be edited or deleted.',
+      'Sets the application look for every user. System role: cannot be edited or deleted.',
     permissionKeys: Object.keys(APPEARANCE_SETTINGS_PERMISSION_DETAILS),
   },
 ];

@@ -7,8 +7,9 @@ import { APPEARANCE_VALUES, COLOR_MODES } from '../../types/theme.types.ts';
 import type { ThemeRuntimeOptions } from './theme-core.ts';
 
 /** Storage key of the user's theme choice; bump the version when the stored shape changes. */
-export const THEME_STORAGE_KEY = `${appConfig.slug}:theme:v1`;
-/** Cached organization appearance (defaults + locked options), applied before the user's. */
+/** v2: only the personal light / dark choice is stored (the look comes from the server). */
+export const THEME_STORAGE_KEY = `${appConfig.slug}:theme:v2`;
+/** Cached application look (Settings → Appearance), applied before the first paint. */
 export const THEME_ORG_STORAGE_KEY = `${appConfig.slug}:theme-org:v1`;
 
 export const themeRuntimeOptions: ThemeRuntimeOptions = {

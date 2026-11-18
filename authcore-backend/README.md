@@ -1062,9 +1062,9 @@ Site name, description, logos and favicon, shown by the frontend on every page. 
 
 Images are public files of internal purposes (`BRAND_*`): the generic `/files` endpoints cannot upload or delete them. Guide: `docs/frontend/business-settings.md`.
 
-### Appearance: `/api/v1/settings/appearance`, `/api/v1/users/me/appearance`
+### Appearance: `/api/v1/settings/appearance`
 
-The organization look (admin, `APPEARANCE_SETTINGS_READ` / `APPEARANCE_SETTINGS_MANAGE`, role `APPEARANCE_ADMIN`): mode, color preset and appearance options that every user starts from, plus `locked` options users cannot change. `GET /settings/appearance/public` (no sign-in) feeds every page; `PUT` publishes (optimistic `version`), `DELETE` removes it. Each user's own look is saved with `PUT /users/me/appearance` (`syncEnabled`, `theme`) and pulled on their other devices; turning sync off deletes it from the server. Guide: `docs/frontend/theme-system.md#organization-look-and-sync`.
+One look for the whole application, set by the super admin (`APPEARANCE_SETTINGS_READ` / `APPEARANCE_SETTINGS_MANAGE`, role `APPEARANCE_ADMIN`; ADMIN always passes): default mode, color preset and appearance options. `GET /settings/appearance/public` (no sign-in) is applied by every page; `PUT /settings/appearance` saves it (optimistic `version`). Users only keep their own light / dark choice in the browser. Guide: `docs/frontend/theme-system.md#one-application-look-super-admin`.
 
 ### File storage and uploads: `/api/v1/settings/storage`, `/api/v1/uploads`
 

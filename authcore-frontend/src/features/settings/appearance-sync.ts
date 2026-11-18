@@ -1,28 +1,17 @@
-/**
- * Sync state of the signed-in user's appearance, shared by AppearanceSync (app) and the
- * Appearance page (toggle + status chip). Plain store: no React context needed.
- */
-export interface AppearanceSyncState {
-  /** Signed in and the server answered: syncing is possible. */
-  isAvailable: boolean;
-  syncEnabled: boolean;
+/** Save status of the application look (AppearanceSync → Appearance page header). */
+export interface AppearanceSaveState {
   status: 'idle' | 'saving' | 'saved' | 'error';
-  lastSyncedAt: string | null;
+  lastSavedAt: string | null;
 }
 
-let state: AppearanceSyncState = {
-  isAvailable: false,
-  syncEnabled: true,
-  status: 'idle',
-  lastSyncedAt: null,
-};
+let state: AppearanceSaveState = { status: 'idle', lastSavedAt: null };
 const listeners = new Set<() => void>();
 
 export const appearanceSyncStore = {
-  get: (): AppearanceSyncState => state,
-  set(changes: Partial<AppearanceSyncState>): void {
+  get: (): AppearanceSaveState => state,
+  set(changes: Partial<AppearanceSaveState>): void {
     const next = { ...state, ...changes };
-    if (JSON.stringify(next) === JSON.stringify(state)) return;
+    if (next.status === state.status && next.lastSavedAt === state.lastSavedAt) return;
     state = next;
     for (const listener of listeners) listener();
   },
@@ -31,18 +20,3 @@ export const appearanceSyncStore = {
     return () => listeners.delete(listener);
   },
 };
-
-/** Mode, preset and options of a theme as the API stores them. */
-export function themeValues(theme: { mode: string; preset: string; appearance: object }): {
-  mode: string;
-  preset: string;
-  appearance: Record<string, string>;
-} {
-  return {
-    mode: theme.mode,
-    preset: theme.preset,
-    appearance: Object.fromEntries(
-      Object.entries(theme.appearance).filter(([, v]) => typeof v === 'string'),
-    ) as Record<string, string>,
-  };
-}

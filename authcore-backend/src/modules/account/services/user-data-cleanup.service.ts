@@ -22,7 +22,6 @@ const USER_DATA: readonly {
   { collection: 'account_codes', filter: (userId) => ({ userId }) },
   { collection: 'user_activities', filter: (userId) => ({ userId }) },
   { collection: 'known_devices', filter: (userId) => ({ userId }) },
-  { collection: 'user_appearances', filter: (userId) => ({ userId }) },
   {
     collection: 'password_expiry_notifications',
     filter: (userId) => ({ userId }),

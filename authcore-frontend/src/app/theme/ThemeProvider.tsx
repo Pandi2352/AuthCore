@@ -11,7 +11,13 @@ import {
 
 import { layoutConfig, themeConfig } from '@/config';
 import { storage } from '@/lib/storage';
-import type { Appearance, ColorMode, ThemePresetId, ThemeState } from '@/types/theme.types';
+import {
+  APPEARANCE_VALUES,
+  type Appearance,
+  type ColorMode,
+  type ThemePresetId,
+  type ThemeState,
+} from '@/types/theme.types';
 
 import { ThemeContext, type ThemeContextValue } from './theme-context';
 import {
@@ -19,7 +25,6 @@ import {
   resolveThemeState,
   withOrganization,
   type OrganizationAppearance,
-  type ThemeRuntimeOptions,
 } from './theme-core';
 import { themeRuntimeOptions as baseOptions } from './theme-options';
 
@@ -40,18 +45,6 @@ const isNightNow = (): boolean => {
 function subscribeToClock(onChange: () => void): () => void {
   const timer = window.setInterval(onChange, 60_000);
   return () => window.clearInterval(timer);
-}
-
-/** Only what users may change is stored; the rest follows the organization / theme.config.ts. */
-function toStored(state: ThemeState, options: ThemeRuntimeOptions) {
-  const { customizable } = options;
-  return {
-    ...(customizable.mode ? { mode: state.mode } : {}),
-    ...(customizable.preset ? { preset: state.preset } : {}),
-    appearance: Object.fromEntries(
-      customizable.appearance.map((key) => [key, state.appearance[key]]),
-    ),
-  };
 }
 
 /**
@@ -80,29 +73,55 @@ function applyLayoutTokens(root: HTMLElement): void {
   root.style.setProperty('--navbar-height-base', `${layoutConfig.navbar.height}px`);
 }
 
-const readOrganization = (): OrganizationAppearance | null => {
+/** Everything except the personal light / dark choice follows the application look. */
+const LOCKED_FOR_EVERYONE = ['preset', ...Object.keys(APPEARANCE_VALUES)];
+
+/** The application look as cached: the locks make it apply to everyone (also before paint). */
+const toCached = (look: OrganizationAppearance | null): OrganizationAppearance => ({
+  ...look,
+  locked: LOCKED_FOR_EVERYONE,
+});
+
+const readLook = (): OrganizationAppearance | null => {
   const value = storage.read(baseOptions.orgStorageKey);
-  return value !== null && typeof value === 'object' ? (value as OrganizationAppearance) : null;
+  if (value === null || typeof value !== 'object') return null;
+  const { locked: _locked, ...look } = value as OrganizationAppearance;
+  return Object.keys(look).length ? look : null;
 };
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Organization appearance (admin): defaults + locked options. Cached, refreshed by the app.
-  const [organization, setOrganizationState] = useState<OrganizationAppearance | null>(
-    readOrganization,
-  );
-  const options = useMemo(() => withOrganization(baseOptions, organization), [organization]);
-  const [theme, setTheme] = useState<ThemeState>(() =>
-    resolveThemeState(
-      storage.read(baseOptions.storageKey),
-      withOrganization(baseOptions, organization),
+const lookOf = (state: ThemeState): OrganizationAppearance => ({
+  mode: state.mode,
+  preset: state.preset,
+  appearance: { ...state.appearance },
+});
+
+const pickAppearance = (changes: Partial<Appearance>): Partial<Appearance> =>
+  Object.fromEntries(
+    Object.entries(changes).filter(([key]) =>
+      baseOptions.customizable.appearance.includes(key as keyof Appearance),
     ),
+  ) as Partial<Appearance>;
+
+/**
+ * One application look for everyone (Settings → Appearance, super admin; stored on the
+ * server, cached in localStorage and applied before the first paint). Each person only keeps
+ * their own light / dark choice (`setMode`). With `canEdit` (set by the app from the user's
+ * permissions) the look setters change the application look; AppearanceSync saves it.
+ */
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [look, setLook] = useState<OrganizationAppearance | null>(readLook);
+  const [canEdit, setCanEdit] = useState(false);
+  const options = useMemo(() => withOrganization(baseOptions, toCached(look)), [look]);
+  const [theme, setTheme] = useState<ThemeState>(() =>
+    resolveThemeState(storage.read(baseOptions.storageKey), options),
   );
-  // A changed organization re-resolves the user's stored choice (locked options follow it).
+  // A new look re-resolves the theme (the personal mode stays).
   const [appliedOptions, setAppliedOptions] = useState(options);
   if (appliedOptions !== options) {
     setAppliedOptions(options);
     setTheme(resolveThemeState(storage.read(options.storageKey), options));
   }
+
   const systemIsDark = useSyncExternalStore(subscribeToSystemMode, getSystemIsDark, () => false);
   const isNight = useSyncExternalStore(subscribeToClock, isNightNow, () => false);
   const baseMode = theme.mode === 'system' ? (systemIsDark ? 'dark' : 'light') : theme.mode;
@@ -124,137 +143,131 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useLayoutEffect(() => {
     applyLayoutTokens(document.documentElement);
+    // The cache always carries the locks (also before the first API answer).
+    storage.write(baseOptions.orgStorageKey, toCached(readLook()));
   }, []);
 
-  // Other tabs: follow their changes.
-  useEffect(
-    () =>
-      storage.subscribe(options.storageKey, (value) => {
-        const next = resolveThemeState(value, options);
-        setTheme((current) => (sameTheme(current, next) ? current : next));
-      }),
-    [options],
-  );
-  useEffect(
-    () =>
-      storage.subscribe(baseOptions.orgStorageKey, (value) => {
-        setOrganizationState(
-          value !== null && typeof value === 'object' ? (value as OrganizationAppearance) : null,
-        );
-      }),
-    [],
-  );
-
-  const update = useCallback(
-    (change: (current: ThemeState) => ThemeState) => {
+  // Other tabs: their personal mode and the cached look.
+  useEffect(() => {
+    const offMode = storage.subscribe(baseOptions.storageKey, () => {
       setTheme((current) => {
-        const next = change(current);
-        if (sameTheme(current, next)) return current;
-        storage.write(options.storageKey, toStored(next, options));
-        return next;
+        const next = resolveThemeState(storage.read(baseOptions.storageKey), options);
+        return sameTheme(current, next) ? current : next;
       });
+    });
+    const offLook = storage.subscribe(baseOptions.orgStorageKey, () => setLook(readLook()));
+    return () => {
+      offMode();
+      offLook();
+    };
+  }, [options]);
+
+  /** Personal light / dark / system (navbar toggle, user menu, command menu). */
+  const setMode = useCallback((mode: ColorMode) => {
+    if (!baseOptions.customizable.mode || !baseOptions.allowed.modes.includes(mode)) return;
+    storage.write(baseOptions.storageKey, { mode });
+    setTheme((current) => (current.mode === mode ? current : { ...current, mode }));
+  }, []);
+
+  /** Change the application look (editors only); `resetMode` drops the personal mode. */
+  const editLook = useCallback(
+    (change: (current: ThemeState) => ThemeState, resetMode = false) => {
+      if (!canEdit) return;
+      const current = options.defaults;
+      const next = change(current);
+      if (resetMode) storage.remove(baseOptions.storageKey);
+      if (sameTheme(current, next)) {
+        if (resetMode) setTheme(resolveThemeState(null, options));
+        return;
+      }
+      const nextLook = lookOf(next);
+      storage.write(baseOptions.orgStorageKey, toCached(nextLook));
+      setLook(nextLook);
     },
-    [options],
+    [canEdit, options],
   );
 
-  const setMode = useCallback(
-    (mode: ColorMode) => {
-      if (options.customizable.mode) update((current) => ({ ...current, mode }));
-    },
-    [update, options],
+  /** Everyone's default mode (Appearance page). */
+  const setDefaultMode = useCallback(
+    (mode: ColorMode) => editLook((current) => ({ ...current, mode }), true),
+    [editLook],
   );
 
   const setPreset = useCallback(
     (preset: ThemePresetId) => {
-      if (options.customizable.preset && options.allowed.presets.includes(preset)) {
-        update((current) => ({ ...current, preset }));
-      }
+      if (!baseOptions.allowed.presets.includes(preset)) return;
+      editLook((current) => ({ ...current, preset }));
     },
-    [update, options],
+    [editLook],
   );
 
   const setAppearance = useCallback(
-    (changes: Partial<Appearance>) => {
-      const allowed = Object.fromEntries(
-        Object.entries(changes).filter(([key]) =>
-          options.customizable.appearance.includes(key as keyof Appearance),
-        ),
-      ) as Partial<Appearance>;
-      update((current) => ({ ...current, appearance: { ...current.appearance, ...allowed } }));
-    },
-    [update, options],
+    (changes: Partial<Appearance>) =>
+      editLook((current) => ({
+        ...current,
+        appearance: { ...current.appearance, ...pickAppearance(changes) },
+      })),
+    [editLook],
   );
 
-  /** Several changes at once (quick presets): one update, one stored write. */
+  /** Several changes at once (quick presets): one edit, one save. */
   const applyTheme = useCallback(
-    (changes: { mode?: ColorMode; preset?: ThemePresetId; appearance?: Partial<Appearance> }) => {
-      update((current) => ({
-        mode: options.customizable.mode && changes.mode ? changes.mode : current.mode,
-        preset:
-          options.customizable.preset &&
-          changes.preset &&
-          options.allowed.presets.includes(changes.preset)
-            ? changes.preset
-            : current.preset,
-        appearance: {
-          ...current.appearance,
-          ...Object.fromEntries(
-            Object.entries(changes.appearance ?? {}).filter(([key]) =>
-              options.customizable.appearance.includes(key as keyof Appearance),
-            ),
-          ),
-        },
-      }));
-    },
-    [update, options],
+    (changes: { mode?: ColorMode; preset?: ThemePresetId; appearance?: Partial<Appearance> }) =>
+      editLook(
+        (current) => ({
+          mode: changes.mode ?? current.mode,
+          preset:
+            changes.preset && baseOptions.allowed.presets.includes(changes.preset)
+              ? changes.preset
+              : current.preset,
+          appearance: { ...current.appearance, ...pickAppearance(changes.appearance ?? {}) },
+        }),
+        Boolean(changes.mode),
+      ),
+    [editLook],
   );
 
-  /** Back to the organization's look (or the project defaults when there is none). */
-  const reset = useCallback(() => {
-    storage.remove(options.storageKey);
-    setTheme(options.defaults);
-  }, [options]);
+  /** Back to the built-in defaults (theme.config.ts) for everyone. */
+  const reset = useCallback(() => editLook(() => baseOptions.defaults, true), [editLook]);
 
-  /** New organization appearance from the API (null = none): cached for the next page load. */
+  /** The look from the server (AppearanceSync); null = never saved. */
   const setOrganization = useCallback((next: OrganizationAppearance | null) => {
-    if (next) storage.write(baseOptions.orgStorageKey, next);
-    else storage.remove(baseOptions.orgStorageKey);
-    setOrganizationState((current) =>
-      JSON.stringify(current) === JSON.stringify(next) ? current : next,
-    );
+    const clean = next ? lookOf(withOrganization(baseOptions, next).defaults) : null;
+    storage.write(baseOptions.orgStorageKey, toCached(clean));
+    setLook((current) => (JSON.stringify(current) === JSON.stringify(clean) ? current : clean));
   }, []);
-
-  const lockedOptions = useMemo(() => organization?.locked ?? [], [organization]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
       ...theme,
       resolvedMode,
       userCustomizable: themeConfig.userCustomizable,
-      presets: options.allowed.presets,
+      presets: baseOptions.allowed.presets,
       setMode,
+      setDefaultMode,
       setPreset,
       setAppearance,
       applyTheme,
       reset,
-      isCustomized: !sameTheme(theme, options.defaults),
-      organization,
-      defaults: options.defaults,
-      lockedOptions,
-      isLocked: (key: string) => lockedOptions.includes(key),
+      isCustomized: !sameTheme(options.defaults, baseOptions.defaults),
+      organization: look,
+      defaultMode: options.defaults.mode,
+      canEdit,
+      setCanEdit,
       setOrganization,
     }),
     [
       theme,
       resolvedMode,
       setMode,
+      setDefaultMode,
       setPreset,
       setAppearance,
       applyTheme,
       reset,
       options,
-      organization,
-      lockedOptions,
+      look,
+      canEdit,
       setOrganization,
     ],
   );

@@ -1,27 +1,21 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
-import {
-  MyAppearanceController,
-  OrgAppearanceController,
-} from './appearance.controller';
+import { AppearanceController } from './appearance.controller';
 import {
   AppearanceSettings,
   AppearanceSettingsSchema,
-  UserAppearance,
-  UserAppearanceSchema,
 } from './schemas/appearance-settings.schema';
 import { AppearanceService } from './services/appearance.service';
 
-/** Organization appearance (defaults + locks) and each user's synced appearance. */
+/** The application's look, set by the super admin and applied to every user. */
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: AppearanceSettings.name, schema: AppearanceSettingsSchema },
-      { name: UserAppearance.name, schema: UserAppearanceSchema },
     ]),
   ],
-  controllers: [OrgAppearanceController, MyAppearanceController],
+  controllers: [AppearanceController],
   providers: [AppearanceService],
 })
 export class AppearanceModule {}

@@ -12,6 +12,7 @@ export const settingsRoutes: RouteObject[] = [
       title: 'Appearance',
       breadcrumb: [{ label: 'Settings' }, { label: 'Appearance' }],
       featureFlag: 'ui.themeCustomizer',
+      permission: 'APPEARANCE_SETTINGS_MANAGE',
     } satisfies RouteHandle,
     lazy: lazyPage(
       () => import('@/features/settings/pages/AppearanceSettingsPage'),

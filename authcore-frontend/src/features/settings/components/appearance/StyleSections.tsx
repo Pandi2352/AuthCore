@@ -10,7 +10,6 @@ import type { IconStyle, TextSize } from '@/types/theme.types';
 
 import { entries, ICON_LABEL } from './appearance-labels';
 import { ChoiceCard, ChoiceGroup, SettingCard } from './AppearanceParts';
-import { lockKeysOf } from './lock-groups';
 
 function IconPreview({ style }: { style: IconStyle }) {
   if (style === 'classic') {
@@ -45,7 +44,6 @@ export function IconSection() {
   return (
     <SettingCard
       title="Icon style"
-      lockKeys={lockKeysOf('icons')}
       description="How navigation icons are drawn."
       badge={ICON_LABEL[appearance.icons].title}
     >
@@ -95,7 +93,6 @@ export function TypographySection() {
   return (
     <SettingCard
       title="Typography"
-      lockKeys={lockKeysOf('typography')}
       description="Typeface and base text size."
       badge={`${current.label} · ${size} px`}
     >
