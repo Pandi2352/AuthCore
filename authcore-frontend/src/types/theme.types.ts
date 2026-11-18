@@ -62,8 +62,11 @@ export type NavbarStyle = 'classic' | 'minimal' | 'floating' | 'compact';
 export type CardStyle = 'bordered' | 'filled' | 'elevated' | 'minimal';
 export type InputStyle = 'outlined' | 'filled' | 'underlined';
 export type ButtonStyle = 'solid' | 'soft' | 'outline';
-/** Navigation icons: classic (lucide outline), modern (Phosphor), duotone (Phosphor two-tone), color (two-tone, one color per item). */
-export type IconStyle = 'classic' | 'modern' | 'duotone' | 'color';
+/**
+ * Navigation icons: classic (lucide outline), modern (Phosphor), duotone (Phosphor two-tone),
+ * color (two-tone, one color per item), emoji (Microsoft Fluent Emoji, full color).
+ */
+export type IconStyle = 'classic' | 'modern' | 'duotone' | 'color' | 'emoji';
 
 export interface Appearance {
   radius: Radius;
@@ -135,7 +138,7 @@ export const APPEARANCE_VALUES: { readonly [K in AppearanceOption]: readonly App
   cards: ['bordered', 'filled', 'elevated', 'minimal'],
   inputs: ['outlined', 'filled', 'underlined'],
   buttons: ['solid', 'soft', 'outline'],
-  icons: ['classic', 'modern', 'duotone', 'color'],
+  icons: ['classic', 'modern', 'duotone', 'color', 'emoji'],
   fontSize: ['13', '14', '15', '16', '17', '18'],
   contrast: ['standard', 'high'],
   contentWidth: ['fluid', 'boxed', 'narrow'],

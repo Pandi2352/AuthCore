@@ -6,4 +6,5 @@ export { Logo, type LogoProps } from './Logo';
 export { SearchInput, type SearchInputProps } from './SearchInput';
 export { StatusBadge, type StatusBadgeProps } from './StatusBadge';
 export { ThemeCustomizer } from './ThemeCustomizer';
+export { EmojiIcon } from './EmojiIcon';
 export { ThemeToggle } from './ThemeToggle';

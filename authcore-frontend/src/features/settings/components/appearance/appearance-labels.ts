@@ -57,6 +57,7 @@ export const ICON_LABEL: Labels<IconStyle> = {
   modern: { title: 'Modern', description: 'Rounded, contemporary' },
   duotone: { title: 'Duotone', description: 'Accent fill, soft tone' },
   color: { title: 'Color', description: 'Each icon its own hue' },
+  emoji: { title: 'Emoji', description: 'Colorful Fluent emoji' },
 };
 
 export const CONTRAST_LABEL: Labels<ContrastLevel> = {

@@ -19,7 +19,7 @@ export const themeConfig: ThemeConfig = {
       cards: 'bordered',
       inputs: 'outlined',
       buttons: 'solid',
-      icons: 'classic', // classic · modern · duotone · color (navigation icons)
+      icons: 'classic', // classic · modern · duotone · color · emoji (navigation icons)
       fontSize: '14',
       contrast: 'standard',
       contentWidth: 'fluid', // fluid · boxed (88 %) · narrow (72 %)

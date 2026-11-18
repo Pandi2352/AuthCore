@@ -10,6 +10,10 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### Emoji icon style
+
+- _Additive:_ Appearance → Icon style **Emoji**: colorful Microsoft Fluent Emoji (flat) for the navigation. Only the icons in use are copied into `src/config/emoji-icons.ts` (`npm run icons:emoji`, ~30 KB, own chunk loaded only for this style) from the dev dependency `@iconify-json/fluent-emoji-flat` (MIT, © Microsoft). Icons picked to stay legible in dark mode.
+
 ### Create user
 
 - _Additive:_ Users → **Create user** (`/admin/users/new`): built from `GET /admin/users/create-config` — account fields as configured in Schemas, live email / username availability, initial password with _Generate_ and the active policy's rules, every custom variable rendered by data type (dropdown, multi-select, yes / no, date, list groups with add / remove; standard OpenID fields collapsed), groups, verified / welcome-email / change-at-first-sign-in options, _Create and add another_, unsaved-changes guard, server field errors (e.g. a unique value already used) under the field.

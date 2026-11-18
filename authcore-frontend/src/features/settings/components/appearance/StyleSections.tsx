@@ -3,15 +3,31 @@ import { BarChart3, House, UserRound } from 'lucide-react';
 import { useEffect } from 'react';
 
 import { useTheme } from '@/app/theme';
+import { EmojiIcon } from '@/components/common/EmojiIcon';
 import { Button, Select } from '@/components/ui';
 import { FEATURED_FONTS, fontById, FONTS, googleFontUrl } from '@/config/fonts';
+import { useEmojiIcons } from '@/hooks/useEmojiIcons';
 import { cn } from '@/lib/utils';
 import type { IconStyle, TextSize } from '@/types/theme.types';
 
 import { entries, ICON_LABEL } from './appearance-labels';
 import { ChoiceCard, ChoiceGroup, SettingCard } from './AppearanceParts';
 
+/** The three preview icons in Fluent Emoji (loads the small emoji chunk when shown). */
+function EmojiPreview() {
+  const emoji = useEmojiIcons(true);
+  if (!emoji) return <span className="block h-[18px]" />;
+  return (
+    <span className="flex gap-2">
+      <EmojiIcon icon={emoji.LayoutDashboard} />
+      <EmojiIcon icon={emoji.Settings} />
+      <EmojiIcon icon={emoji.UserRound} />
+    </span>
+  );
+}
+
 function IconPreview({ style }: { style: IconStyle }) {
+  if (style === 'emoji') return <EmojiPreview />;
   if (style === 'classic') {
     return (
       <span className="flex gap-2 text-muted-foreground [&_svg]:size-4.5">

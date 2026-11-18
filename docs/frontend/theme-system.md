@@ -8,11 +8,11 @@ How the starter kit changes its whole look without touching components.
 
 ## Three independent axes
 
-| Axis | Values | Stored as | Changes |
-| --- | --- | --- | --- |
-| **Color mode** | `light` · `dark` · `system` | `<html data-mode="light|dark">` (system resolved at runtime) | Background / foreground lightness |
-| **Preset** | `default` (blue) · `indigo` · `violet` · `pink` · `rose` · `orange` · `amber` · `lime` · `emerald` · `teal` · `sky` · `slate` · custom brand | `<html data-preset="…">` | Brand and accent colors |
-| **Appearance** | radius, density, font, sidebar / navbar / card / input / button styles | `<html data-radius="…" data-density="…">` + layout config | Shape, spacing, component styles |
+| Axis           | Values                                                                                                                                       | Stored as                                                 | Changes                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------ |
+| **Color mode** | `light` · `dark` · `system`                                                                                                                  | `<html data-mode="light                                   | dark">` (system resolved at runtime) | Background / foreground lightness |
+| **Preset**     | `default` (blue) · `indigo` · `violet` · `pink` · `rose` · `orange` · `amber` · `lime` · `emerald` · `teal` · `sky` · `slate` · custom brand | `<html data-preset="…">`                                  | Brand and accent colors              |
+| **Appearance** | radius, density, font, sidebar / navbar / card / input / button styles                                                                       | `<html data-radius="…" data-density="…">` + layout config | Shape, spacing, component styles     |
 
 They never depend on each other: any preset works in light and dark and with any appearance. Components only read **tokens**, so they don't know which preset, mode or style is active.
 
@@ -33,36 +33,36 @@ All tokens are CSS custom properties, registered in Tailwind v4's `@theme` so ut
 
 ### Colors (semantic, each with a `-foreground` pair where text sits on it)
 
-| Token | Use |
-| --- | --- |
-| `background` / `foreground` | Page |
-| `surface` / `surface-foreground` | Raised areas (cards, panels) |
-| `muted` / `muted-foreground` | Subtle backgrounds, secondary text |
-| `primary` / `primary-foreground` | Main actions, active nav, focus accents |
-| `primary-hover`, `primary-soft`, `primary-soft-foreground` | Hover, soft buttons, selected rows |
-| `secondary` / `secondary-foreground` | Secondary actions |
-| `accent` / `accent-foreground` | Hover backgrounds of menu items |
-| `border`, `input`, `field`, `ring` | Borders; `input` = checkbox / radio / switch outlines (3:1); `field` = softer text-field and outline-button borders (focus = primary, error = danger); focus ring |
-| `success`, `warning`, `danger`, `info` (+ `-foreground`, `-soft`) | Status, alerts, badges, toasts |
-| `overlay` | Dialog / drawer backdrop |
-| `sidebar`, `sidebar-foreground`, `sidebar-muted`, `sidebar-accent`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-active`, `sidebar-active-foreground` | Sidebar (can differ from the page, e.g. dark sidebar on a light app) |
-| `navbar`, `navbar-foreground`, `navbar-border` | Navbar |
-| `chart-1` … `chart-5` | Charts (Level 3) |
+| Token                                                                                                                                                            | Use                                                                                                                                                               |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `background` / `foreground`                                                                                                                                      | Page                                                                                                                                                              |
+| `surface` / `surface-foreground`                                                                                                                                 | Raised areas (cards, panels)                                                                                                                                      |
+| `muted` / `muted-foreground`                                                                                                                                     | Subtle backgrounds, secondary text                                                                                                                                |
+| `primary` / `primary-foreground`                                                                                                                                 | Main actions, active nav, focus accents                                                                                                                           |
+| `primary-hover`, `primary-soft`, `primary-soft-foreground`                                                                                                       | Hover, soft buttons, selected rows                                                                                                                                |
+| `secondary` / `secondary-foreground`                                                                                                                             | Secondary actions                                                                                                                                                 |
+| `accent` / `accent-foreground`                                                                                                                                   | Hover backgrounds of menu items                                                                                                                                   |
+| `border`, `input`, `field`, `ring`                                                                                                                               | Borders; `input` = checkbox / radio / switch outlines (3:1); `field` = softer text-field and outline-button borders (focus = primary, error = danger); focus ring |
+| `success`, `warning`, `danger`, `info` (+ `-foreground`, `-soft`)                                                                                                | Status, alerts, badges, toasts                                                                                                                                    |
+| `overlay`                                                                                                                                                        | Dialog / drawer backdrop                                                                                                                                          |
+| `sidebar`, `sidebar-foreground`, `sidebar-muted`, `sidebar-accent`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-active`, `sidebar-active-foreground` | Sidebar (can differ from the page, e.g. dark sidebar on a light app)                                                                                              |
+| `navbar`, `navbar-foreground`, `navbar-border`                                                                                                                   | Navbar                                                                                                                                                            |
+| `chart-1` … `chart-5`                                                                                                                                            | Charts (Level 3)                                                                                                                                                  |
 
 Rule: **no palette classes** (`bg-indigo-600`, `text-slate-500`) and **no hex values** in components. Lint / architecture check enforces it.
 
 ### Non-color tokens
 
-| Group | Tokens | Driven by |
-| --- | --- | --- |
-| Radius | `--radius-base` → `rounded-md`; the other steps scale from it | `data-radius`: `sharp` (0) · `small` (4px) · `medium` (6px, default) · `large` (8px) · `pill` (14px) |
-| Density / spacing | `h-control-sm/md/lg`, `p-page`, `p-card`, `gap-section`, `gap-form` | `data-density`: `compact` · `comfortable` · `spacious` |
-| Typography | `--font-sans`, `--font-mono`, `--text-base-size`, heading scale | `theme.config.ts` font option |
-| Shadows | `shadow-card`, `shadow-popover` (every Tailwind `shadow-*` step maps to the same setting) | `data-shadow`: `none` (default) · `subtle` · `elevated` |
-| Borders | `--border-width`, `--border-strength` | `data-borders`: `none` · `subtle` · `strong` |
-| Layout | `--sidebar-width`, `--sidebar-width-collapsed`, `--navbar-height`, `--content-max-width` | `layout.config.ts` |
-| Motion | `--duration-fast/normal`, `--ease-standard` | `0ms` under `prefers-reduced-motion` |
-| Z-index | `--z-sidebar`, `--z-navbar`, `--z-dropdown`, `--z-overlay`, `--z-modal`, `--z-toast` | fixed scale |
+| Group             | Tokens                                                                                    | Driven by                                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Radius            | `--radius-base` → `rounded-md`; the other steps scale from it                             | `data-radius`: `sharp` (0) · `small` (4px) · `medium` (6px, default) · `large` (8px) · `pill` (14px) |
+| Density / spacing | `h-control-sm/md/lg`, `p-page`, `p-card`, `gap-section`, `gap-form`                       | `data-density`: `compact` · `comfortable` · `spacious`                                               |
+| Typography        | `--font-sans`, `--font-mono`, `--text-base-size`, heading scale                           | `theme.config.ts` font option                                                                        |
+| Shadows           | `shadow-card`, `shadow-popover` (every Tailwind `shadow-*` step maps to the same setting) | `data-shadow`: `none` (default) · `subtle` · `elevated`                                              |
+| Borders           | `--border-width`, `--border-strength`                                                     | `data-borders`: `none` · `subtle` · `strong`                                                         |
+| Layout            | `--sidebar-width`, `--sidebar-width-collapsed`, `--navbar-height`, `--content-max-width`  | `layout.config.ts`                                                                                   |
+| Motion            | `--duration-fast/normal`, `--ease-standard`                                               | `0ms` under `prefers-reduced-motion`                                                                 |
+| Z-index           | `--z-sidebar`, `--z-navbar`, `--z-dropdown`, `--z-overlay`, `--z-modal`, `--z-toast`      | fixed scale                                                                                          |
 
 ## CSS layout (Tailwind v4)
 
@@ -108,7 +108,9 @@ Rule: **no palette classes** (`bg-indigo-600`, `text-slate-500`) and **no hex va
   --foreground: oklch(0.96 0.01 260);
   /* … */
 }
-[data-preset="emerald"] { --primary: oklch(0.6 0.15 160); /* … */ }
+[data-preset="emerald"] {
+  --primary: oklch(0.6 0.15 160); /* … */
+}
 ```
 
 Hover shades use `color-mix(in oklch, var(--primary) 86%, black)`. Every color that text sits on is a literal OKLCH value, so `npm run check:contrast` can verify it. Neutrals and status colors are shared; a preset only overrides the primary family (`--primary`, `--primary-foreground`, `--primary-soft`, `--primary-soft-foreground`) in light and dark.
@@ -117,15 +119,15 @@ The **brand** preset takes `branding.primaryColor` from `app.config.ts`. At runt
 
 ## Presets
 
-| Preset | Character | Primary |
-| --- | --- | --- |
-| `default` | Clean SaaS | Blue |
-| `emerald` | Business dashboard | Green |
-| `violet` | Modern product | Violet |
-| `orange` | Warm, friendly | Orange |
-| `slate` | Neutral / enterprise | Gray-blue |
-| `rose` | Consumer | Rose |
-| `brand` | The project's own color from `app.config.ts` → `brand.primaryColor` | Any |
+| Preset    | Character                                                           | Primary   |
+| --------- | ------------------------------------------------------------------- | --------- |
+| `default` | Clean SaaS                                                          | Blue      |
+| `emerald` | Business dashboard                                                  | Green     |
+| `violet`  | Modern product                                                      | Violet    |
+| `orange`  | Warm, friendly                                                      | Orange    |
+| `slate`   | Neutral / enterprise                                                | Gray-blue |
+| `rose`    | Consumer                                                            | Rose      |
+| `brand`   | The project's own color from `app.config.ts` → `brand.primaryColor` | Any       |
 
 Each preset defines **every** color token for light and dark. `config/theme.presets.ts` holds the metadata (id, label, swatch, `isDark`-friendly) used by the customizer; the CSS holds the values. A preset that misses a token falls back to `default` (the `:root` block).
 
@@ -137,31 +139,31 @@ Each preset defines **every** color token for light and dark. `config/theme.pres
 
 ## Appearance
 
-| Option | Values | Effect |
-| --- | --- | --- |
-| `radius` | `sharp` · `small` · `medium` · `large` · `pill` | All `rounded-*` tokens |
-| `density` | `compact` · `comfortable` · `spacious` | Control heights, paddings, table row height, page spacing |
-| `font` | `inter` · `system` · `serif` · `mono` + 16 more (`config/fonts.ts`) · `custom` | `--font-family-sans` set on `<html>`; the chosen Google font's stylesheet (`<link id="theme-font">`) is loaded **only when that font is selected** — no font requests otherwise. `custom` = your `--font-custom` `@font-face` |
-| `fontSize` | `13` … `18` (px) | Root font size (`14` = 100 %); the whole rem-based UI scales |
-| `shadows` | `none` · `subtle` · `elevated` | Card / popover shadows |
-| `borders` | `none` · `subtle` · `strong` | Border width / color strength |
-| `sidebar` | `classic` · `minimal` · `floating` · `compact` | Sidebar look (the same four as the navbar) |
-| `navbar` | `classic` · `minimal` · `floating` · `compact` | Navbar look: classic (bar + border) · minimal (no background / border) · floating (separate rounded bar) · compact (12 px shorter; the sidebar header follows) |
-| `cards` | `bordered` · `filled` · `elevated` · `minimal` | Default `Card` variant |
-| `inputs` | `outlined` · `filled` · `underlined` | Default `Input` / `Select` / `Textarea` variant |
-| `buttons` | `solid` · `soft` · `outline` | Default `Button` variant for `intent="primary"` |
-| `icons` | `classic` · `modern` · `duotone` · `color` | Navigation icons: lucide outline · Phosphor regular · Phosphor two-tone (fill in the primary color) · two-tone, one color per item (`iconColor` or picked from the id; tokens `--nav-<color>`, 3:1 on the sidebar) |
-| `contrast` | `standard` · `high` | High: strong borders, field borders = input color, muted text closer to foreground |
-| `contentWidth` | `fluid` · `boxed` · `narrow` | `--content-max-width`: none · 88 % · 72 % (replaces `layout.content.maxWidth`) |
-| `sidebarPosition` | `left` · `right` | Sidebar side (desktop, drawer, tooltips, toggle icon); default from `layout.sidebar.position` |
-| `navbarSearch` · `breadcrumbs` | `on` · `off` | Show the navbar search box / breadcrumbs (the config switches still win) |
-| `striped` | `on` · `off` | Zebra rows in every table |
-| `gradientButtons` | `on` · `off` | Gradient on solid buttons (`[data-variant='solid']`) |
-| `strongFocus` | `on` · `off` | 3 px focus outline |
-| `reduceMotion` | `on` · `off` | Turns off transitions / animations (on top of the OS setting) |
-| `tooltips` | `on` · `off` | `Tooltip` renders only its trigger (accessible names stay) |
-| `autoDark` | `on` · `off` | Light mode turns dark 19:00 – 06:00 (provider clock + no-flash script) |
-| `customColor` | `''` or `#rrggbb` | The user's own accent: used when preset = `custom` (same contrast correction as `brand`) |
+| Option                         | Values                                                                         | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `radius`                       | `sharp` · `small` · `medium` · `large` · `pill`                                | All `rounded-*` tokens                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `density`                      | `compact` · `comfortable` · `spacious`                                         | Control heights, paddings, table row height, page spacing                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `font`                         | `inter` · `system` · `serif` · `mono` + 16 more (`config/fonts.ts`) · `custom` | `--font-family-sans` set on `<html>`; the chosen Google font's stylesheet (`<link id="theme-font">`) is loaded **only when that font is selected** — no font requests otherwise. `custom` = your `--font-custom` `@font-face`                                                                                                                                                                                                                                                                                         |
+| `fontSize`                     | `13` … `18` (px)                                                               | Root font size (`14` = 100 %); the whole rem-based UI scales                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `shadows`                      | `none` · `subtle` · `elevated`                                                 | Card / popover shadows                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `borders`                      | `none` · `subtle` · `strong`                                                   | Border width / color strength                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `sidebar`                      | `classic` · `minimal` · `floating` · `compact`                                 | Sidebar look (the same four as the navbar)                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `navbar`                       | `classic` · `minimal` · `floating` · `compact`                                 | Navbar look: classic (bar + border) · minimal (no background / border) · floating (separate rounded bar) · compact (12 px shorter; the sidebar header follows)                                                                                                                                                                                                                                                                                                                                                        |
+| `cards`                        | `bordered` · `filled` · `elevated` · `minimal`                                 | Default `Card` variant                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `inputs`                       | `outlined` · `filled` · `underlined`                                           | Default `Input` / `Select` / `Textarea` variant                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `buttons`                      | `solid` · `soft` · `outline`                                                   | Default `Button` variant for `intent="primary"`                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `icons`                        | `classic` · `modern` · `duotone` · `color` · `emoji`                           | Navigation icons: lucide outline · Phosphor regular · Phosphor two-tone (fill in the primary color) · two-tone, one color per item (`iconColor` or picked from the id; tokens `--nav-<color>`, 3:1 on the sidebar) · Microsoft Fluent Emoji, full color (`src/config/emoji-icons.ts`, generated by `npm run icons:emoji` from the dev dependency `@iconify-json/fluent-emoji-flat`, MIT; loaded only when chosen). New `IconName` → add its emoji in `scripts/build-emoji-icons.mjs` (the type check fails otherwise) |
+| `contrast`                     | `standard` · `high`                                                            | High: strong borders, field borders = input color, muted text closer to foreground                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `contentWidth`                 | `fluid` · `boxed` · `narrow`                                                   | `--content-max-width`: none · 88 % · 72 % (replaces `layout.content.maxWidth`)                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `sidebarPosition`              | `left` · `right`                                                               | Sidebar side (desktop, drawer, tooltips, toggle icon); default from `layout.sidebar.position`                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `navbarSearch` · `breadcrumbs` | `on` · `off`                                                                   | Show the navbar search box / breadcrumbs (the config switches still win)                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `striped`                      | `on` · `off`                                                                   | Zebra rows in every table                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `gradientButtons`              | `on` · `off`                                                                   | Gradient on solid buttons (`[data-variant='solid']`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `strongFocus`                  | `on` · `off`                                                                   | 3 px focus outline                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `reduceMotion`                 | `on` · `off`                                                                   | Turns off transitions / animations (on top of the OS setting)                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `tooltips`                     | `on` · `off`                                                                   | `Tooltip` renders only its trigger (accessible names stay)                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `autoDark`                     | `on` · `off`                                                                   | Light mode turns dark 19:00 – 06:00 (provider clock + no-flash script)                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `customColor`                  | `''` or `#rrggbb`                                                              | The user's own accent: used when preset = `custom` (same contrast correction as `brand`)                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 ### Appearance page
 
@@ -176,8 +178,8 @@ Switching appearance must never change layout dimensions unexpectedly: control h
 The look is the same for everyone and is set by the super admin on **Settings → Appearance** (route and menu need `APPEARANCE_SETTINGS_MANAGE`; the ADMIN role always has it). Other users don't see the page.
 
 - **Stored on the server** (`GET /settings/appearance/public`, no sign-in; `PUT /settings/appearance`), cached in localStorage (`<slug>:theme-org:v1`) and applied before the first paint — also on the sign-in pages.
-- **Editing:** every change on the page applies at once and is saved automatically ~1 s later (`AppearanceSync`; header chip: Applies to everyone · Saving… · Saved for everyone). *Reset to default* puts everyone back on `theme.config.ts` (after a confirmation).
-- **Personal light / dark:** the only per-person choice (navbar toggle, user menu, command menu → `setMode`), stored per browser (`<slug>:theme:v2`). The Mode card on the Appearance page sets everyone's *default* mode (`setDefaultMode`).
+- **Editing:** every change on the page applies at once and is saved automatically ~1 s later (`AppearanceSync`; header chip: Applies to everyone · Saving… · Saved for everyone). _Reset to default_ puts everyone back on `theme.config.ts` (after a confirmation).
+- **Personal light / dark:** the only per-person choice (navbar toggle, user menu, command menu → `setMode`), stored per browser (`<slug>:theme:v2`). The Mode card on the Appearance page sets everyone's _default_ mode (`setDefaultMode`).
 
 How it works: the cached look is applied through `withOrganization(options, look)` with every option locked except `mode`, so `resolveThemeState` (and the no-flash script) always use the application look. `useTheme()` → `organization` (the look), `defaultMode`, `canEdit` (set from the permission), `setOrganization()`; the look setters (`setPreset`, `setAppearance`, `applyTheme`, `reset`, `setDefaultMode`) only act when `canEdit`. Backend: `modules/appearance` (known option keys + value shape; the frontend applies only whitelisted values).
 
@@ -185,33 +187,33 @@ How it works: the cached look is applied through `withOrganization(options, look
 
 ```ts
 // config/theme.config.ts
-import type { ThemeConfig } from '@/types/theme.types';
+import type { ThemeConfig } from "@/types/theme.types";
 
 export const themeConfig: ThemeConfig = {
   defaults: {
-    mode: 'system',
-    preset: 'default',
+    mode: "system",
+    preset: "default",
     appearance: {
-      radius: 'medium',
-      density: 'comfortable',
-      font: 'system',
-      shadows: 'none',
-      borders: 'subtle',
-      sidebar: 'classic',
-      navbar: 'standard',
-      cards: 'bordered',
-      inputs: 'outlined',
-      buttons: 'solid',
+      radius: "medium",
+      density: "comfortable",
+      font: "system",
+      shadows: "none",
+      borders: "subtle",
+      sidebar: "classic",
+      navbar: "standard",
+      cards: "bordered",
+      inputs: "outlined",
+      buttons: "solid",
     },
   },
   /** What end users may change (the rest is fixed by the project). */
   userCustomizable: {
     mode: true,
     preset: true,
-    appearance: ['radius', 'density'], // + 'sidebar' once the sidebar exists (module 7)
+    appearance: ["radius", "density"], // + 'sidebar' once the sidebar exists (module 7)
   },
   /** Presets offered in the customizer (all registered presets if omitted). */
-  presets: ['default', 'emerald', 'violet', 'orange', 'brand'],
+  presets: ["default", "emerald", "violet", "orange", "brand"],
 };
 ```
 
@@ -244,8 +246,8 @@ Sidebar and navbar have their own tokens (`--sidebar-*`, `--navbar-*`), so a pro
 - [x] `ThemeProvider`, `useTheme`, storage with validation and versioned key, cross-tab sync.
 - [x] No-flash inline script; `color-scheme` and `theme-color` meta updated.
 - [x] `ThemeToggle` (navbar) and `ThemeCustomizer` (Appearance page) respect `userCustomizable`.
-- [ ] Components use defaults from `useTheme().appearance` when no variant prop is passed *(module 4, UI library)*.
+- [ ] Components use defaults from `useTheme().appearance` when no variant prop is passed _(module 4, UI library)_.
 - [x] Reduced-motion and focus-ring styles in `base.css`.
-- [ ] `/dev/ui` kitchen-sink page shows every component; preset / mode / appearance switchers at the top *(module 4)*.
+- [ ] `/dev/ui` kitchen-sink page shows every component; preset / mode / appearance switchers at the top _(module 4)_.
 - [ ] Manual check: provider resolves system mode, persists, falls back on invalid stored values, applies attributes; pages reviewed in every preset × mode before each release.
 - [x] Contrast check for every preset × mode (`npm run check:contrast`).

@@ -35,3 +35,4 @@ export { usePrevious } from './usePrevious';
 export { useQueryParams } from './useQueryParams';
 export { useRequiredParam } from './useRequiredParam';
 export { useScrollLock } from './useScrollLock';
+export { useEmojiIcons } from './useEmojiIcons';

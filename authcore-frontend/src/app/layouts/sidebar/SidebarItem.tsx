@@ -3,8 +3,10 @@ import type { ReactElement, ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import { useOptionalTheme } from '@/app/theme';
+import { EmojiIcon } from '@/components/common/EmojiIcon';
 import { Badge, Tooltip } from '@/components/ui';
 import { icons } from '@/config';
+import { useEmojiIcons } from '@/hooks/useEmojiIcons';
 import { cn } from '@/lib/utils';
 import { NAV_ICON_COLORS, type NavIconColor, type NavItem } from '@/types/navigation.types';
 
@@ -36,13 +38,16 @@ function colorOf(item: NavItem): NavIconColor {
 
 /**
  * Navigation icon in the theme's icon style (appearance.icons): classic = lucide outline;
- * modern = Phosphor regular; duotone = Phosphor two-tone; color = two-tone in the item's color.
+ * modern = Phosphor regular; duotone = Phosphor two-tone; color = two-tone in the item's color;
+ * emoji = Microsoft Fluent Emoji (full color, lazy-loaded).
  */
 export function ItemIcon({ item }: { item: NavItem }) {
   const style = useOptionalTheme()?.appearance.icons ?? 'classic';
-  const modern = useModernIcons(style !== 'classic');
+  const modern = useModernIcons(style !== 'classic' && style !== 'emoji');
+  const emoji = useEmojiIcons(style === 'emoji');
   if (!item.icon) return null;
-  if (style === 'classic' || !modern) {
+  if (style === 'emoji' && emoji) return <EmojiIcon icon={emoji[item.icon]} size={18} />;
+  if (style === 'classic' || style === 'emoji' || !modern) {
     const Icon = icons[item.icon];
     return <Icon className="size-4.5 shrink-0" aria-hidden="true" />;
   }
