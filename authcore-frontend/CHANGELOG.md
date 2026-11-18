@@ -10,6 +10,10 @@ When you change the kit: add an entry under **Unreleased** in the same commit. W
 
 ## Unreleased — Level 1 (foundation)
 
+### Schemas (custom user variables)
+
+- _Additive:_ Administration → Security settings → **Schemas** (was "User schema", now `/admin/security/schemas`, `features/user-schema`): every variable as a tree table (groups expand to their children, dotted names like `address.locality`), stat tiles, search by name / label / description, filters by type, source (system / custom) and status, an inline enable switch, and _Create variable_ / _Create group_ in a drawer (11 data types, dropdown options, length / number limits, scopes, locales, behaviour and access rules). Uses the existing `/user-schema` API.
+
 ### Password policy
 
 - _Additive:_ Administration → Security settings → **Password policy** (`features/password-policy`): every saved policy as cards (strength gauge, key rules, Make active / Edit / Duplicate / Delete) and the active policy on top; an editor (`/admin/security/password-policy/new` and `/:id`) with sliders, live strength score and tips, a "Try a password" checker, an example password and an unsaved-changes guard. Exactly one policy is active (backend: partial unique index; an existing single policy becomes the active one at startup).

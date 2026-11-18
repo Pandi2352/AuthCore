@@ -157,9 +157,8 @@ export const navigationConfig: NavGroup[] = [
           },
           {
             id: 'admin-user-schema',
-            title: 'User schema',
+            title: 'Schemas',
             path: paths.admin.userSchema,
-            status: 'planned',
             permission: 'USER_SCHEMA_READ',
           },
         ],

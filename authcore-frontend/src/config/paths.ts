@@ -40,7 +40,7 @@ export const paths = {
     passwordPolicy: '/admin/security/password-policy',
     passwordPolicyNew: '/admin/security/password-policy/new',
     passwordPolicyEdit: (id: string) => `/admin/security/password-policy/${segment(id)}`,
-    userSchema: '/admin/security/user-schema',
+    userSchema: '/admin/security/schemas',
     activity: '/admin/monitoring/activity',
   },
 

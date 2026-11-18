@@ -16,6 +16,20 @@ const PASSWORD_POLICY_CRUMBS = [
 
 export const adminRoutes: RouteObject[] = [
   {
+    path: paths.admin.userSchema,
+    handle: {
+      title: 'Schemas',
+      breadcrumb: [
+        { label: 'Administration' },
+        { label: 'Security settings' },
+        { label: 'Schemas' },
+      ],
+      featureFlag: 'admin.enabled',
+      permission: 'USER_SCHEMA_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(() => import('@/features/user-schema/pages/SchemasPage'), 'SchemasPage'),
+  },
+  {
     path: paths.admin.passwordPolicy,
     handle: {
       title: 'Password policy',
