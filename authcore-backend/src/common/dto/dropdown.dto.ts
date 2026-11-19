@@ -26,7 +26,7 @@ export class DropdownOptionDto {
   label!: string;
 
   @ApiPropertyOptional({
-    example: 'ACCESS_CONTROL_ADMIN',
+    example: 'ROLE-01',
     description: 'Key / code, when the entity has one',
   })
   key?: string;

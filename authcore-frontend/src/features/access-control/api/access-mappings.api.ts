@@ -66,6 +66,42 @@ export const accessMappingsApi = {
   removeRolePermissions: (body: { roleId: string; permissionIds: string[] }) =>
     apiClient.post<RemoveResult>(`${BASE}/role-permissions/remove`, body),
 
+  /** All of a group's members (GROUP_USER) or roles (GROUP_ROLE), every page. */
+  groupMappings: async (
+    groupId: string,
+    type: 'GROUP_USER' | 'GROUP_ROLE',
+    signal?: AbortSignal,
+  ): Promise<AccessMapping[]> => {
+    const items: AccessMapping[] = [];
+    for (let page = 1; page <= 50; page += 1) {
+      // Pages depend on each other (stop at the last one), so they load one by one.
+      // oxlint-disable-next-line no-await-in-loop
+      const result = await apiClient.getPage<AccessMapping>(BASE, {
+        signal,
+        query: { page, limit: 100, type, groupId },
+      });
+      items.push(...result.items);
+      if (!result.meta.hasNextPage) break;
+    }
+    return items;
+  },
+
+  /** Ids of the permissions a role grants directly (all pages). */
+  rolePermissionIds: async (roleId: string, signal?: AbortSignal): Promise<string[]> => {
+    const ids: string[] = [];
+    for (let page = 1; page <= 50; page += 1) {
+      // Pages depend on each other (stop at the last one), so they load one by one.
+      // oxlint-disable-next-line no-await-in-loop
+      const result = await apiClient.getPage<AccessMapping>(BASE, {
+        signal,
+        query: { page, limit: 100, type: 'ROLE_PERMISSION', roleId },
+      });
+      for (const m of result.items) if (m.permission) ids.push(m.permission.id);
+      if (!result.meta.hasNextPage) break;
+    }
+    return ids;
+  },
+
   effectiveAccess: (userId: string, signal?: AbortSignal) =>
     apiClient.get<EffectiveAccess>(`${BASE}/users/${encodeURIComponent(userId)}/effective-access`, {
       signal,

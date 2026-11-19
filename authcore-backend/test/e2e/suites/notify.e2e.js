@@ -149,8 +149,14 @@ async function main() {
   const token = ((await waitMail('user-invite', email('invited')))[0]?.match(/accept-invite\?token=([A-Za-z0-9_-]{43})/) || [])[1];
   r = await call('POST', '/user-invites/accept', { body: { token, password: 'Ivy!Pass2026x', confirmPassword: 'Ivy!Pass2026x', firstName: 'Ivy' } });
   check('invited user joined the default group', r.status === 201 && (await memberOf(await uid('invited'))).includes(gDefault.id), dump(r));
-  // Escalation: ACCESS_CONTROL_ADMIN (can edit groups, lacks USER_READ) can't make a USER_READ group default
-  const acRole = await col('roles').findOne({ roleKey: 'ACCESS_CONTROL_ADMIN' });
+  // Escalation: an access-control role (can edit groups, lacks USER_READ) can't make a USER_READ group default
+  const acRole = await (async (modules, name) => {
+    // The old built-in role: a custom role holding these modules' system permissions.
+    const perms = await col('permissions').find({ isSystem: true, isDeleted: false, metadata: { $elemMatch: { key: 'module', value: { $in: modules } } } }).toArray();
+    const stamp = Date.now();
+    const res = await call('POST', '/roles/setup', { token: A, body: { roleKey: `E2E_${name}_${stamp}`, roleName: `E2E ${name} ${stamp}`, category: 'CUSTOM', permissionIds: perms.map((p) => p._id) } });
+    return { _id: res.body.data.role.id };
+  })(['access-control'], 'ACCESS_CONTROL');
   const gAc = (await call('POST', '/groups', { token: A, body: { category: 'TEAM', groupName: `NT AC ${Date.now()}` } })).body.data;
   await call('POST', '/access-mappings/group-roles', { token: A, body: { groupId: gAc.id, roleIds: [acRole._id] } });
   await call('POST', '/access-mappings/group-users', { token: A, body: { groupId: gAc.id, userIds: [await uid('acadmin')] } });

@@ -16,6 +16,7 @@ export const buttonVariants = variants({
     },
     size: {
       sm: 'h-control-sm px-3 text-xs',
+      toolbar: 'h-control-toolbar px-3.5 text-sm',
       md: 'h-control-md px-4 text-sm',
       lg: 'h-control-lg px-6 text-base',
       icon: 'size-control-md p-0',

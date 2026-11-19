@@ -115,8 +115,14 @@ async function main() {
   const uid = async (t) => String((await col('users').findOne({ email: email(t) }))._id);
   const A = await tok('admin'); const me = await tok('me'); const other = await tok('other');
   const meId = await uid('me'); const otherId = await uid('other');
-  // reader: FILE_READ via the USER_ADMIN system role in a group
-  const userAdminRole = await col('roles').findOne({ roleKey: 'USER_ADMIN' });
+  // reader: FILE_READ via a user-admin role (users, user schema, files) in a group
+  const userAdminRole = await (async (modules, name) => {
+    // The old built-in role: a custom role holding these modules' system permissions.
+    const perms = await col('permissions').find({ isSystem: true, isDeleted: false, metadata: { $elemMatch: { key: 'module', value: { $in: modules } } } }).toArray();
+    const stamp = Date.now();
+    const res = await call('POST', '/roles/setup', { token: A, body: { roleKey: `E2E_${name}_${stamp}`, roleName: `E2E ${name} ${stamp}`, category: 'CUSTOM', permissionIds: perms.map((p) => p._id) } });
+    return { _id: res.body.data.role.id };
+  })(['users', 'user-schema', 'files'], 'USER_ADMIN');
   const group = (await call('POST', '/groups', { token: A, body: { category: 'TEAM', groupName: `Files Readers ${Date.now()}` } })).body.data;
   await call('POST', '/access-mappings/group-roles', { token: A, body: { groupId: group.id, roleIds: [userAdminRole._id] } });
   await call('POST', '/access-mappings/group-users', { token: A, body: { groupId: group.id, userIds: [await uid('reader')] } });
@@ -177,7 +183,7 @@ async function main() {
   r = await call('GET', `/files/${doc.id}`, { token: me });
   check('metadata', r.status === 200 && r.body.data.id === doc.id);
   check('another user -> 404 (not 403)', (await call('GET', `/files/${doc.id}/content`, { token: other })).status === 404 && (await call('GET', `/files/${doc.id}`, { token: other })).status === 404);
-  check('FILE_READ (USER_ADMIN role) can read', (await call('GET', `/files/${doc.id}/content`, { token: reader, raw: true })).status === 200);
+  check('FILE_READ (user-admin role) can read', (await call('GET', `/files/${doc.id}/content`, { token: reader, raw: true })).status === 200);
   check('ADMIN can read', (await call('GET', `/files/${doc.id}`, { token: A })).status === 200);
   check('private file not on the public URL -> 404', (await call('GET', `/files/public/${doc.id}`, { raw: true })).status === 404);
   check('no token -> 401', (await call('GET', `/files/${doc.id}/content`, { raw: true })).status === 401);
@@ -191,7 +197,7 @@ async function main() {
 
   console.log('\n4. Delete');
   check('another user cannot delete -> 404', (await call('DELETE', `/files/${doc.id}`, { token: other })).status === 404);
-  check('FILE_DELETE (USER_ADMIN role) can delete', (await call('DELETE', `/files/${jpgId}`, { token: reader })).status === 200 && !(await col('files').findOne({ _id: jpgId })));
+  check('FILE_DELETE (user-admin role) can delete', (await call('DELETE', `/files/${jpgId}`, { token: reader })).status === 200 && !(await col('files').findOne({ _id: jpgId })));
   r = await call('DELETE', `/files/${sanitizedId}`, { token: me });
   const sanitizedKey = 'gone';
   check('owner deletes: record and bytes removed', r.status === 200 && !(await col('files').findOne({ _id: sanitizedId })));

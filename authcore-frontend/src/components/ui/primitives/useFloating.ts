@@ -13,6 +13,13 @@ interface FloatingOptions {
   matchWidth?: boolean;
 }
 
+export interface FloatingState {
+  style: CSSProperties;
+  placement: Side;
+  /** Anchor center along the floating element's edge (px), for an arrow; null until placed. */
+  arrowOffset: number | null;
+}
+
 const OPPOSITE: Record<Side, Side> = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
 const VIEWPORT_PADDING = 8;
 
@@ -26,10 +33,11 @@ export function useFloating(
   anchorRef: RefObject<HTMLElement | null>,
   floatingRef: RefObject<HTMLElement | null>,
   { open, side = 'bottom', align = 'start', offset = 6, matchWidth = false }: FloatingOptions,
-): { style: CSSProperties; placement: Side } {
-  const [state, setState] = useState<{ style: CSSProperties; placement: Side }>({
+): FloatingState {
+  const [state, setState] = useState<FloatingState>({
     style: { position: 'fixed', top: 0, left: 0, visibility: 'hidden' },
     placement: side,
+    arrowOffset: null,
   });
 
   useLayoutEffect(() => {
@@ -84,10 +92,16 @@ export function useFloating(
           Math.max(top, VIEWPORT_PADDING),
           Math.max(VIEWPORT_PADDING, vh - height - VIEWPORT_PADDING),
         );
+      // Where the anchor's center falls on the floating element (for an arrow), kept clear of
+      // the corners — it moves when the element is shifted to stay on screen.
+      const arrowOffset = vertical
+        ? Math.min(Math.max(a.left + a.width / 2 - left, 10), width - 10)
+        : Math.min(Math.max(a.top + a.height / 2 - top, 10), height - 10);
       const maxHeight = vertical ? Math.max(120, space[placement]) : vh - VIEWPORT_PADDING * 2;
 
       setState({
         placement,
+        arrowOffset: Math.round(arrowOffset),
         style: {
           position: 'fixed',
           top: Math.round(top),

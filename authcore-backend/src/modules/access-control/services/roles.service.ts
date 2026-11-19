@@ -14,6 +14,10 @@ import {
   buildSort,
   containsPattern,
 } from '@common/utils/query.util';
+import {
+  nextSequenceCode,
+  toCodeValue,
+} from '@common/utils/sequence-code.util';
 import { generateUuid } from '@common/utils/uuid.util';
 import {
   assertUnique,
@@ -23,7 +27,9 @@ import {
 } from '@database/utils/unique-check.util';
 
 import {
+  CATEGORY_VALUE_PATTERN,
   ROLE_CATEGORIES,
+  ROLE_KEY_PREFIX,
   SYSTEM_ROLE_CATEGORY,
 } from '../constants/access-control.constants';
 import {
@@ -31,12 +37,15 @@ import {
   type BulkUpdateRolesResponseDto,
   type CreateRoleDto,
   type DeletedResponseDto,
+  type NextRoleKeyDto,
   ROLE_SORT_FIELDS,
+  type RoleCategoryDto,
   type RoleDropdownQueryDto,
   type RoleExistsQueryDto,
   type RoleListItemDto,
   type RoleListQueryDto,
   type RoleResponseDto,
+  type RoleStatsDto,
   type UpdateRoleDto,
 } from '../dto/role.dto';
 import {
@@ -47,7 +56,9 @@ import {
 } from '../enums/access-control.enum';
 import type { Actor } from '../interfaces/actor.interface';
 import { AccessMapping } from '../schemas/access-mapping.schema';
+import { Permission } from '../schemas/permission.schema';
 import { Role } from '../schemas/role.schema';
+import { RoleCategory } from '../schemas/role-category.schema';
 import { AccessErrors, changedValues } from '../utils/access-errors.util';
 import { AccessAuditService } from './access-audit.service';
 import { AccessResolverService } from './access-resolver.service';
@@ -62,6 +73,10 @@ export class RolesService {
     @InjectModel(Role.name) private readonly roleModel: Model<Role>,
     @InjectModel(AccessMapping.name)
     private readonly mappingModel: Model<AccessMapping>,
+    @InjectModel(RoleCategory.name)
+    private readonly categoryModel: Model<RoleCategory>,
+    @InjectModel(Permission.name)
+    private readonly permissionModel: Model<Permission>,
     private readonly auditService: AccessAuditService,
     private readonly resolver: AccessResolverService,
   ) {}
@@ -74,7 +89,8 @@ export class RolesService {
       roleName: dto.roleName,
       category: dto.category,
       description: dto.description ?? '',
-      status: dto.status ?? RecordStatus.Active,
+      // Roles are always in effect (status stays ACTIVE).
+      status: RecordStatus.Active,
       createdBy: actor.auth.userId,
       updatedBy: actor.auth.userId,
     });
@@ -120,7 +136,6 @@ export class RolesService {
           }
         : {}),
       ...(query.category ? { category: query.category } : {}),
-      ...(query.status ? { status: query.status } : {}),
       ...(createdAt ? { createdAt } : {}),
       ...(updatedAt ? { updatedAt } : {}),
     };
@@ -141,7 +156,30 @@ export class RolesService {
         .lean(),
       this.roleModel.countDocuments(filter),
     ]);
-    return paginate(roles.map(toListItem), page, limit, total);
+    // Permission counts for this page in one query (no request per row).
+    const counts = await this.mappingModel.aggregate<{
+      _id: string;
+      n: number;
+    }>([
+      {
+        $match: {
+          type: MappingType.RolePermission,
+          roleId: { $in: roles.map((r) => r._id) },
+        },
+      },
+      { $group: { _id: '$roleId', n: { $sum: 1 } } },
+    ]);
+    const countOf = new Map(counts.map((c) => [c._id, c.n]));
+    return paginate(
+      roles.map((r) =>
+        Object.assign(toListItem(r), {
+          permissionCount: countOf.get(r._id) ?? 0,
+        }),
+      ),
+      page,
+      limit,
+      total,
+    );
   }
 
   /** Active roles for selects: id + name (+ key). */
@@ -165,11 +203,146 @@ export class RolesService {
     return roles.map((r) => ({ id: r._id, label: r.roleName, key: r.roleKey }));
   }
 
-  categories() {
-    return ROLE_CATEGORIES.map((c) => ({
-      ...c,
-      isReserved: c.value === SYSTEM_ROLE_CATEGORY,
-    }));
+  /** Built-in categories, then the ones admins added (by label). */
+  async categories(): Promise<RoleCategoryDto[]> {
+    const custom = await this.categoryModel.find().sort({ label: 1 }).lean();
+    return [
+      ...ROLE_CATEGORIES.map((c) => ({
+        value: c.value,
+        label: c.label,
+        isReserved: c.value === SYSTEM_ROLE_CATEGORY,
+        isCustom: false,
+      })),
+      ...custom.map((c) => ({
+        value: c.value,
+        label: c.label,
+        isReserved: false,
+        isCustom: true,
+      })),
+    ];
+  }
+
+  /** Add a category (or return the existing one with the same value). */
+  async createCategory(label: string, actor: Actor): Promise<RoleCategoryDto> {
+    const value = toCodeValue(label);
+    if (!CATEGORY_VALUE_PATTERN.test(value)) {
+      throw new ValidationException([
+        {
+          field: 'label',
+          message: 'Use at least two letters or digits, starting with a letter',
+        },
+      ]);
+    }
+    const builtIn = ROLE_CATEGORIES.find((c) => c.value === value);
+    if (builtIn) {
+      return {
+        value: builtIn.value,
+        label: builtIn.label,
+        isReserved: builtIn.value === SYSTEM_ROLE_CATEGORY,
+        isCustom: false,
+      };
+    }
+    const existing = await this.categoryModel.findOne({ value }).lean();
+    if (existing) {
+      return {
+        value,
+        label: existing.label,
+        isReserved: false,
+        isCustom: true,
+      };
+    }
+    await this.categoryModel.create({
+      _id: generateUuid(),
+      value,
+      label,
+      createdBy: actor.auth.userId,
+    });
+    this.logger.log({
+      message: 'Role category created',
+      value,
+      userId: actor.auth.userId,
+    });
+    return { value, label, isReserved: false, isCustom: true };
+  }
+
+  /** The next free key in the ROLE-NN series (deleted roles' keys count as used). */
+  async nextRoleKey(): Promise<NextRoleKeyDto> {
+    const used = await this.roleModel
+      .find(
+        { roleKey: { $regex: `^${ROLE_KEY_PREFIX}-\\d+$` } },
+        { roleKey: 1 },
+      )
+      .lean();
+    return {
+      roleKey: nextSequenceCode(
+        ROLE_KEY_PREFIX,
+        used.map((r) => r.roleKey),
+      ),
+    };
+  }
+
+  /** Counts for the roles page cards. */
+  async stats(): Promise<RoleStatsDto> {
+    const live = { isDeleted: false };
+    const [
+      totalRoles,
+      rolesGivenToGroups,
+      systemRoles,
+      totalPermissions,
+      inUse,
+      withPermissions,
+      custom,
+    ] = await Promise.all([
+      this.roleModel.countDocuments(live),
+      this.mappingModel.distinct('roleId', { type: MappingType.GroupRole }),
+      this.roleModel.countDocuments({ ...live, isSystem: true }),
+      this.permissionModel.countDocuments({
+        ...live,
+        status: RecordStatus.Active,
+      }),
+      this.mappingModel.distinct('permissionId', {
+        type: MappingType.RolePermission,
+      }),
+      this.mappingModel.distinct('roleId', {
+        type: MappingType.RolePermission,
+      }),
+      this.categoryModel.countDocuments(),
+    ]);
+    const liveRoleIds = new Set(
+      (await this.roleModel.find(live, { _id: 1 }).lean()).map((r) => r._id),
+    );
+    const rolesWithPermissions = withPermissions.filter((id) =>
+      liveRoleIds.has(id),
+    ).length;
+    return {
+      totalRoles,
+      rolesInUse: rolesGivenToGroups.filter((id) => liveRoleIds.has(id)).length,
+      systemRoles,
+      customRoles: totalRoles - systemRoles,
+      totalPermissions,
+      permissionsInUse: inUse.length,
+      rolesWithoutPermissions: Math.max(0, totalRoles - rolesWithPermissions),
+      categories: ROLE_CATEGORIES.length + custom,
+    };
+  }
+
+  /** Built-in (not SYSTEM) or admin-added category, else 400. */
+  private async assertCategory(
+    category: string,
+    field = 'category',
+  ): Promise<void> {
+    const isBuiltIn = ROLE_CATEGORIES.some(
+      (c) => c.value === category && c.value !== SYSTEM_ROLE_CATEGORY,
+    );
+    if (isBuiltIn || (await this.categoryModel.exists({ value: category }))) {
+      return;
+    }
+    throw new ValidationException([
+      {
+        field,
+        message: `Unknown category "${category}" — pick one or add it first`,
+      },
+    ]);
   }
 
   async get(id: string): Promise<RoleResponseDto> {
@@ -204,7 +377,6 @@ export class RolesService {
       roleName: dto.roleName ?? role.roleName,
       category: dto.category ?? role.category,
       description: dto.description ?? role.description,
-      status: dto.status ?? role.status,
     };
     const diff = changedValues(auditView(role), next);
     if (Object.keys(diff.after).length === 0) {
@@ -223,9 +395,6 @@ export class RolesService {
     );
     if (result.modifiedCount === 0) {
       throw AccessErrors.versionConflict(ENTITY);
-    }
-    if ('status' in diff.after) {
-      this.resolver.invalidate();
     }
     await this.auditService.record(actor, [
       {
@@ -422,7 +591,6 @@ export class RolesService {
         roleName: item.roleName ?? role.roleName,
         category: item.category ?? role.category,
         description: item.description ?? role.description,
-        status: item.status ?? role.status,
       };
       const nameKey = `${next.category}|${next.roleName.toLowerCase()}`;
       const keyIndex = seenKeys.get(next.roleKey);
@@ -441,6 +609,20 @@ export class RolesService {
       }
       seenKeys.set(next.roleKey, index);
       seenNames.set(nameKey, index);
+      if (item.category !== undefined) {
+        try {
+          await this.assertCategory(next.category, at('category'));
+        } catch (error) {
+          if (error instanceof ValidationException) {
+            errors.push({
+              field: at('category'),
+              message: `Unknown category "${next.category}"`,
+            });
+          } else {
+            throw error;
+          }
+        }
+      }
       const conflicts = await findConflicts(
         this.roleModel,
         this.uniqueRules(next.roleKey, next.roleName, next.category),
@@ -461,7 +643,6 @@ export class RolesService {
     }
 
     const unchangedIds: string[] = [];
-    let isStatusChanged = false;
     for (const { role, next, diff } of plans) {
       if (Object.keys(diff.after).length === 0) {
         unchangedIds.push(role._id);
@@ -477,7 +658,6 @@ export class RolesService {
       if (result.modifiedCount === 0) {
         throw AccessErrors.versionConflict(ENTITY);
       }
-      isStatusChanged ||= 'status' in diff.after;
       await this.auditService.record(actor, [
         {
           entityType: AuditEntity.Role,
@@ -486,9 +666,6 @@ export class RolesService {
           ...diff,
         },
       ]);
-    }
-    if (isStatusChanged) {
-      this.resolver.invalidate();
     }
     this.logger.log({
       message: 'Roles updated in bulk',
@@ -523,7 +700,6 @@ export class RolesService {
       ...(dto.description !== undefined
         ? { description: dto.description }
         : {}),
-      ...(dto.status !== undefined ? { status: dto.status } : {}),
     };
     return {
       role: await this.update(existing._id, update, actor),
@@ -542,12 +718,16 @@ export class RolesService {
     return role;
   }
 
-  private assertUniqueFields(
+  private async assertUniqueFields(
     roleKey: string,
     roleName: string,
     category: string,
     excludeId?: string,
   ) {
+    // Built-in roles keep SYSTEM; everything else needs a known category.
+    if (category !== SYSTEM_ROLE_CATEGORY || !excludeId) {
+      await this.assertCategory(category);
+    }
     return assertUnique(
       this.roleModel,
       this.uniqueRules(roleKey, roleName, category),
@@ -582,7 +762,6 @@ function auditView(role: Role): Record<string, unknown> {
     roleName: role.roleName,
     category: role.category,
     description: role.description,
-    status: role.status,
   };
 }
 
@@ -593,7 +772,6 @@ function toListItem(role: Role): RoleListItemDto {
     roleName: role.roleName,
     category: role.category,
     description: role.description,
-    status: role.status,
     isSystem: role.isSystem,
     updatedAt: role.updatedAt,
   };

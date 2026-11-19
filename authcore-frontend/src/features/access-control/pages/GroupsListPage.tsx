@@ -4,11 +4,13 @@ import {
   FolderTree,
   Grid3X3,
   Layers,
-  Pencil,
+  Network,
   Plus,
   RefreshCw,
-  Table as TableIcon,
+  Rows3,
+  SquarePen,
   Trash2,
+  UserRoundPlus,
   Users,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -17,6 +19,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { DateTime } from '@/components/common/DateTime';
 import {
   DataTable,
+  TableAction,
   useServerTable,
   type DataTableColumn,
   type DataTableFilter,
@@ -41,6 +44,7 @@ import {
 import { usePermissions } from '@/features/auth';
 
 import { groupsApi } from '../api/groups.api';
+import { GroupAssignSheet } from '../components/GroupAssignSheet';
 import { GroupEditorSheet } from '../components/GroupEditorSheet';
 import { GroupMatrixSheet } from '../components/GroupMatrixSheet';
 import type { Group, GroupListItem, GroupTreeNode } from '../types/access-control.types';
@@ -142,6 +146,12 @@ export function GroupsListPage() {
   const canCreate = hasPermission('GROUP_CREATE');
   const canUpdate = hasPermission('GROUP_UPDATE');
   const canDelete = hasPermission('GROUP_DELETE');
+  const canAssignAccess =
+    hasPermission('ACCESS_MAPPING_ASSIGN') || hasPermission('ACCESS_MAPPING_REVOKE');
+  const [assigning, setAssigning] = useState<{
+    group: { id: string; groupName: string } | null;
+    open: boolean;
+  }>({ group: null, open: false });
 
   const [activeTab, setActiveTab] = useState<'table' | 'tree'>('table');
 
@@ -156,6 +166,11 @@ export function GroupsListPage() {
 
   const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([]);
   const [treeResetKey, setTreeResetKey] = useState(0);
+  /** Member / role counts changed: reload the table and the tree. */
+  const refreshGroups = () => {
+    table.refresh();
+    setTreeResetKey((k) => k + 1);
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -214,25 +229,30 @@ export function GroupsListPage() {
   };
 
   const renderRowActions = (r: GroupListItem) => (
-    <div className="flex items-center justify-end gap-1">
-      <IconButton
-        aria-label={`View permission matrix for ${r.groupName}`}
+    <div className="flex items-center justify-end gap-1.5">
+      {canAssignAccess && (
+        <TableAction
+          tone="warning"
+          icon={<UserRoundPlus />}
+          text="Assign"
+          label={`Assign roles and members to ${r.groupName}`}
+          onClick={() => setAssigning({ group: r, open: true })}
+        />
+      )}
+      <TableAction
+        label={`View permission matrix for ${r.groupName}`}
         icon={<Grid3X3 />}
-        variant="ghost"
-        size="sm"
-        className="size-7! pointer-coarse:size-11!"
+        tone="violet"
         onClick={() => {
           setMatrixGroupId(r.id);
           setMatrixOpen(true);
         }}
       />
       {canUpdate && (
-        <IconButton
-          aria-label={`Edit ${r.groupName}`}
-          icon={<Pencil />}
-          variant="ghost"
-          size="sm"
-          className="size-7! pointer-coarse:size-11!"
+        <TableAction
+          label={`Edit ${r.groupName}`}
+          icon={<SquarePen />}
+          tone="primary"
           onClick={() => {
             setEditingGroup(r);
             setEditorOpen(true);
@@ -240,12 +260,10 @@ export function GroupsListPage() {
         />
       )}
       {canDelete && (
-        <IconButton
-          aria-label={`Delete ${r.groupName}`}
+        <TableAction
+          label={`Delete ${r.groupName}`}
           icon={<Trash2 />}
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:bg-destructive/10 size-7! pointer-coarse:size-11!"
+          tone="danger"
           onClick={() => {
             setDeletingGroup(r);
             setDeleteConfirmOpen(true);
@@ -316,11 +334,11 @@ export function GroupsListPage() {
         <div className="flex items-center justify-between pb-2">
           <TabsList>
             <TabsTrigger value="table" className="flex items-center gap-2">
-              <TableIcon className="size-4" />
+              <Rows3 className="size-4" aria-hidden="true" />
               Table View
             </TabsTrigger>
             <TabsTrigger value="tree" className="flex items-center gap-2">
-              <FolderTree className="size-4" />
+              <Network className="size-4" aria-hidden="true" />
               Hierarchy Tree
             </TabsTrigger>
           </TabsList>
@@ -331,6 +349,7 @@ export function GroupsListPage() {
             table={table}
             columns={groupColumns}
             rowActions={renderRowActions}
+            actionsWidth={190}
             layoutKey="admin-groups"
             itemName={{ singular: 'group', plural: 'groups' }}
             rowLabel={(g) => g.groupName}
@@ -350,6 +369,8 @@ export function GroupsListPage() {
               key={treeResetKey}
               canUpdate={canUpdate}
               canDelete={canDelete}
+              canAssign={canAssignAccess}
+              onAssign={(node) => setAssigning({ group: node, open: true })}
               onViewMatrix={(id) => {
                 setMatrixGroupId(id);
                 setMatrixOpen(true);
@@ -402,6 +423,13 @@ export function GroupsListPage() {
 
       <GroupMatrixSheet open={matrixOpen} groupId={matrixGroupId} onOpenChange={setMatrixOpen} />
 
+      <GroupAssignSheet
+        group={assigning.group}
+        open={assigning.open}
+        onOpenChange={(open) => setAssigning((a) => ({ ...a, open }))}
+        onChanged={refreshGroups}
+      />
+
       <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
@@ -418,12 +446,16 @@ export function GroupsListPage() {
 function GroupHierarchyTree({
   canUpdate,
   canDelete,
+  canAssign,
+  onAssign,
   onViewMatrix,
   onEdit,
   onDelete,
 }: {
   canUpdate: boolean;
   canDelete: boolean;
+  canAssign: boolean;
+  onAssign: (node: GroupTreeNode) => void;
   onViewMatrix: (id: string) => void;
   onEdit: (node: GroupTreeNode) => void;
   onDelete: (node: GroupTreeNode) => void;
@@ -515,6 +547,8 @@ function GroupHierarchyTree({
               node={node}
               canUpdate={canUpdate}
               canDelete={canDelete}
+              canAssign={canAssign}
+              onAssign={onAssign}
               onViewMatrix={onViewMatrix}
               onEdit={onEdit}
               onDelete={onDelete}
@@ -530,6 +564,8 @@ function TreeNodeItem({
   node,
   canUpdate,
   canDelete,
+  canAssign,
+  onAssign,
   onViewMatrix,
   onEdit,
   onDelete,
@@ -538,6 +574,8 @@ function TreeNodeItem({
   node: GroupTreeNode;
   canUpdate: boolean;
   canDelete: boolean;
+  canAssign: boolean;
+  onAssign: (node: GroupTreeNode) => void;
   onViewMatrix: (id: string) => void;
   onEdit: (node: GroupTreeNode) => void;
   onDelete: (node: GroupTreeNode) => void;
@@ -579,32 +617,35 @@ function TreeNodeItem({
           </span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
-          <IconButton
-            aria-label={`View matrix for ${node.groupName}`}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {canAssign && (
+            <TableAction
+              tone="warning"
+              icon={<UserRoundPlus />}
+              text="Assign"
+              label={`Assign roles and members to ${node.groupName}`}
+              onClick={() => onAssign(node)}
+            />
+          )}
+          <TableAction
+            label={`View matrix for ${node.groupName}`}
             icon={<Grid3X3 />}
-            variant="ghost"
-            size="sm"
-            className="size-7! pointer-coarse:size-11!"
+            tone="violet"
             onClick={() => onViewMatrix(node.id)}
           />
           {canUpdate && (
-            <IconButton
-              aria-label={`Edit ${node.groupName}`}
-              icon={<Pencil />}
-              variant="ghost"
-              size="sm"
-              className="size-7! pointer-coarse:size-11!"
+            <TableAction
+              label={`Edit ${node.groupName}`}
+              icon={<SquarePen />}
+              tone="primary"
               onClick={() => onEdit(node)}
             />
           )}
           {canDelete && (
-            <IconButton
-              aria-label={`Delete ${node.groupName}`}
+            <TableAction
+              label={`Delete ${node.groupName}`}
               icon={<Trash2 />}
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:bg-destructive/10 size-7! pointer-coarse:size-11!"
+              tone="danger"
               onClick={() => onDelete(node)}
             />
           )}
@@ -619,6 +660,8 @@ function TreeNodeItem({
               node={child}
               canUpdate={canUpdate}
               canDelete={canDelete}
+              canAssign={canAssign}
+              onAssign={onAssign}
               onViewMatrix={onViewMatrix}
               onEdit={onEdit}
               onDelete={onDelete}

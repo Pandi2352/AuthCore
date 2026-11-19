@@ -4,9 +4,9 @@ import { layoutConfig } from '@/config';
 import { cn } from '@/lib/utils';
 
 const PADDING = {
-  compact: 'px-3 py-4 sm:px-4',
-  comfortable: 'px-4 py-page sm:px-6 lg:px-8',
-  spacious: 'px-5 py-8 sm:px-8 lg:px-12',
+  compact: 'px-2 py-4 sm:px-3',
+  comfortable: 'px-2 py-page sm:px-4 lg:px-6',
+  spacious: 'px-3 py-8 sm:px-6 lg:px-8',
 } as const;
 
 /** <main> landmark: skip-link target, content width and padding from layout.config.ts. */

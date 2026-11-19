@@ -95,7 +95,7 @@ export const navigationConfig: NavGroup[] = [
         id: 'admin-access',
         title: 'Access control',
         icon: 'Shield',
-        permission: ['ROLE_READ', 'PERMISSION_READ', 'GROUP_READ', 'ACCESS_MAPPING_READ'],
+        permission: ['ROLE_READ', 'GROUP_READ', 'ACCESS_MAPPING_READ'],
         children: [
           {
             id: 'admin-roles',
@@ -104,22 +104,10 @@ export const navigationConfig: NavGroup[] = [
             permission: 'ROLE_READ',
           },
           {
-            id: 'admin-permissions',
-            title: 'Permissions',
-            path: paths.admin.permissions,
-            permission: 'PERMISSION_READ',
-          },
-          {
             id: 'admin-groups',
             title: 'Groups',
             path: paths.admin.groups,
             permission: 'GROUP_READ',
-          },
-          {
-            id: 'admin-assignments',
-            title: 'Assignments',
-            path: paths.admin.assignments,
-            permission: 'ACCESS_MAPPING_READ',
           },
           {
             id: 'admin-audit-log',

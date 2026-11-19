@@ -36,6 +36,7 @@ export const paths = {
     userDetail: (id: string) => `/admin/users/${segment(id)}`,
     invites: '/admin/invites',
     roles: '/admin/access/roles',
+    roleDetail: (id: string) => `/admin/access/roles/${segment(id)}`,
     permissions: '/admin/access/permissions',
     groups: '/admin/access/groups',
     assignments: '/admin/access/assignments',
@@ -73,6 +74,7 @@ export const paths = {
  */
 export const routePatterns = {
   adminUserDetail: '/admin/users/:id',
+  adminRoleDetail: '/admin/access/roles/:id',
   adminPasswordPolicyEdit: '/admin/security/password-policy/:id',
 } as const;
 

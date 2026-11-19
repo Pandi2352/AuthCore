@@ -20,6 +20,7 @@ import { createTypeahead, nextIndex } from '../primitives/list-navigation';
 import { useDismiss } from '../primitives/useDismiss';
 import { ListboxPopup } from './listbox';
 import { flattenOptions, optionId, type SelectItems } from './listbox-utils';
+import { ListboxCreate } from './ListboxCreate';
 
 export interface SelectProps
   extends
@@ -43,6 +44,15 @@ export interface SelectProps
   required?: boolean;
   /** Classes for the floating list. */
   emptyText?: string;
+  /**
+   * "+ Add …" row under the options. `onCreate` resolves with the new option's value (the
+   * parent adds it to `options`; it is then selected) or `{ error }` to show under the field.
+   */
+  creatable?: {
+    label: string;
+    placeholder: string;
+    onCreate: (text: string) => Promise<string | { error: string }>;
+  };
 }
 
 /**
@@ -67,6 +77,7 @@ const BareSelect = forwardRef<
     name,
     required,
     emptyText,
+    creatable,
     className,
     disabled,
     onKeyDown,
@@ -145,7 +156,12 @@ const BareSelect = forwardRef<
       event.preventDefault();
       if (activeIndex >= 0) choose(activeIndex);
     } else if (key === 'Tab') {
-      close();
+      // Tab reaches the "+ Add …" row; otherwise it closes the list.
+      const create = popupRef.current?.querySelector<HTMLElement>('[data-listbox-create]');
+      if (create && !event.shiftKey) {
+        event.preventDefault();
+        create.focus();
+      } else close();
     } else if (key === 'PageDown' || key === 'PageUp') {
       event.preventDefault();
       const step = key === 'PageDown' ? 10 : -10;
@@ -240,6 +256,22 @@ const BareSelect = forwardRef<
         onActiveChange={setActiveIndex}
         onSelect={choose}
         emptyText={emptyText}
+        footer={
+          creatable && (
+            <ListboxCreate
+              label={creatable.label}
+              placeholder={creatable.placeholder}
+              onCreate={async (text) => {
+                const result = await creatable.onCreate(text);
+                if (typeof result !== 'string') return result.error;
+                setSelected(result);
+                close();
+                triggerRef.current?.focus();
+                return null;
+              }}
+            />
+          )
+        }
         label={typeof props['aria-label'] === 'string' ? props['aria-label'] : undefined}
       />
     </div>

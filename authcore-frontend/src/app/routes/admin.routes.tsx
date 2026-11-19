@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router-dom';
+import { Navigate, type RouteObject } from 'react-router-dom';
 
 import { paths, routePatterns } from '@/config';
 
@@ -117,6 +117,21 @@ export const adminRoutes: RouteObject[] = [
     lazy: lazyPage(() => import('@/features/admin-users/pages/UsersListPage'), 'UsersListPage'),
   },
   {
+    path: routePatterns.adminRoleDetail,
+    handle: {
+      title: 'Role',
+      breadcrumb: [
+        { label: 'Administration' },
+        { label: 'Access control' },
+        { label: 'Roles', href: paths.admin.roles },
+        { label: 'Role' },
+      ],
+      featureFlag: 'admin.enabled',
+      permission: 'ROLE_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(() => import('@/features/access-control/pages/RoleViewPage'), 'RoleViewPage'),
+  },
+  {
     path: paths.admin.roles,
     handle: {
       title: 'Roles',
@@ -127,21 +142,9 @@ export const adminRoutes: RouteObject[] = [
     lazy: lazyPage(() => import('@/features/access-control/pages/RolesListPage'), 'RolesListPage'),
   },
   {
+    // Permissions are chosen inside a role (Roles → create / edit); old links land there.
     path: paths.admin.permissions,
-    handle: {
-      title: 'Permissions',
-      breadcrumb: [
-        { label: 'Administration' },
-        { label: 'Access control' },
-        { label: 'Permissions' },
-      ],
-      featureFlag: 'admin.enabled',
-      permission: 'PERMISSION_READ',
-    } satisfies RouteHandle,
-    lazy: lazyPage(
-      () => import('@/features/access-control/pages/PermissionsListPage'),
-      'PermissionsListPage',
-    ),
+    element: <Navigate to={paths.admin.roles} replace />,
   },
   {
     path: paths.admin.groups,
@@ -157,21 +160,9 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
+    // Assignments happen on the rows: Roles → Assign (permissions), Groups → Assign (roles, members).
     path: paths.admin.assignments,
-    handle: {
-      title: 'Assignments',
-      breadcrumb: [
-        { label: 'Administration' },
-        { label: 'Access control' },
-        { label: 'Assignments' },
-      ],
-      featureFlag: 'admin.enabled',
-      permission: 'ACCESS_MAPPING_READ',
-    } satisfies RouteHandle,
-    lazy: lazyPage(
-      () => import('@/features/access-control/pages/AccessAssignmentsPage'),
-      'AccessAssignmentsPage',
-    ),
+    element: <Navigate to={paths.admin.roles} replace />,
   },
   {
     path: paths.admin.auditLog,

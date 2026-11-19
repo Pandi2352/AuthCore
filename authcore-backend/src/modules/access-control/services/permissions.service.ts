@@ -101,7 +101,16 @@ export class PermissionsService {
   async list(
     query: PermissionListQueryDto,
   ): Promise<Paginated<PermissionListItemDto>> {
-    const { page, limit, skip } = normalizePagination(query.page, query.limit);
+    const isPaginated = query.page !== undefined || query.limit !== undefined;
+    const { page, limit, skip } = isPaginated
+      ? {
+          page: Math.max(1, Math.floor(query.page ?? 1)),
+          limit: Math.max(1, Math.floor(query.limit ?? 100)),
+          skip:
+            (Math.max(1, Math.floor(query.page ?? 1)) - 1) *
+            Math.max(1, Math.floor(query.limit ?? 100)),
+        }
+      : { page: 1, limit: 0, skip: 0 };
     const createdAt = buildDateRange(
       'created',
       query.createdFrom,
@@ -138,24 +147,32 @@ export class PermissionsService {
       ...(createdAt ? { createdAt } : {}),
       ...(updatedAt ? { updatedAt } : {}),
     };
+    let cursor = this.permissionModel
+      .find(filter)
+      .collation(CASE_INSENSITIVE)
+      .sort(
+        buildSort(
+          query.sortBy,
+          query.sortOrder,
+          PERMISSION_SORT_FIELDS,
+          'updatedAt',
+        ),
+      );
+
+    if (isPaginated && limit > 0) {
+      cursor = cursor.skip(skip).limit(limit);
+    }
+
     const [permissions, total] = await Promise.all([
-      this.permissionModel
-        .find(filter)
-        .collation(CASE_INSENSITIVE)
-        .sort(
-          buildSort(
-            query.sortBy,
-            query.sortOrder,
-            PERMISSION_SORT_FIELDS,
-            'updatedAt',
-          ),
-        )
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+      cursor.lean(),
       this.permissionModel.countDocuments(filter),
     ]);
-    return paginate(permissions.map(toListItem), page, limit, total);
+    return paginate(
+      permissions.map(toListItem),
+      page,
+      isPaginated && limit > 0 ? limit : total || 1,
+      total,
+    );
   }
 
   async dropdown(

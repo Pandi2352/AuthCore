@@ -42,7 +42,7 @@ import { StorageConfigsService } from './services/storage-configs.service';
 
 const ACCESS =
   'Requires STORAGE_SETTINGS_READ (reading) or STORAGE_SETTINGS_MANAGE (changing), e.g. through the ' +
-  'system role STORAGE_ADMIN, or the ADMIN role.';
+  'default role SUPER_ADMIN, a role holding them, or the ADMIN role.';
 
 /**
  * File storage settings: the storages (local folder, S3 and S3-compatible buckets) and

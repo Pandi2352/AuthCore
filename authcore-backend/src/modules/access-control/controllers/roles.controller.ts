@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -22,7 +23,7 @@ import {
 } from '@common/decorators/api-response.decorator';
 import { RequirePermissions } from '@common/decorators/require-permissions.decorator';
 import { ResponseMessage } from '@common/decorators/response-message.decorator';
-import { DropdownOptionDto, OptionDto } from '@common/dto/dropdown.dto';
+import { DropdownOptionDto } from '@common/dto/dropdown.dto';
 import { ExistsResponseDto } from '@common/dto/exists.dto';
 import type { Paginated } from '@common/interfaces/api-response.interface';
 import { ParseIdPipe } from '@common/pipes/parse-id.pipe';
@@ -35,8 +36,11 @@ import { CurrentActor } from '../decorators/current-actor.decorator';
 import {
   BulkUpdateRolesDto,
   BulkUpdateRolesResponseDto,
+  CreateRoleCategoryDto,
   CreateRoleDto,
   DeletedResponseDto,
+  NextRoleKeyDto,
+  RoleCategoryDto,
   RoleDropdownQueryDto,
   RoleExistsQueryDto,
   RoleListItemDto,
@@ -44,6 +48,7 @@ import {
   RoleResponseDto,
   RoleSetupDto,
   RoleSetupResponseDto,
+  RoleStatsDto,
   UpdateRoleDto,
 } from '../dto/role.dto';
 import type { Actor } from '../interfaces/actor.interface';
@@ -92,7 +97,7 @@ export class RolesController {
   @ApiOperation({
     summary: 'List roles',
     description:
-      'Needs ROLE_READ. Search (key, name, description), filter by category / status / created & updated date, ' +
+      'Needs ROLE_READ. Search (key, name, description), filter by category / created & updated date, ' +
       'sort by roleName, roleKey, category, createdAt or updatedAt (default updatedAt desc).',
   })
   @ApiPaginatedResponse(RoleListItemDto)
@@ -121,12 +126,64 @@ export class RolesController {
   @ApiOperation({
     summary: 'Role categories',
     description:
-      'Needs ROLE_READ. `isReserved` categories (SYSTEM) cannot be used for new roles.',
+      'Needs ROLE_READ. Built-in categories, then the ones admins added (`isCustom`). `isReserved` categories (SYSTEM) cannot be used for new roles.',
   })
-  @ApiWrappedResponse(OptionDto, { isArray: true })
+  @ApiWrappedResponse(RoleCategoryDto, { isArray: true })
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
-  categories() {
+  categories(): Promise<RoleCategoryDto[]> {
     return this.rolesService.categories();
+  }
+
+  @Post('categories')
+  @RequirePermissions(P.RoleCreate)
+  @Throttle({ default: ACCESS_ADMIN_THROTTLE })
+  @ResponseMessage('Role category added')
+  @ApiOperation({
+    summary: 'Add a role category',
+    description:
+      'Needs ROLE_CREATE. The value is made from the label ("Finance team" → FINANCE_TEAM); an existing one with the same value is returned instead of a duplicate.',
+  })
+  @ApiWrappedResponse(RoleCategoryDto, { status: HttpStatus.CREATED })
+  @ApiErrorResponses(
+    HttpStatus.BAD_REQUEST,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+  )
+  createCategory(
+    @Body() dto: CreateRoleCategoryDto,
+    @CurrentActor() actor: Actor,
+  ): Promise<RoleCategoryDto> {
+    return this.rolesService.createCategory(dto.label, actor);
+  }
+
+  @Get('next-key')
+  @RequirePermissions(P.RoleCreate)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Next role key')
+  @ApiOperation({
+    summary: 'Suggested key for a new role',
+    description:
+      'Needs ROLE_CREATE. The next free key in the ROLE-NN series (ROLE-01, ROLE-02 …). Any other unique key can still be used.',
+  })
+  @ApiWrappedResponse(NextRoleKeyDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  nextKey(): Promise<NextRoleKeyDto> {
+    return this.rolesService.nextRoleKey();
+  }
+
+  @Get('stats')
+  @RequirePermissions(P.RoleRead)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Role statistics')
+  @ApiOperation({
+    summary: 'Counts for the roles page',
+    description:
+      'Needs ROLE_READ. Roles (total / active / custom / built-in / without permissions), permissions (available / in use) and categories.',
+  })
+  @ApiWrappedResponse(RoleStatsDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  stats(): Promise<RoleStatsDto> {
+    return this.rolesService.stats();
   }
 
   @Get('exists')
@@ -257,7 +314,7 @@ export class RolesController {
   @ApiOperation({
     summary: 'Update a role',
     description:
-      'Needs ROLE_UPDATE. Send only the fields to change (status ACTIVE / INACTIVE included). Send `version` ' +
+      'Needs ROLE_UPDATE. Send only the fields to change. Send `version` ' +
       'to reject the change if someone else edited the role meanwhile (409 VERSION_CONFLICT). System roles: ' +
       '409 SYSTEM_RESOURCE_PROTECTED.',
   })

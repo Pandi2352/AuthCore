@@ -1,161 +1,252 @@
-import { Eye, KeyRound, Lock, Pencil, Plus, Shield, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  CircleSlash,
+  KeyRound,
+  Layers,
+  Lock,
+  Plus,
+  ScanEye,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  SquarePen,
+  Tags,
+  Trash2,
+  UsersRound,
+} from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { DateTime } from '@/components/common/DateTime';
+import { StatCard } from '@/components/common/StatCard';
 import {
   DataTable,
+  TableAction,
   useServerTable,
   type DataTableColumn,
   type DataTableFilter,
 } from '@/components/data-table';
 import { notifyError, notifySuccess } from '@/components/feedback';
 import { PageContainer, PageHeader } from '@/components/page';
-import { Badge, Button, IconButton } from '@/components/ui';
+import { Badge, Button } from '@/components/ui';
+import { paths } from '@/config';
 import { usePermissions } from '@/features/auth';
+import { isAbortError } from '@/lib/api';
 
 import { rolesApi } from '../api/roles.api';
-import { RoleDetailSheet } from '../components/RoleDetailSheet';
-import { RoleEditorSheet } from '../components/RoleEditorSheet';
-import type { Role, RoleListItem } from '../types/access-control.types';
+import { RoleFormDialog } from '../components/RoleFormDialog';
+import { RolePermissionsDialog } from '../components/RolePermissionsDialog';
+import type { Role, RoleCategory, RoleListItem, RoleStats } from '../types/access-control.types';
 
-function buildRoleColumns(): DataTableColumn<RoleListItem>[] {
+const humanize = (value: string) =>
+  value.charAt(0) + value.slice(1).toLowerCase().replaceAll('_', ' ');
+
+/** Columns (category labels include admin-added categories). */
+function buildRoleColumns(
+  categoryLabel: (value: string) => string,
+): DataTableColumn<RoleListItem>[] {
   return [
     {
       id: 'rowNumber',
-      header: '#',
-      numeric: true,
-      width: 60,
+      header: 'S.No',
+      width: 64,
+      fit: true,
       mobile: 'hidden',
       cell: (r) => <span className="text-muted-foreground tabular-nums">{r.rowNumber}</span>,
     },
     {
+      // Name on the first line, the key under it.
       id: 'roleName',
       header: 'Role',
       sortable: true,
-      width: 260,
+      // As wide as the longest name / key on the page (at most 320 px, then it wraps).
+      width: 320,
+      fitText: (r) => [r.roleName, r.roleKey],
+      wrap: true,
       mobile: 'title',
       cell: (r) => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-foreground">{r.roleName}</span>
-          <code className="text-2xs text-muted-foreground">{r.roleKey}</code>
-        </div>
+        <span className="block min-w-0">
+          <span className="block font-medium text-foreground">{r.roleName}</span>
+          <code className="block font-mono text-xs break-all text-primary">{r.roleKey}</code>
+        </span>
       ),
     },
     {
       id: 'category',
       header: 'Category',
       sortable: true,
-      width: 140,
+      width: 150,
+      fit: true,
       cell: (r) => (
-        <Badge size="sm" tone={r.isSystem ? 'info' : 'primary'}>
-          {r.category}
+        <Badge size="sm" tone="neutral">
+          {categoryLabel(r.category)}
         </Badge>
       ),
     },
     {
-      id: 'status',
-      header: 'Status',
-      sortable: true,
-      width: 110,
+      id: 'description',
+      header: 'Description',
+      width: 480,
+      wrap: true,
+      cell: (r) =>
+        r.description ? (
+          // Two lines at most; the full text on hover.
+          <span className="line-clamp-2 text-muted-foreground" title={r.description}>
+            {r.description}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      id: 'permissionCount',
+      header: 'Permissions',
+      width: 112,
+      fit: true,
       cell: (r) => (
-        <Badge size="sm" tone={r.status === 'ACTIVE' ? 'success' : 'neutral'}>
-          {r.status}
+        <Badge size="sm" tone={r.permissionCount ? 'primary' : 'neutral'} className="tabular-nums">
+          <KeyRound className="size-3" aria-hidden="true" />
+          {r.permissionCount ?? 0}
         </Badge>
       ),
     },
     {
       id: 'updatedAt',
-      header: 'Updated',
+      header: 'Updated on',
       sortable: true,
-      width: 140,
-      mobile: 'subtitle',
-      cell: (r) => <DateTime value={r.updatedAt} format="relative" />,
+      width: 200,
+      fit: true,
+      cell: (r) => <DateTime value={r.updatedAt} format="full" />,
     },
   ];
 }
 
-const roleColumns = buildRoleColumns();
+/** The eight count cards (props change only when the counts are reloaded). */
+const RoleStatCards = memo(function RoleStatCards({ stats: s }: { stats: RoleStats | null }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        tone="primary"
+        pattern="rings"
+        icon={Shield}
+        label="Total roles"
+        value={s?.totalRoles ?? null}
+        hint="Every role"
+      />
+      <StatCard
+        tone="success"
+        pattern="waves"
+        icon={UsersRound}
+        label="Roles in use"
+        value={s?.rolesInUse ?? null}
+        hint="Given to at least one group"
+      />
+      <StatCard
+        tone="violet"
+        pattern="sparkles"
+        icon={Sparkles}
+        label="Custom roles"
+        value={s?.customRoles ?? null}
+        hint="Created by admins"
+      />
+      <StatCard
+        tone="info"
+        pattern="grid"
+        icon={Lock}
+        label="Built-in roles"
+        value={s?.systemRoles ?? null}
+        hint="Fixed, cannot be changed"
+      />
+      <StatCard
+        tone="cyan"
+        pattern="dots"
+        icon={KeyRound}
+        label="Permissions available"
+        value={s?.totalPermissions ?? null}
+        hint="That roles can grant"
+      />
+      <StatCard
+        tone="primary"
+        pattern="bars"
+        icon={ShieldCheck}
+        label="Permissions in use"
+        value={s?.permissionsInUse ?? null}
+        hint="Granted by at least one role"
+      />
+      <StatCard
+        tone="danger"
+        pattern="stripes"
+        icon={CircleSlash}
+        label="Roles without permissions"
+        value={s?.rolesWithoutPermissions ?? null}
+        hint="Grant nothing yet"
+      />
+      <StatCard
+        tone="warning"
+        pattern="bubbles"
+        icon={Tags}
+        label="Categories"
+        value={s?.categories ?? null}
+        hint="Built-in and custom"
+      />
+    </div>
+  );
+});
 
+/** Administration → Access control → Roles. */
 export function RolesListPage() {
+  const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission('ROLE_CREATE');
   const canUpdate = hasPermission('ROLE_UPDATE');
   const canDelete = hasPermission('ROLE_DELETE');
 
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
-
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailRoleId, setDetailRoleId] = useState<string | null>(null);
-
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deletingRole, setDeletingRole] = useState<Role | null>(null);
-
-  const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([]);
+  const [form, setForm] = useState<{ open: boolean; role: Role | null }>({
+    open: false,
+    role: null,
+  });
+  const [deleting, setDeleting] = useState<Role | null>(null);
+  const [permissionsOf, setPermissionsOf] = useState<RoleListItem | null>(null);
+  const [categoryState, setCategories] = useState<{ key: number; items: RoleCategory[] } | null>(
+    null,
+  );
+  const categories = useMemo(() => categoryState?.items ?? [], [categoryState]);
+  const [stats, setStats] = useState<{ key: number; value: RoleStats } | null>(null);
+  const [statsKey, setStatsKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
-    void rolesApi
-      .categories(controller.signal)
-      .then(setCategories)
-      .catch(() => {});
+    const load = async () => {
+      try {
+        // Reloaded with the counts (a category may have been added in the role popup).
+        setCategories({ key: statsKey, items: await rolesApi.categories(controller.signal) });
+      } catch {
+        // The filter just has no options.
+      }
+    };
+    void load();
     return () => controller.abort();
-  }, []);
+  }, [statsKey]);
 
-  const fetchRoles = useCallback(
-    (query: Parameters<typeof rolesApi.list>[0], signal: AbortSignal) =>
-      rolesApi.list(query, signal),
-    [],
+  useEffect(() => {
+    const controller = new AbortController();
+    const load = async () => {
+      try {
+        const value = await rolesApi.stats(controller.signal);
+        setStats({ key: statsKey, value });
+      } catch (error) {
+        if (!isAbortError(error)) notifyError(error, 'Could not load the role counts');
+      }
+    };
+    void load();
+    return () => controller.abort();
+  }, [statsKey]);
+
+  const categoryLabel = useCallback(
+    (value: string) => categories.find((c) => c.value === value)?.label ?? humanize(value),
+    [categories],
   );
-
-  const table = useServerTable<RoleListItem>({
-    fetch: fetchRoles,
-    initialPageSize: 10,
-    initialSort: [{ id: 'updatedAt', desc: true }],
-  });
-
-  const renderRowActions = (r: RoleListItem) => (
-    <div className="flex items-center justify-end gap-1">
-      <IconButton
-        aria-label={`View ${r.roleName}`}
-        icon={<Eye />}
-        variant="ghost"
-        size="sm"
-        className="size-7! pointer-coarse:size-11!"
-        onClick={() => {
-          setDetailRoleId(r.id);
-          setDetailOpen(true);
-        }}
-      />
-      {canUpdate && !r.isSystem && (
-        <IconButton
-          aria-label={`Edit ${r.roleName}`}
-          icon={<Pencil />}
-          variant="ghost"
-          size="sm"
-          className="size-7! pointer-coarse:size-11!"
-          onClick={() => {
-            setEditingRole(r);
-            setEditorOpen(true);
-          }}
-        />
-      )}
-      {canDelete && !r.isSystem && (
-        <IconButton
-          aria-label={`Delete ${r.roleName}`}
-          icon={<Trash2 />}
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:bg-destructive/10 size-7! pointer-coarse:size-11!"
-          onClick={() => {
-            setDeletingRole(r);
-            setDeleteConfirmOpen(true);
-          }}
-        />
-      )}
-    </div>
-  );
+  const columns = useMemo(() => buildRoleColumns(categoryLabel), [categoryLabel]);
 
   const filters = useMemo<DataTableFilter[]>(
     () => [
@@ -164,45 +255,89 @@ export function RolesListPage() {
         label: 'Category',
         options: categories.map((c) => ({ value: c.value, label: c.label })),
       },
-      {
-        id: 'status',
-        label: 'Status',
-        options: [
-          { value: 'ACTIVE', label: 'Active' },
-          { value: 'INACTIVE', label: 'Inactive' },
-        ],
-      },
     ],
     [categories],
   );
 
+  const table = useServerTable<RoleListItem>({
+    fetchPage: rolesApi.list,
+    getRowId: (r) => r.id,
+    filters,
+    defaultPageSize: 10,
+    defaultSort: [{ id: 'updatedAt', desc: true }],
+    itemsLabel: 'roles',
+  });
+  const { refresh } = table;
+  const refreshAll = useCallback(() => {
+    refresh();
+    setStatsKey((n) => n + 1);
+  }, [refresh]);
+
+  const renderRowActions = (r: RoleListItem) => (
+    <div className="flex items-center justify-end gap-1.5">
+      <TableAction
+        tone="success"
+        icon={<KeyRound />}
+        tooltip="Permissions"
+        label={`Permissions of ${r.roleName}`}
+        onClick={() => setPermissionsOf(r)}
+      />
+      <TableAction
+        tone="info"
+        icon={<ScanEye />}
+        tooltip="View"
+        label={`View ${r.roleName}`}
+        onClick={() => void navigate(paths.admin.roleDetail(r.id))}
+      />
+      {canUpdate && (
+        <TableAction
+          tone="primary"
+          icon={<SquarePen />}
+          tooltip="Edit"
+          label={`Edit ${r.roleName}`}
+          disabledReason={r.isSystem ? 'Built-in roles cannot be edited' : undefined}
+          onClick={() => setForm({ open: true, role: r })}
+        />
+      )}
+      {canDelete && (
+        <TableAction
+          tone="danger"
+          icon={<Trash2 />}
+          tooltip="Delete"
+          label={`Delete ${r.roleName}`}
+          disabledReason={r.isSystem ? 'Built-in roles cannot be deleted' : undefined}
+          onClick={() => setDeleting(r)}
+        />
+      )}
+    </div>
+  );
+
   const handleDelete = async () => {
-    if (!deletingRole) return;
+    if (!deleting) return;
     try {
-      await rolesApi.remove(deletingRole.id);
-      notifySuccess(`Role "${deletingRole.roleName}" deleted`);
-      setDeleteConfirmOpen(false);
-      setDeletingRole(null);
-      table.reload();
+      await rolesApi.remove(deleting.id);
+      notifySuccess(`Role “${deleting.roleName}” deleted`);
+      setDeleting(null);
+      refreshAll();
     } catch (err) {
-      notifyError(err, 'Could not delete role');
+      notifyError(err, 'Could not delete the role');
+      throw err;
     }
   };
+
+  const s = stats?.value ?? null;
 
   return (
     <PageContainer>
       <PageHeader
         title="Roles"
-        description="Define authority levels, functional roles, and permission bundles for users and groups."
+        description="Create a role, then use the key icon to choose its permissions. Give roles to groups under Groups."
         actions={
           canCreate && (
             <Button
-              size="sm"
+              size="toolbar"
               leftIcon={<Plus />}
-              onClick={() => {
-                setEditingRole(null);
-                setEditorOpen(true);
-              }}
+              onClick={() => setForm({ open: true, role: null })}
             >
               Create role
             </Button>
@@ -210,68 +345,51 @@ export function RolesListPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="flex items-center gap-3 rounded-md border border-border bg-surface p-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-            <Shield className="size-5" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Configured roles</p>
-            <p className="text-xl font-bold text-foreground">{table.total}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-md border border-border bg-surface p-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-success/10 text-success">
-            <KeyRound className="size-5" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Role categories</p>
-            <p className="text-xl font-bold text-foreground">{categories.length}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-md border border-border bg-surface p-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-info/10 text-info">
-            <Lock className="size-5" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Access model</p>
-            <p className="text-sm font-semibold text-foreground">RBAC + Group Inheritance</p>
-          </div>
-        </div>
-      </div>
+      {/* Memoized: paging / sorting the table does not redraw the cards. */}
+      <RoleStatCards stats={s} />
 
       <DataTable
         table={table}
-        columns={roleColumns}
+        columns={columns}
         rowActions={renderRowActions}
-        filters={filters}
-        layoutKey="admin-roles"
+        actionsWidth={160}
+        layoutKey="admin-roles:v5"
+        viewOptions={false}
+        // Refresh also reloads the count cards (and categories).
+        onRefresh={() => setStatsKey((n) => n + 1)}
         itemName={{ singular: 'role', plural: 'roles' }}
         rowLabel={(r) => r.roleName}
-        searchPlaceholder="Search roles by key, name, or description..."
+        onRowOpen={(r) => void navigate(paths.admin.roleDetail(r.id))}
+        searchPlaceholder="Search roles by name, key or description"
         emptyState={{
-          icon: <Shield />,
-          title: 'No roles found',
-          description: 'Create a new role to grant permissions to groups.',
+          icon: <Layers />,
+          title: 'No roles yet',
+          description: 'Create a role, then choose the permissions it grants.',
         }}
       />
 
-      <RoleEditorSheet
-        open={editorOpen}
-        role={editingRole}
-        onOpenChange={setEditorOpen}
-        onSaved={table.reload}
+      <RoleFormDialog
+        open={form.open}
+        role={form.role}
+        onOpenChange={(open) => setForm((f) => ({ ...f, open }))}
+        onSaved={(saved, created) => {
+          refreshAll();
+          // A new role grants nothing yet: go straight to choosing its permissions.
+          if (created) setPermissionsOf({ ...saved, permissionCount: 0 });
+        }}
       />
 
-      <RoleDetailSheet open={detailOpen} roleId={detailRoleId} onOpenChange={setDetailOpen} />
+      <RolePermissionsDialog
+        role={permissionsOf}
+        onClose={() => setPermissionsOf(null)}
+        onSaved={refreshAll}
+      />
 
       <ConfirmDialog
-        open={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
-        title={`Delete role ${deletingRole?.roleName}?`}
-        description="This will permanently delete the custom role and revoke it from any assigned groups. This action cannot be undone."
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={`Delete role ${deleting?.roleName ?? ''}?`}
+        description="The role is removed and taken away from every group that has it. This cannot be undone."
         confirmText="Delete role"
         destructive
         onConfirm={handleDelete}

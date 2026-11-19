@@ -62,7 +62,7 @@ import { PolicyAuditService } from './services/policy-audit.service';
 
 const ADMIN_ONLY =
   'Requires a signed-in user with PASSWORD_POLICY_READ (reading) or PASSWORD_POLICY_MANAGE (changing / running), ' +
-  'e.g. through the system role PASSWORD_POLICY_ADMIN, or the ADMIN role (403 FORBIDDEN otherwise).';
+  'e.g. through the default role SUPER_ADMIN, a role holding them, or the ADMIN role (403 FORBIDDEN otherwise).';
 
 /**
  * Password policy: admins configure it; sign-up / reset / change forms read

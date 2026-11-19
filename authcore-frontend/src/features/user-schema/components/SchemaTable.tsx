@@ -14,6 +14,7 @@ import {
 import { createElement, useState, type ReactNode } from 'react';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { TableAction } from '@/components/data-table';
 import { notifyError, notifySuccess } from '@/components/feedback';
 import {
   Badge,
@@ -22,7 +23,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  IconButton,
   Switch,
   Tooltip,
 } from '@/components/ui';
@@ -194,7 +194,7 @@ function AttributeRow({
     <tr
       className={cn(
         'border-b border-border transition-colors hover:bg-accent/50',
-        isGroup && 'bg-muted/30',
+        isGroup ? 'bg-muted/30' : 'even:bg-muted/60',
         !attribute.isEnabled && 'text-muted-foreground',
       )}
     >
@@ -341,11 +341,9 @@ function AttributeRow({
           <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <IconButton
-                  aria-label={`Actions for ${attribute.label}`}
+                <TableAction
                   icon={<MoreHorizontal />}
-                  variant="ghost"
-                  size="sm"
+                  label={`Actions for ${attribute.label}`}
                   showTooltip={false}
                 />
               </DropdownMenuTrigger>

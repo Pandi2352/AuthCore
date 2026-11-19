@@ -7,7 +7,6 @@ import {
   IsArray,
   IsBoolean,
   IsDefined,
-  IsEnum,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -32,15 +31,14 @@ import {
 } from '@common/utils/transform.util';
 
 import {
-  ASSIGNABLE_ROLE_CATEGORIES,
+  CATEGORY_LABEL_MAX_LENGTH,
+  CATEGORY_VALUE_PATTERN,
   DESCRIPTION_MAX_LENGTH,
-  KEY_PATTERN,
   MAX_BULK_ITEMS,
   NAME_MAX_LENGTH,
-  ROLE_CATEGORY_VALUES,
   ROLE_KEY_MAX_LENGTH,
+  ROLE_KEY_PATTERN,
 } from '../constants/access-control.constants';
-import { RecordStatus } from '../enums/access-control.enum';
 
 export const ROLE_SORT_FIELDS = [
   'roleName',
@@ -52,14 +50,14 @@ export const ROLE_SORT_FIELDS = [
 
 export class CreateRoleDto {
   @ApiProperty({
-    example: 'HR_MANAGER',
+    example: 'ROLE-01',
     description:
-      'Unique key. Stored uppercase; letters, digits and _ (starts with a letter).',
+      'Unique key. Stored uppercase; letters, digits, _ and - (starts with a letter). GET /roles/next-key suggests the next ROLE-NN.',
     maxLength: ROLE_KEY_MAX_LENGTH,
   })
-  @Matches(KEY_PATTERN, {
+  @Matches(ROLE_KEY_PATTERN, {
     message:
-      'roleKey may contain only letters, digits and _ and must start with a letter',
+      'roleKey may contain only letters, digits, _ and - and must start with a letter',
   })
   @MaxLength(ROLE_KEY_MAX_LENGTH)
   @MinLength(2)
@@ -82,11 +80,11 @@ export class CreateRoleDto {
 
   @ApiProperty({
     example: 'MANAGEMENT',
-    enum: ASSIGNABLE_ROLE_CATEGORIES,
-    description: 'See GET /roles/categories (SYSTEM is reserved)',
+    description:
+      'A value from GET /roles/categories (built-in or added with POST /roles/categories; SYSTEM is reserved)',
   })
-  @IsIn(ASSIGNABLE_ROLE_CATEGORIES, {
-    message: `category must be one of: ${ASSIGNABLE_ROLE_CATEGORIES.join(', ')}`,
+  @Matches(CATEGORY_VALUE_PATTERN, {
+    message: 'category must be a category value, e.g. MANAGEMENT',
   })
   @Transform(trimUpper)
   @IsString()
@@ -102,11 +100,6 @@ export class CreateRoleDto {
   @IsString()
   @IsOptional()
   description?: string;
-
-  @ApiPropertyOptional({ enum: RecordStatus, default: RecordStatus.Active })
-  @IsEnum(RecordStatus)
-  @IsOptional()
-  status?: RecordStatus;
 }
 
 export class UpdateRoleDto extends PartialType(CreateRoleDto) {
@@ -122,16 +115,11 @@ export class UpdateRoleDto extends PartialType(CreateRoleDto) {
 }
 
 export class RoleListQueryDto extends ListQueryDto {
-  @ApiPropertyOptional({ enum: ROLE_CATEGORY_VALUES })
-  @IsIn(ROLE_CATEGORY_VALUES)
+  @ApiPropertyOptional({ example: 'MANAGEMENT' })
+  @Matches(CATEGORY_VALUE_PATTERN)
   @Transform(trimUpper)
   @IsOptional()
   category?: string;
-
-  @ApiPropertyOptional({ enum: RecordStatus })
-  @IsEnum(RecordStatus)
-  @IsOptional()
-  status?: RecordStatus;
 
   @ApiPropertyOptional({ enum: ROLE_SORT_FIELDS, default: 'updatedAt' })
   @IsIn(ROLE_SORT_FIELDS)
@@ -140,8 +128,8 @@ export class RoleListQueryDto extends ListQueryDto {
 }
 
 export class RoleDropdownQueryDto extends DropdownQueryDto {
-  @ApiPropertyOptional({ enum: ROLE_CATEGORY_VALUES })
-  @IsIn(ROLE_CATEGORY_VALUES)
+  @ApiPropertyOptional({ example: 'MANAGEMENT' })
+  @Matches(CATEGORY_VALUE_PATTERN)
   @Transform(trimUpper)
   @IsOptional()
   category?: string;
@@ -163,9 +151,6 @@ export class RoleListItemDto {
   @ApiProperty({ example: 'Manages HR staff and approves leave' })
   description!: string;
 
-  @ApiProperty({ enum: RecordStatus, example: RecordStatus.Active })
-  status!: RecordStatus;
-
   @ApiProperty({ example: false })
   isSystem!: boolean;
 
@@ -174,6 +159,12 @@ export class RoleListItemDto {
     description: 'Updated on',
   })
   updatedAt!: Date;
+
+  @ApiPropertyOptional({
+    example: 12,
+    description: 'Permissions assigned to the role (list and details)',
+  })
+  permissionCount?: number;
 }
 
 export class RoleResponseDto extends RoleListItemDto {
@@ -188,12 +179,6 @@ export class RoleResponseDto extends RoleListItemDto {
 
   @ApiProperty({ example: '2026-11-16T05:30:00.000Z' })
   createdAt!: Date;
-
-  @ApiPropertyOptional({
-    example: 4,
-    description: 'Details only: permissions assigned to the role',
-  })
-  permissionCount?: number;
 
   @ApiPropertyOptional({
     example: 2,
@@ -239,8 +224,8 @@ export class RoleExistsQueryDto {
   @IsOptional()
   roleName?: string;
 
-  @ApiPropertyOptional({ example: 'MANAGEMENT', enum: ROLE_CATEGORY_VALUES })
-  @IsIn(ROLE_CATEGORY_VALUES)
+  @ApiPropertyOptional({ example: 'MANAGEMENT' })
+  @Matches(CATEGORY_VALUE_PATTERN)
   @Transform(trimUpper)
   @IsOptional()
   category?: string;
@@ -267,7 +252,7 @@ export class BulkUpdateRolesDto {
     type: [BulkRoleItemDto],
     maxItems: MAX_BULK_ITEMS,
     example: [
-      { id: '01a1e31b-d536-7092-8577-df304d74a00e', status: 'INACTIVE' },
+      { id: '01a1e31b-d536-7092-8577-df304d74a00e', category: 'SUPPORT' },
       {
         id: '01a1e31b-d536-7092-8577-df304d74a00f',
         description: 'Updated',
@@ -366,4 +351,58 @@ export class RoleGroupRefDto {
   @ApiProperty() id!: string;
   @ApiProperty({ example: 'GRP-DEV' }) groupId!: string;
   @ApiProperty({ example: 'Development' }) groupName!: string;
+}
+
+export class RoleCategoryDto {
+  @ApiProperty({ example: 'MANAGEMENT' }) value!: string;
+  @ApiProperty({ example: 'Management' }) label!: string;
+  @ApiProperty({ description: 'SYSTEM: only built-in roles use it' })
+  isReserved!: boolean;
+  @ApiProperty({ description: 'Added by an admin (not built in)' })
+  isCustom!: boolean;
+}
+
+export class CreateRoleCategoryDto {
+  @ApiProperty({
+    example: 'Finance team',
+    maxLength: CATEGORY_LABEL_MAX_LENGTH,
+  })
+  @MaxLength(CATEGORY_LABEL_MAX_LENGTH)
+  @IsNotEmpty({ message: 'label is required' })
+  @Transform(normalizeName)
+  @IsString()
+  @IsDefined({ message: 'label is required' })
+  label!: string;
+}
+
+export class NextRoleKeyDto {
+  @ApiProperty({
+    example: 'ROLE-07',
+    description: 'The next free key in the ROLE-NN series',
+  })
+  roleKey!: string;
+}
+
+export class RoleStatsDto {
+  @ApiProperty({ example: 14 }) totalRoles!: number;
+  @ApiProperty({ example: 6, description: 'Given to at least one group' })
+  rolesInUse!: number;
+  @ApiProperty({ example: 9, description: 'Created by admins' })
+  customRoles!: number;
+  @ApiProperty({ example: 5, description: 'Built in (fixed)' })
+  systemRoles!: number;
+  @ApiProperty({
+    example: 41,
+    description: 'Active permissions that can be granted',
+  })
+  totalPermissions!: number;
+  @ApiProperty({
+    example: 27,
+    description: 'Permissions granted by at least one role',
+  })
+  permissionsInUse!: number;
+  @ApiProperty({ example: 2, description: 'Roles that grant nothing yet' })
+  rolesWithoutPermissions!: number;
+  @ApiProperty({ example: 8, description: 'Built-in + custom categories' })
+  categories!: number;
 }

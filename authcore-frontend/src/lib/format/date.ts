@@ -10,7 +10,8 @@ const toDate = (value: DateInput): Date | null => {
 
 export interface FormatDateOptions {
   /** date: "17 Nov 2026" · time: "14:05" · datetime: both · relative: "3 hours ago". */
-  style?: 'date' | 'time' | 'datetime' | 'relative';
+  /** full = with seconds, e.g. "Aug 19, 2025, 3:51:56 PM" (tables). */
+  style?: 'date' | 'time' | 'datetime' | 'full' | 'relative';
   /** IANA zone; default: the user's preference (setFormatDefaults) or the browser's. */
   timeZone?: string;
   /** BCP 47 locale; default: the user's preference or the browser's. */
@@ -58,7 +59,16 @@ export function formatDateTime(value: DateInput, options: FormatDateOptions = {}
       ? { year: 'numeric', month: 'short', day: 'numeric' }
       : style === 'time'
         ? { hour: '2-digit', minute: '2-digit' }
-        : { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        : style === 'full'
+          ? {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              second: '2-digit',
+            }
+          : { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
   try {
     return new Intl.DateTimeFormat(locale, { ...parts, timeZone }).format(d);
   } catch {

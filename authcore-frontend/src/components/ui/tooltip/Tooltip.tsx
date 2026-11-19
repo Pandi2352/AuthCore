@@ -5,6 +5,7 @@ import {
   useId,
   useRef,
   useState,
+  type FocusEvent,
   type ReactElement,
   type ReactNode,
 } from 'react';
@@ -23,12 +24,12 @@ const SKIP_DELAY_MS = 300;
 /** Only one tooltip is visible at a time: opening one closes the previous immediately. */
 let closeCurrent: (() => void) | null = null;
 
-/** Arrow position per side (a small rotated square on the edge facing the trigger). */
+/** Arrow edge per side (a small rotated square on the edge facing the trigger). */
 const ARROW: Record<Side, string> = {
-  top: 'bottom-[-4px] left-1/2 -translate-x-1/2',
-  bottom: 'top-[-4px] left-1/2 -translate-x-1/2',
-  left: 'right-[-4px] top-1/2 -translate-y-1/2',
-  right: 'left-[-4px] top-1/2 -translate-y-1/2',
+  top: 'bottom-[-4px] -translate-x-1/2',
+  bottom: 'top-[-4px] -translate-x-1/2',
+  left: 'right-[-4px] -translate-y-1/2',
+  right: 'left-[-4px] -translate-y-1/2',
 };
 
 export interface TooltipProps {
@@ -64,7 +65,7 @@ export function Tooltip({
   const anchorRef = useRef<HTMLElement | null>(null);
   const floatingRef = useRef<HTMLDivElement | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const { style, placement } = useFloating(anchorRef, floatingRef, {
+  const { style, placement, arrowOffset } = useFloating(anchorRef, floatingRef, {
     open,
     side,
     align,
@@ -123,7 +124,13 @@ export function Tooltip({
       aria-describedby={open ? id : undefined}
       onPointerEnter={() => show(false)}
       onPointerLeave={hide}
-      onFocus={() => show(true)}
+      onFocus={(event: FocusEvent<HTMLElement>) => {
+        // Only keyboard focus (Tab) opens it. A dialog / menu handing focus back to its
+        // trigger on close (relatedTarget null: the focused element just went away) or a
+        // mouse click does not.
+        const target = event.currentTarget;
+        if (event.relatedTarget !== null && target.matches(':focus-visible')) show(true);
+      }}
       onBlur={hide}
       onPointerDown={() => {
         clearTimer();
@@ -155,6 +162,12 @@ export function Tooltip({
             {content}
             <span
               aria-hidden="true"
+              // Points at the trigger even when the tooltip was shifted to stay on screen.
+              style={
+                placement === 'top' || placement === 'bottom'
+                  ? { left: arrowOffset ?? '50%' }
+                  : { top: arrowOffset ?? '50%' }
+              }
               className={cn('absolute size-2 rotate-45 bg-foreground', ARROW[placement])}
             />
           </div>

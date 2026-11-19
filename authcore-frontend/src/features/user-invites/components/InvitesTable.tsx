@@ -1,18 +1,17 @@
-import { Ban, Copy, MoreHorizontal, RotateCw, Trash2 } from 'lucide-react';
+import { Ban, Copy, Loader2, MoreHorizontal, RotateCw, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { DateTime } from '@/components/common/DateTime';
+import { TableAction } from '@/components/data-table';
 import { notifyError, notifySuccess } from '@/components/feedback';
 import {
   Badge,
-  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  IconButton,
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
@@ -58,7 +57,7 @@ export function DataTable({ head, children }: { head: ReactNode; children: React
             {head}
           </tr>
         </thead>
-        <tbody className="[&_td]:px-3 [&_td]:py-3 sm:[&_td]:px-4 [&_tr]:border-b [&_tr]:border-border [&_tr]:transition-colors [&_tr:hover]:bg-accent/40 [&_tr:last-child]:border-0">
+        <tbody className="[&_td]:px-3 [&_td]:py-3 sm:[&_td]:px-4 [&_tr]:border-b [&_tr]:border-border [&_tr]:transition-colors [&_tr:hover]:bg-accent/40 [&_tr:last-child]:border-0 [&_tr:nth-child(even)]:bg-muted/60">
           {children}
         </tbody>
       </table>
@@ -128,31 +127,19 @@ function InviteActions({
   };
 
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div className="flex items-center justify-end gap-1.5">
       {canManage && canResend(invite) && (
-        <Button
-          variant="outline"
-          size="sm"
-          leftIcon={<RotateCw />}
-          isLoading={isResending}
+        <TableAction
+          tone="cyan"
+          icon={isResending ? <Loader2 className="animate-spin" /> : <RotateCw />}
+          label={`${invite.status === 'EXPIRED' ? 'Reinvite' : 'Resend the invite to'} ${invite.email}`}
+          disabled={isResending}
           onClick={() => void resend()}
-          className="whitespace-nowrap max-sm:px-2"
-          aria-label={`${invite.status === 'EXPIRED' ? 'Reinvite' : 'Resend the invite to'} ${invite.email}`}
-        >
-          <span className="hidden sm:inline">
-            {invite.status === 'EXPIRED' ? 'Reinvite' : 'Resend'}
-          </span>
-        </Button>
+        />
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <IconButton
-            aria-label={`Actions for ${who}`}
-            icon={<MoreHorizontal />}
-            variant="ghost"
-            size="sm"
-            showTooltip={false}
-          />
+          <TableAction icon={<MoreHorizontal />} label={`Actions for ${who}`} showTooltip={false} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
           <DropdownMenuItem icon={<Copy />} onSelect={() => void copyEmail()}>

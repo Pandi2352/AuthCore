@@ -212,7 +212,7 @@ export function SchemasPage() {
           >
             <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center">
               <SearchInput
-                size="sm"
+                size="toolbar"
                 value={filters.search}
                 onSearch={(search) => setFilters((f) => ({ ...f, search }))}
                 placeholder="Search by name, label or description"
@@ -222,7 +222,7 @@ export function SchemasPage() {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex lg:items-center">
                 <Select
                   aria-label="Type"
-                  size="sm"
+                  size="toolbar"
                   value={filters.type}
                   options={TYPE_FILTERS}
                   className="lg:w-40"
@@ -232,7 +232,7 @@ export function SchemasPage() {
                 />
                 <Select
                   aria-label="Source"
-                  size="sm"
+                  size="toolbar"
                   value={filters.source}
                   options={[
                     { value: 'all', label: 'System & custom' },
@@ -246,7 +246,7 @@ export function SchemasPage() {
                 />
                 <Select
                   aria-label="Status"
-                  size="sm"
+                  size="toolbar"
                   value={filters.status}
                   options={[
                     { value: 'all', label: 'Any status' },
@@ -268,7 +268,7 @@ export function SchemasPage() {
                 {isFiltered && (
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="toolbar"
                     leftIcon={<FilterX />}
                     onClick={() => setFilters(NO_FILTERS)}
                   >

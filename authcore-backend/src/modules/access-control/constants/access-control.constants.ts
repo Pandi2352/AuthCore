@@ -5,6 +5,13 @@
 
 /** Role / permission keys: stored uppercase, e.g. ORG_ADMIN, USER_CREATE. */
 export const KEY_PATTERN = /^[A-Z][A-Z0-9_]*$/;
+/** Role keys also allow "-" (ROLE-01, the default numbered series). */
+export const ROLE_KEY_PATTERN = /^[A-Z][A-Z0-9_-]*$/;
+/** Default role keys: ROLE-01, ROLE-02 … */
+export const ROLE_KEY_PREFIX = 'ROLE';
+/** Category values (built-in and custom): FINANCE_TEAM. */
+export const CATEGORY_VALUE_PATTERN = /^[A-Z][A-Z0-9_]{1,39}$/;
+export const CATEGORY_LABEL_MAX_LENGTH = 40;
 export const ROLE_KEY_MAX_LENGTH = 50;
 export const PERMISSION_KEY_MAX_LENGTH = 80;
 
@@ -402,59 +409,19 @@ export const SYSTEM_PERMISSIONS = [
   ),
 ];
 
-/** Seeded roles: protected, each holding the listed system permissions. */
+/**
+ * The one built-in role: always present, holds every system permission (new ones too, on
+ * each start) and cannot be edited or deleted. All other roles are created by admins.
+ */
+export const DEFAULT_ROLE_KEY = 'SUPER_ADMIN';
 export const SYSTEM_ROLES = [
   {
-    roleKey: 'ACCESS_CONTROL_ADMIN',
-    roleName: 'Access Control Administrator',
+    roleKey: DEFAULT_ROLE_KEY,
+    roleName: 'Super Administrator',
     category: SYSTEM_ROLE_CATEGORY,
     description:
-      'Manages roles, permissions, groups and access mappings. System role: cannot be edited or deleted.',
-    permissionKeys: Object.keys(SYSTEM_PERMISSION_DETAILS),
-  },
-  {
-    roleKey: 'PASSWORD_POLICY_ADMIN',
-    roleName: 'Password Policy Administrator',
-    category: SYSTEM_ROLE_CATEGORY,
-    description:
-      'Manages the password policy, expiry and reminder scheduler. System role: cannot be edited or deleted.',
-    permissionKeys: Object.keys(PASSWORD_POLICY_PERMISSION_DETAILS),
-  },
-  {
-    roleKey: 'USER_ADMIN',
-    roleName: 'User Administrator',
-    category: SYSTEM_ROLE_CATEGORY,
-    description:
-      'Manages user accounts and invites. System role: cannot be edited or deleted.',
-    permissionKeys: [
-      ...Object.keys(USER_PERMISSION_DETAILS),
-      ...Object.keys(USER_SCHEMA_PERMISSION_DETAILS),
-      ...Object.keys(FILE_PERMISSION_DETAILS),
-    ],
-  },
-  {
-    roleKey: 'BUSINESS_SETTINGS_ADMIN',
-    roleName: 'Business Settings Administrator',
-    category: SYSTEM_ROLE_CATEGORY,
-    description:
-      'Manages the site name, description, logos and favicon. System role: cannot be edited or deleted.',
-    permissionKeys: Object.keys(BUSINESS_SETTINGS_PERMISSION_DETAILS),
-  },
-  {
-    roleKey: 'STORAGE_ADMIN',
-    roleName: 'Storage Administrator',
-    category: SYSTEM_ROLE_CATEGORY,
-    description:
-      'Manages file storage providers, their credentials and the active storage. System role: cannot be edited or deleted.',
-    permissionKeys: Object.keys(STORAGE_SETTINGS_PERMISSION_DETAILS),
-  },
-  {
-    roleKey: 'APPEARANCE_ADMIN',
-    roleName: 'Appearance Administrator',
-    category: SYSTEM_ROLE_CATEGORY,
-    description:
-      'Sets the application look for every user. System role: cannot be edited or deleted.',
-    permissionKeys: Object.keys(APPEARANCE_SETTINGS_PERMISSION_DETAILS),
+      'Default role with every permission. Built in: cannot be edited or deleted.',
+    permissionKeys: SYSTEM_PERMISSIONS.map((p) => p.permissionKey),
   },
 ];
 

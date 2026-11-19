@@ -16,6 +16,10 @@ import {
 import { Group, GroupSchema } from './schemas/group.schema';
 import { Permission, PermissionSchema } from './schemas/permission.schema';
 import { Role, RoleSchema } from './schemas/role.schema';
+import {
+  RoleCategory,
+  RoleCategorySchema,
+} from './schemas/role-category.schema';
 import { AccessAuditService } from './services/access-audit.service';
 import { AccessMappingsService } from './services/access-mappings.service';
 import { AccessResolverService } from './services/access-resolver.service';
@@ -36,6 +40,7 @@ import { RolesService } from './services/roles.service';
     UsersModule,
     MongooseModule.forFeature([
       { name: Role.name, schema: RoleSchema },
+      { name: RoleCategory.name, schema: RoleCategorySchema },
       { name: Permission.name, schema: PermissionSchema },
       { name: Group.name, schema: GroupSchema },
       { name: AccessMapping.name, schema: AccessMappingSchema },

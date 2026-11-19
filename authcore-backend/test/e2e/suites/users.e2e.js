@@ -140,12 +140,18 @@ async function main() {
   console.log('\n5. Admin: access and listing');
   const M = await tok(email('mgr'));
   check('without USER_READ -> 403', (await call('GET', '/admin/users', { token: M })).status === 403);
-  const userAdminRole = await col('roles').findOne({ roleKey: 'USER_ADMIN' });
+  const userAdminRole = await (async (modules, name) => {
+    // The old built-in role: a custom role holding these modules' system permissions.
+    const perms = await col('permissions').find({ isSystem: true, isDeleted: false, metadata: { $elemMatch: { key: 'module', value: { $in: modules } } } }).toArray();
+    const stamp = Date.now();
+    const res = await call('POST', '/roles/setup', { token: A, body: { roleKey: `E2E_${name}_${stamp}`, roleName: `E2E ${name} ${stamp}`, category: 'CUSTOM', permissionIds: perms.map((p) => p._id) } });
+    return { _id: res.body.data.role.id };
+  })(['users', 'user-schema', 'files'], 'USER_ADMIN');
   const g = (await call('POST', '/groups', { token: A, body: { category: 'TEAM', groupName: 'UX Admins' } })).body.data;
   await call('POST', '/access-mappings/group-roles', { token: A, body: { groupId: g.id, roleIds: [userAdminRole._id] } });
   await call('POST', '/access-mappings/group-users', { token: A, body: { groupId: g.id, userIds: [await uid('mgr')] } });
   r = await call('GET', '/admin/users?search=test-ux-&sortBy=email&sortOrder=asc&limit=50', { token: M });
-  check('USER_ADMIN role (via group) -> list, sorted, paginated', r.status === 200 && r.body.meta.totalItems >= 5 && r.body.data[0].email <= r.body.data[1].email);
+  check('user-admin role (via group) -> list, sorted, paginated', r.status === 200 && r.body.meta.totalItems >= 5 && r.body.data[0].email <= r.body.data[1].email);
   r = await call('GET', `/admin/users?search=test-ux-&role=ADMIN`, { token: M });
   check('filter by role', r.body.data.every((u) => u.role === 'ADMIN') && r.body.data.length >= 1);
 
@@ -197,7 +203,7 @@ async function main() {
   check('list sessions', r.status === 200 && r.body.data.length >= 1 && r.body.data[0].deviceName);
   r = await call('POST', `/admin/users/${T}/sessions/revoke`, { token: M });
   check('sign out everywhere', r.body.data.count >= 1);
-  check('role change needs ADMIN (USER_ADMIN is not enough) -> 403', (await call('PATCH', `/admin/users/${T}/role`, { token: M, body: { role: 'ADMIN' } })).status === 403);
+  check('role change needs ADMIN (a user-admin role is not enough) -> 403', (await call('PATCH', `/admin/users/${T}/role`, { token: M, body: { role: 'ADMIN' } })).status === 403);
   r = await call('PATCH', `/admin/users/${T}/role`, { token: A, body: { role: 'ADMIN' } });
   check('ADMIN can promote', r.body.data.role === 'ADMIN');
   await call('PATCH', `/admin/users/${T}/role`, { token: A, body: { role: 'USER' } });

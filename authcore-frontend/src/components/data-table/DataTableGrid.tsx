@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import {
   useId,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -17,7 +18,7 @@ import type { ServerTable } from './use-server-table';
 import { MIN_COLUMN_WIDTH, type TableLayoutApi } from './use-table-layout';
 
 const SELECT_WIDTH = 48;
-const ACTIONS_WIDTH = 60;
+const ACTIONS_WIDTH = 96;
 
 /** Cell padding / text per density. Never below 13 px; touch screens get at least 44 px rows. */
 const CELL: Record<TableDensity, string> = {
@@ -25,6 +26,37 @@ const CELL: Record<TableDensity, string> = {
   comfortable: 'py-2.5 text-sm',
   spacious: 'py-4 text-sm',
 };
+
+/** Text width in px for a CSS font (one shared canvas). */
+let measureCanvas: HTMLCanvasElement | null = null;
+function textWidth(text: string, font: string): number {
+  measureCanvas ??= document.createElement('canvas');
+  const ctx = measureCanvas.getContext('2d');
+  if (!ctx) return text.length * 8;
+  ctx.font = font;
+  return ctx.measureText(text).width;
+}
+
+/** Widths of `fitText` columns: widest line (semibold 14px) or header, plus cell padding. */
+function measureFitText<T>(
+  columns: DataTableColumn<T>[],
+  rows: readonly T[],
+): Record<string, number> {
+  const widths: Record<string, number> = {};
+  if (rows.length === 0 || typeof document === 'undefined') return widths;
+  const family = getComputedStyle(document.body).fontFamily;
+  for (const c of columns) {
+    if (!c.fitText) continue;
+    const cellFont = `600 14px ${family}`;
+    let widest = textWidth(String(c.header).toUpperCase(), `600 12px ${family}`) * 1.1 + 20;
+    for (const row of rows) {
+      for (const line of c.fitText(row)) widest = Math.max(widest, textWidth(line, cellFont));
+    }
+    // 24 px cell padding + a little room; never wider than `width`.
+    widths[c.id] = Math.min(Math.ceil(widest) + 30, c.width ?? 360);
+  }
+  return widths;
+}
 
 const alignClass = <T,>(c: DataTableColumn<T>) =>
   c.numeric || c.align === 'right'
@@ -44,9 +76,13 @@ export interface DataTableGridProps<T> {
   rowLabel: (row: T) => string;
   rowActions?: (row: T) => ReactNode;
   onRowOpen?: (row: T) => void;
+  /** Checkbox column (select rows / all on the page). */
+  selectable?: boolean;
+  actionsWidth?: number;
   /** Shown in the body when there are no rows (first run / no results). */
   empty: ReactNode;
   caption: string;
+  /** Cap the height and scroll inside (default: no cap, the page scrolls). */
   maxHeight?: string;
 }
 
@@ -62,9 +98,11 @@ export function DataTableGrid<T>({
   rowLabel,
   rowActions,
   onRowOpen,
+  selectable = true,
+  actionsWidth = ACTIONS_WIDTH,
   empty,
   caption,
-  maxHeight = 'calc(100dvh - 18rem)',
+  maxHeight,
 }: DataTableGridProps<T>) {
   const density = layout.layout.density;
   const [activeRow, setActiveRow] = useState(0);
@@ -72,14 +110,25 @@ export function DataTableGrid<T>({
   const bodyRef = useRef<HTMLTableSectionElement | null>(null);
   const baseId = useId();
 
-  const widthOf = (c: DataTableColumn<T>) => liveWidths[c.id] ?? layout.widthOf(c);
+  const textWidths = useMemo(() => measureFitText(columns, table.rows), [columns, table.rows]);
+  const widthOf = (c: DataTableColumn<T>) =>
+    textWidths[c.id] ?? liveWidths[c.id] ?? layout.widthOf(c);
+  const isFixed = (c: DataTableColumn<T>) => c.fit === true || c.fitText !== undefined;
+  const selectWidth = selectable ? SELECT_WIDTH : 0;
   const tableWidth =
-    SELECT_WIDTH +
-    columns.reduce((sum, c) => sum + widthOf(c), 0) +
-    (rowActions ? ACTIONS_WIDTH : 0);
+    selectWidth + columns.reduce((sum, c) => sum + widthOf(c), 0) + (rowActions ? actionsWidth : 0);
+  // Fixed columns (checkbox, actions) keep their px width; data columns share the rest in
+  // proportion to their configured / resized widths.
+  const fittedWidth = columns.filter(isFixed).reduce((sum, c) => sum + widthOf(c), 0);
+  const fixedWidth = selectWidth + (rowActions ? actionsWidth : 0) + fittedWidth;
+  const dataWidth = Math.max(1, tableWidth - fixedWidth);
+  const shareOf = (c: DataTableColumn<T>) =>
+    isFixed(c)
+      ? `${widthOf(c)}px`
+      : `calc((100% - ${fixedWidth}px) * ${(widthOf(c) / dataWidth).toFixed(4)})`;
   const sortRules = table.query.sort;
   const { rows } = table;
-  const colSpan = columns.length + 1 + (rowActions ? 1 : 0);
+  const colSpan = columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0);
   const allOnPage = table.pageRowCount > 0 && table.selectedOnPage === table.pageRowCount;
   const someOnPage = table.selectedOnPage > 0 && !allOnPage;
 
@@ -176,7 +225,11 @@ export function DataTableGrid<T>({
 
   return (
     <div
-      className="relative scrollbar-slim overflow-auto rounded-md border border-border bg-surface"
+      className={cn(
+        'relative scrollbar-slim rounded-md border border-border bg-surface',
+        // No height cap: every row shows and the page scrolls (no scrollbar in the table).
+        maxHeight ? 'overflow-auto' : 'overflow-x-auto overflow-y-hidden',
+      )}
       style={{ maxHeight }}
       aria-busy={table.isFetching || undefined}
     >
@@ -191,36 +244,39 @@ export function DataTableGrid<T>({
       <table
         aria-rowcount={table.total + 1}
         className="w-full table-fixed border-separate border-spacing-0"
-        style={{ width: tableWidth, minWidth: '100%' }}
+        // Always exactly as wide as the container: no sideways scrollbar.
+        style={{ width: '100%' }}
       >
         <caption className="sr-only">{caption}</caption>
         <colgroup>
-          <col style={{ width: SELECT_WIDTH }} />
+          {selectable && <col style={{ width: SELECT_WIDTH }} />}
           {columns.map((c) => (
-            <col key={c.id} style={{ width: widthOf(c) }} />
+            <col key={c.id} style={{ width: shareOf(c) }} />
           ))}
-          {rowActions && <col style={{ width: ACTIONS_WIDTH }} />}
+          {rowActions && <col style={{ width: actionsWidth }} />}
         </colgroup>
         <thead>
           <tr className="h-10">
-            <th scope="col" className={cn(headCell, 'sticky top-0 left-0 z-30')}>
-              <span className="sr-only">Select</span>
-              <span className="flex justify-center">
-                <label
-                  htmlFor={`${baseId}-all`}
-                  className="inline-flex size-6 cursor-pointer items-center justify-center pointer-coarse:size-11"
-                >
-                  <Checkbox
-                    id={`${baseId}-all`}
-                    aria-label="Select all rows on this page"
-                    checked={allOnPage}
-                    indeterminate={someOnPage}
-                    disabled={table.pageRowCount === 0}
-                    onCheckedChange={(on) => table.setPageSelected(on)}
-                  />
-                </label>
-              </span>
-            </th>
+            {selectable && (
+              <th scope="col" className={cn(headCell, 'sticky top-0 left-0 z-30')}>
+                <span className="sr-only">Select</span>
+                <span className="flex justify-center">
+                  <label
+                    htmlFor={`${baseId}-all`}
+                    className="inline-flex size-6 cursor-pointer items-center justify-center pointer-coarse:size-11"
+                  >
+                    <Checkbox
+                      id={`${baseId}-all`}
+                      aria-label="Select all rows on this page"
+                      checked={allOnPage}
+                      indeterminate={someOnPage}
+                      disabled={table.pageRowCount === 0}
+                      onCheckedChange={(on) => table.setPageSelected(on)}
+                    />
+                  </label>
+                </span>
+              </th>
+            )}
             {columns.map((column, index) => {
               const rule = sortRules.find((r) => r.id === column.id);
               return (
@@ -240,7 +296,7 @@ export function DataTableGrid<T>({
                     headCell,
                     'relative sticky top-0 z-20',
                     alignClass(column),
-                    index === 0 && 'left-12 z-30',
+                    index === 0 && (selectable ? 'left-12 z-30' : 'left-0 z-30'),
                   )}
                 >
                   {column.sortable ? (
@@ -280,8 +336,8 @@ export function DataTableGrid<T>({
               );
             })}
             {rowActions && (
-              <th scope="col" className={cn(headCell, 'sticky top-0 right-0 z-30')}>
-                <span className="sr-only">Actions</span>
+              <th scope="col" className={cn(headCell, 'sticky top-0 right-0 z-30 text-right')}>
+                Action
               </th>
             )}
           </tr>
@@ -296,9 +352,11 @@ export function DataTableGrid<T>({
           {!table.hasLoaded &&
             Array.from({ length: Math.min(table.query.pageSize, 10) }, (_, i) => (
               <tr key={`skeleton-${i}`} aria-hidden="true">
-                <td className={bodyCell}>
-                  <Skeleton className="mx-auto size-4" />
-                </td>
+                {selectable && (
+                  <td className={bodyCell}>
+                    <Skeleton className="mx-auto size-4" />
+                  </td>
+                )}
                 {columns.map((c) => (
                   <td key={c.id} className={bodyCell}>
                     <Skeleton className={cn('h-4', c.numeric ? 'ml-auto w-12' : 'w-3/4')} />
@@ -332,40 +390,43 @@ export function DataTableGrid<T>({
                 onFocus={(e) => e.target === e.currentTarget && setActiveRow(index)}
                 onClick={(e) => onRowClick(row, e)}
                 className={cn(
-                  'group/row bg-surface transition-colors duration-100 hover:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring data-selected:bg-[color-mix(in_oklch,var(--primary)_9%,var(--surface))]',
+                  'group/row bg-surface transition-colors duration-100 even:bg-muted/60 hover:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring data-selected:bg-[color-mix(in_oklch,var(--primary)_11%,var(--surface))]',
                   onRowOpen && 'cursor-pointer',
                 )}
               >
-                <td className={cn(bodyCell, 'relative sticky left-0 z-10 bg-inherit')}>
-                  {/* Selected: tint + checked box + accent bar (not color alone). */}
-                  {selected && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute inset-y-0 left-0 w-0.5 bg-primary"
-                    />
-                  )}
-                  <span className="flex justify-center">
-                    <label
-                      htmlFor={`${baseId}-${id}`}
-                      className="inline-flex size-6 cursor-pointer items-center justify-center pointer-coarse:size-11"
-                    >
-                      <Checkbox
-                        id={`${baseId}-${id}`}
-                        aria-label={`Select ${rowLabel(row)}`}
-                        checked={selected}
-                        onCheckedChange={() => table.toggleRow(id)}
+                {selectable && (
+                  <td className={cn(bodyCell, 'relative sticky left-0 z-10 bg-inherit')}>
+                    {/* Selected: tint + checked box + accent bar (not color alone). */}
+                    {selected && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-y-0 left-0 w-0.5 bg-primary"
                       />
-                    </label>
-                  </span>
-                </td>
+                    )}
+                    <span className="flex justify-center">
+                      <label
+                        htmlFor={`${baseId}-${id}`}
+                        className="inline-flex size-6 cursor-pointer items-center justify-center pointer-coarse:size-11"
+                      >
+                        <Checkbox
+                          id={`${baseId}-${id}`}
+                          aria-label={`Select ${rowLabel(row)}`}
+                          checked={selected}
+                          onCheckedChange={() => table.toggleRow(id)}
+                        />
+                      </label>
+                    </span>
+                  </td>
+                )}
                 {columns.map((column, ci) => (
                   <td
                     key={column.id}
                     className={cn(
                       bodyCell,
                       alignClass(column),
-                      'truncate',
-                      ci === 0 && 'sticky left-12 z-10 bg-inherit font-medium',
+                      column.wrap ? 'break-words whitespace-normal' : 'truncate',
+                      ci === 0 &&
+                        cn('sticky z-10 bg-inherit font-medium', selectable ? 'left-12' : 'left-0'),
                     )}
                   >
                     {column.cell(row)}

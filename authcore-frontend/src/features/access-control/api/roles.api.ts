@@ -4,9 +4,11 @@ import { apiClient } from '@/lib/api';
 import type {
   CreateRoleInput,
   Role,
+  RoleCategory,
   RoleListItem,
   RoleSetupInput,
   RoleSetupResult,
+  RoleStats,
   UpdateRoleInput,
 } from '../types/access-control.types';
 
@@ -25,7 +27,6 @@ export const rolesApi = {
   list: async (query: TableQuery, signal?: AbortSignal): Promise<TablePage<RoleListItem>> => {
     const sort = query.sort[0];
     const categoryFilter = query.filters.category?.join(',');
-    const statusFilter = query.filters.status?.join(',');
 
     const page = await apiClient.getPage<Role>(BASE, {
       signal,
@@ -34,7 +35,6 @@ export const rolesApi = {
         limit: query.pageSize,
         search: query.search.trim() || undefined,
         category: categoryFilter || undefined,
-        status: statusFilter || undefined,
         sortBy: sort ? (SORT_FIELD[sort.id] ?? 'updatedAt') : 'updatedAt',
         sortOrder: sort ? (sort.desc ? 'desc' : 'asc') : 'desc',
       },
@@ -61,11 +61,18 @@ export const rolesApi = {
       },
     }),
 
+  /** Built-in categories, then admin-added ones. */
   categories: (signal?: AbortSignal) =>
-    apiClient.get<Array<{ value: string; label: string; isReserved?: boolean }>>(
-      `${BASE}/categories`,
-      { signal },
-    ),
+    apiClient.get<RoleCategory[]>(`${BASE}/categories`, { signal }),
+
+  /** Add a category from its label ("Finance team" → FINANCE_TEAM). */
+  createCategory: (label: string) => apiClient.post<RoleCategory>(`${BASE}/categories`, { label }),
+
+  /** Next free key in the ROLE-NN series, e.g. ROLE-07. */
+  nextKey: (signal?: AbortSignal) =>
+    apiClient.get<{ roleKey: string }>(`${BASE}/next-key`, { signal }),
+
+  stats: (signal?: AbortSignal) => apiClient.get<RoleStats>(`${BASE}/stats`, { signal }),
 
   exists: (query: { roleKey?: string; roleName?: string; category?: string; excludeId?: string }) =>
     apiClient.get<{ exists: boolean }>(`${BASE}/exists`, { query }),
@@ -78,9 +85,7 @@ export const rolesApi = {
 
   remove: (id: string) => apiClient.delete<{ id: string; deletedAt: string }>(byId(id)),
 
-  bulkUpdate: (
-    roles: Array<{ id: string; status?: string; description?: string; version?: number }>,
-  ) =>
+  bulkUpdate: (roles: Array<{ id: string; description?: string; version?: number }>) =>
     apiClient.patch<{ updatedCount: number; unchangedIds: string[]; roles: Role[] }>(
       `${BASE}/bulk`,
       { roles },

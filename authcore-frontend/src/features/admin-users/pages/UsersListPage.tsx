@@ -364,12 +364,12 @@ export function UsersListPage() {
         toolbarActions={
           <div className="flex items-center gap-2">
             {hasPermission('USER_INVITE') && (
-              <Button variant="outline" size="sm" leftIcon={<MailPlus />} asChild>
+              <Button variant="outline" size="toolbar" leftIcon={<MailPlus />} asChild>
                 <Link to={paths.admin.invites}>Invite</Link>
               </Button>
             )}
             {hasPermission('USER_CREATE') && (
-              <Button variant="outline" size="sm" leftIcon={<UserPlus />} asChild>
+              <Button variant="outline" size="toolbar" leftIcon={<UserPlus />} asChild>
                 <Link to={paths.admin.userCreate}>Create user</Link>
               </Button>
             )}

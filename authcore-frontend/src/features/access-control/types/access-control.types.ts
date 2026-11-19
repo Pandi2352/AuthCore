@@ -1,8 +1,5 @@
 export type RecordStatus = 'ACTIVE' | 'INACTIVE';
 
-export type RoleCategory =
-  'MANAGEMENT' | 'OPERATIONS' | 'FINANCE' | 'SUPPORT' | 'CUSTOM' | 'SYSTEM';
-
 export type GroupCategory = 'DEPARTMENT' | 'TEAM' | 'PROJECT' | 'SECURITY' | 'CUSTOM';
 
 export type PermissionAction =
@@ -30,8 +27,8 @@ export interface Permission {
   updatedAt: string;
 }
 
-export interface PermissionListItem extends Omit<Permission, 'metadata'> {
-  metadata?: PermissionMetadata[];
+export interface PermissionListItem extends Permission {
+  rowNumber?: number;
 }
 
 export interface CreatePermissionInput {
@@ -56,7 +53,6 @@ export interface Role {
   roleName: string;
   category: string;
   description: string;
-  status: RecordStatus;
   isSystem: boolean;
   version: number;
   permissionCount?: number;
@@ -74,13 +70,12 @@ export interface CreateRoleInput {
   roleName: string;
   category: string;
   description?: string;
-  status?: RecordStatus;
 }
 
 export interface UpdateRoleInput {
   roleName?: string;
+  category?: string;
   description?: string;
-  status?: RecordStatus;
   version?: number;
 }
 
@@ -185,8 +180,6 @@ export interface PermissionMatrix {
 export interface AccessMapping {
   id: string;
   type: MappingType;
-  sourceId: string;
-  targetId: string;
   user?: {
     id: string;
     email: string;
@@ -271,4 +264,27 @@ export interface AccessTreeGroup {
       isExpired: boolean;
     }>;
   }>;
+}
+
+/** GET /roles/categories item. */
+export interface RoleCategory {
+  value: string;
+  label: string;
+  /** SYSTEM: only built-in roles use it. */
+  isReserved: boolean;
+  /** Added by an admin. */
+  isCustom: boolean;
+}
+
+/** GET /roles/stats */
+export interface RoleStats {
+  totalRoles: number;
+  /** Given to at least one group. */
+  rolesInUse: number;
+  customRoles: number;
+  systemRoles: number;
+  totalPermissions: number;
+  permissionsInUse: number;
+  rolesWithoutPermissions: number;
+  categories: number;
 }

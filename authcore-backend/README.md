@@ -921,7 +921,7 @@ One policy for the whole service, stored in MongoDB and changed through the API 
 - Every instance polls (`SCHEDULER_POLL_SECONDS`); a due job is claimed with an atomic database lock, so it runs once across replicas. Changes apply without a restart.
 - No duplicate emails (unique record per user, password and threshold); failed sends are retried on later runs (3 attempts); a failed run is retried after 15 minutes. Run results are stored (`lastExecutionStatus`, `lastExecutionSummary`).
 
-**Who may manage it:** reading needs `PASSWORD_POLICY_READ`, changing / running the job needs `PASSWORD_POLICY_MANAGE` (system role `PASSWORD_POLICY_ADMIN` has both; assign it to a group). Users with `role: ADMIN` (super admin) pass every check. Grant or remove ADMIN from the command line (takes effect on the user's next request):
+**Who may manage it:** reading needs `PASSWORD_POLICY_READ`, changing / running the job needs `PASSWORD_POLICY_MANAGE` (the default role `SUPER_ADMIN` has both; or create a role with them and give it to a group). Users with `role: ADMIN` (super admin) pass every check. Grant or remove ADMIN from the command line (takes effect on the user's next request):
 
 ```bash
 npm run build
@@ -933,18 +933,18 @@ npm run users:role -- jane@example.com USER
 
 **Model:** User → Group → Role → Permission. A user's permissions are the union over all their groups' roles (active, non-deleted only, no duplicates). With `ACCESS_INHERIT_PARENT_GROUPS=true`, members of a sub-group also get the roles of its parent groups (off by default).
 
-**Who may call what:** every endpoint needs a permission, checked by the global guard with `@RequirePermissions('ROLE_CREATE')`. Users with `role: ADMIN` (from `npm run users:role -- <email> ADMIN`) pass every check, so the service can't be locked out. On startup AuthCore seeds 24 system permissions (`ROLE_*`, `PERMISSION_*`, `GROUP_*`, `ACCESS_MAPPING_READ / ASSIGN / REVOKE`, `ACCESS_AUDIT_READ`, `PASSWORD_POLICY_READ / MANAGE`, `USER_READ / CREATE / UPDATE / DELETE / PASSWORD_MANAGE / INVITE`) and three system roles: `ACCESS_CONTROL_ADMIN`, `PASSWORD_POLICY_ADMIN` and `USER_ADMIN`. System entities can't be edited or deleted.
+**Who may call what:** every endpoint needs a permission, checked by the global guard with `@RequirePermissions('ROLE_CREATE')`. Users with `role: ADMIN` (from `npm run users:role -- <email> ADMIN`) pass every check, so the service can't be locked out. On startup AuthCore seeds 24 system permissions (`ROLE_*`, `PERMISSION_*`, `GROUP_*`, `ACCESS_MAPPING_READ / ASSIGN / REVOKE`, `ACCESS_AUDIT_READ`, `PASSWORD_POLICY_READ / MANAGE`, `USER_READ / CREATE / UPDATE / DELETE / PASSWORD_MANAGE / INVITE`) and one built-in role, `SUPER_ADMIN`, holding every system permission (new ones are linked on each start). Every other role is created by admins. Built-in roles from older versions are removed on start (soft-deleted and taken off their groups). System entities can't be edited or deleted.
 
 | Area | Endpoints |
 | --- | --- |
-| Roles | `POST /roles` · `GET /roles` · `GET /roles/dropdown` · `GET /roles/categories` · `GET /roles/exists` · `PATCH /roles/bulk` · `POST /roles/setup` · `GET / PATCH / DELETE /roles/key/:roleKey` · `GET / PATCH / DELETE /roles/:id` |
+| Roles | `POST /roles` · `GET /roles` · `GET /roles/dropdown` · `GET / POST /roles/categories` · `GET /roles/next-key` · `GET /roles/stats` · `GET /roles/exists` · `PATCH /roles/bulk` · `POST /roles/setup` · `GET / PATCH / DELETE /roles/key/:roleKey` · `GET / PATCH / DELETE /roles/:id` |
 | Permissions | `POST /permissions` · `GET /permissions` · `GET /permissions/dropdown` · `GET /permissions/actions` · `GET /permissions/exists` · `GET / PATCH / DELETE /permissions/:id` |
 | Groups | `POST /groups` · `GET /groups` · `GET /groups/dropdown` · `GET /groups/categories` · `GET /groups/tree` · `GET /groups/exists` · `GET /groups/code/:groupCode` · `GET / PATCH / DELETE /groups/:id` · `GET /groups/:id/children` · `GET /groups/:id/permission-matrix` |
 | Access mapping | `POST /access-mappings/group-users` (+ `/remove`) · `POST /access-mappings/group-roles` (+ `/remove`) · `POST /access-mappings/role-permissions` (+ `/remove`) · `GET /access-mappings` · `DELETE /access-mappings/:id` · `GET /access-mappings/users/:userId/effective-access` |
 | Other | `GET /access-control/me` (any signed-in user: my groups, roles, permission keys) · `GET /access-control/audit-logs` |
 
 **Fields**
-- Role: `roleKey` (uppercase `A-Z 0-9 _`, unique), `roleName` (unique within its category, case-insensitive), `category` (`/roles/categories`; SYSTEM reserved), `description`, `status`.
+- Role: `roleKey` (uppercase `A-Z 0-9 _ -`, unique; `GET /roles/next-key` suggests the next `ROLE-NN` via `common/utils/sequence-code.util.ts`), `roleName` (unique within its category, case-insensitive), `category` (built-in or admin-added via `POST /roles/categories`, stored in `role_categories`; SYSTEM reserved), `description` (no status: a role is always in effect; inactive roles from older data are switched back to active on start). `GET /roles/stats` returns the counts for the roles page.
 - Permission: `permissionKey` (uppercase, unique), `permissionName` (unique, case-insensitive), `description`, `metadata: [{ key, value, action }]` (up to 20, unique keys, actions from `/permissions/actions`, plain-text values only), `status`.
 - Group: `category` (`/groups/categories`), `parentGroupId` (empty = main group), `groupId` (optional; letters, numbers, `_ - :`, stored uppercase; generated `GRP-XXXXXX` when empty), `groupName` (unique among siblings), `description`, `tags` (comma-separated string or array; each tag letters, numbers, `_ - :`; stored lowercase without duplicates; max 20 × 30 chars), `status`.
 
@@ -996,7 +996,7 @@ npm run users:role -- jane@example.com USER
 
 ### User administration: `/api/v1/admin/users`
 
-Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWORD_MANAGE` (system role `USER_ADMIN` has all; ADMIN passes everything).
+Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWORD_MANAGE` (the default role `SUPER_ADMIN` has all; ADMIN passes everything).
 
 | Endpoint | Purpose |
 | --- | --- |
@@ -1042,7 +1042,7 @@ Needs `USER_INVITE` (send / resend / revoke / delete) and `USER_READ` (list / de
 
 ### User schema (custom user variables): `/api/v1/user-schema`
 
-The fields a user profile has. Needs `USER_SCHEMA_READ` / `USER_SCHEMA_MANAGE` (both in the `USER_ADMIN` role); `GET /user-schema/form` is open to any signed-in user.
+The fields a user profile has. Needs `USER_SCHEMA_READ` / `USER_SCHEMA_MANAGE` (both in the default `SUPER_ADMIN` role); `GET /user-schema/form` is open to any signed-in user.
 
 | Endpoint | Purpose |
 | --- | --- |
@@ -1061,7 +1061,7 @@ The fields a user profile has. Needs `USER_SCHEMA_READ` / `USER_SCHEMA_MANAGE` (
 
 ### Business settings (branding): `/api/v1/settings/business`
 
-Site name, description, logos and favicon, shown by the frontend on every page. Reading the public part needs no sign-in; the rest needs `BUSINESS_SETTINGS_READ` / `BUSINESS_SETTINGS_MANAGE` (system role `BUSINESS_SETTINGS_ADMIN`, or `ADMIN`). Until the first save the values come from `project.config.json`.
+Site name, description, logos and favicon, shown by the frontend on every page. Reading the public part needs no sign-in; the rest needs `BUSINESS_SETTINGS_READ` / `BUSINESS_SETTINGS_MANAGE` (default role `SUPER_ADMIN`, a role holding them, or `ADMIN`). Until the first save the values come from `project.config.json`.
 
 | Endpoint | Purpose |
 | --- | --- |
@@ -1075,11 +1075,11 @@ Images are public files of internal purposes (`BRAND_*`): the generic `/files` e
 
 ### Appearance: `/api/v1/settings/appearance`
 
-One look for the whole application, set by the super admin (`APPEARANCE_SETTINGS_READ` / `APPEARANCE_SETTINGS_MANAGE`, role `APPEARANCE_ADMIN`; ADMIN always passes): default mode, color preset and appearance options. `GET /settings/appearance/public` (no sign-in) is applied by every page; `PUT /settings/appearance` saves it (optimistic `version`). Users only keep their own light / dark choice in the browser. Guide: `docs/frontend/theme-system.md#one-application-look-super-admin`.
+One look for the whole application, set by the super admin (`APPEARANCE_SETTINGS_READ` / `APPEARANCE_SETTINGS_MANAGE`, default role `SUPER_ADMIN`; ADMIN always passes): default mode, color preset and appearance options. `GET /settings/appearance/public` (no sign-in) is applied by every page; `PUT /settings/appearance` saves it (optimistic `version`). Users only keep their own light / dark choice in the browser. Guide: `docs/frontend/theme-system.md#one-application-look-super-admin`.
 
 ### File storage and uploads: `/api/v1/settings/storage`, `/api/v1/uploads`
 
-One active storage receives every upload: the built-in local folder (`STORAGE_LOCAL_DIR`) or a bucket on Amazon S3, Backblaze B2, Tigris, Supabase Storage or any S3-compatible service. Admins add storages (credentials encrypted with `STORAGE_SECRETS_KEY`, never returned), test them and pick the active one (`STORAGE_SETTINGS_READ` / `STORAGE_SETTINGS_MANAGE`, role `STORAGE_ADMIN`). Files remember their storage, so switching never breaks older files.
+One active storage receives every upload: the built-in local folder (`STORAGE_LOCAL_DIR`) or a bucket on Amazon S3, Backblaze B2, Tigris, Supabase Storage or any S3-compatible service. Admins add storages (credentials encrypted with `STORAGE_SECRETS_KEY`, never returned), test them and pick the active one (`STORAGE_SETTINGS_READ` / `STORAGE_SETTINGS_MANAGE`, default role `SUPER_ADMIN`). Files remember their storage, so switching never breaks older files.
 
 `POST /uploads` (any signed-in user, multipart `file`) → `{ id, name, key, url, fileType, fileSize, filePages }` — images, PDF, DOCX / XLSX / PPTX, CSV, TXT. Guide: `docs/backend/file-storage.md`.
 

@@ -31,6 +31,15 @@ export interface DataTableColumn<T> {
    * grid, default) or hidden.
    */
   mobile?: 'title' | 'subtitle' | 'field' | 'hidden';
+  /** Keep exactly `width` px (e.g. a row number) instead of sharing the free space. */
+  fit?: boolean;
+  /**
+   * Size the column to its widest text on the current page (each returned line, and the
+   * header); `width` is the most it may take (longer text wraps).
+   */
+  fitText?: (row: T) => string[];
+  /** Show the whole text on several lines instead of cutting it with "…". */
+  wrap?: boolean;
 }
 
 export interface FilterOption {

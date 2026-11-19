@@ -1,4 +1,9 @@
-import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  OmitType,
+  PartialType,
+} from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -164,7 +169,31 @@ export class UpdatePermissionDto extends PartialType(CreatePermissionDto) {
   version?: number;
 }
 
-export class PermissionListQueryDto extends ListQueryDto {
+export class PermissionListQueryDto extends OmitType(ListQueryDto, [
+  'page',
+  'limit',
+] as const) {
+  @ApiPropertyOptional({
+    description: 'Page number (optional; omit for unpaginated full list)',
+    minimum: 1,
+    example: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({
+    description: 'Items per page (optional; omit for unpaginated full list)',
+    minimum: 1,
+    example: 100,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
   @ApiPropertyOptional({
     example: 'module',
     description: 'Has a metadata entry with this key',

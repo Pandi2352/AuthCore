@@ -32,9 +32,20 @@ export interface DataTableProps<T> {
   /** Row click / Enter / card title. */
   onRowOpen?: (row: T) => void;
   bulkActions?: readonly BulkAction[];
+  /**
+   * Row checkboxes / select all. Default: only when there are bulk actions (a selection with
+   * nothing to do is just noise).
+   */
+  selectable?: boolean;
+  /** Width of the action column in px (default fits two icon buttons). */
+  actionsWidth?: number;
   /** Toolbar end (e.g. "Invite user"). */
   toolbarActions?: ReactNode;
   searchPlaceholder?: string;
+  /** The "Table view" button (density, columns). Off: always comfortable, every column. */
+  viewOptions?: boolean;
+  /** Also reload page extras (e.g. count cards) when the Refresh button is pressed. */
+  onRefresh?: () => void;
   /** First run (no data at all): copy and the next action. */
   emptyState: { title: string; description?: ReactNode; action?: ReactNode; icon?: ReactNode };
 }
@@ -54,12 +65,25 @@ export function DataTable<T>({
   rowActions,
   onRowOpen,
   bulkActions = NO_ACTIONS,
+  selectable,
+  actionsWidth,
   toolbarActions,
   searchPlaceholder = `Search ${itemName.plural}…`,
   emptyState,
+  viewOptions = true,
+  onRefresh,
 }: DataTableProps<T>) {
   const isDesktop = useBreakpoint('md');
-  const layout = useTableLayout(layoutKey, columns);
+  const savedLayout = useTableLayout(layoutKey, columns);
+  // Without the view button, earlier saved choices (density, hidden columns) don't apply.
+  const layout = viewOptions
+    ? savedLayout
+    : {
+        ...savedLayout,
+        visibleColumns: columns,
+        layout: { ...savedLayout.layout, density: 'comfortable' as const },
+      };
+  const isSelectable = selectable ?? bulkActions.length > 0;
 
   const empty = table.hasActiveQuery ? (
     <EmptyState
@@ -89,11 +113,13 @@ export function DataTable<T>({
         table={table}
         columns={columns}
         layout={layout}
+        viewOptions={viewOptions}
+        onRefresh={onRefresh}
         searchPlaceholder={searchPlaceholder}
         actions={toolbarActions}
       />
       <DataTableFilterChips table={table} />
-      {bulkActions.length > 0 && (
+      {isSelectable && bulkActions.length > 0 && (
         <DataTableBulkBar table={table} actions={bulkActions} itemsLabel={itemName.plural} />
       )}
 
@@ -114,6 +140,8 @@ export function DataTable<T>({
           rowLabel={rowLabel}
           rowActions={rowActions}
           onRowOpen={onRowOpen}
+          selectable={isSelectable}
+          actionsWidth={actionsWidth}
           empty={empty}
           caption={`${itemName.plural}, ${table.total} total, page ${table.query.page} of ${table.pageCount}`}
         />
@@ -124,6 +152,7 @@ export function DataTable<T>({
           rowLabel={rowLabel}
           rowActions={rowActions}
           onRowOpen={onRowOpen}
+          selectable={isSelectable}
           empty={empty}
         />
       )}

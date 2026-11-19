@@ -16,6 +16,7 @@ export function DataTableCards<T>({
   rowLabel,
   rowActions,
   onRowOpen,
+  selectable = true,
   empty,
 }: {
   table: ServerTable<T>;
@@ -23,6 +24,7 @@ export function DataTableCards<T>({
   rowLabel: (row: T) => string;
   rowActions?: (row: T) => ReactNode;
   onRowOpen?: (row: T) => void;
+  selectable?: boolean;
   empty: ReactNode;
 }) {
   const baseId = useId();
@@ -44,7 +46,7 @@ export function DataTableCards<T>({
       {sortOptions.length > 0 && (
         <Select
           aria-label="Sort by"
-          size="sm"
+          size="toolbar"
           placeholder="Sort by"
           value={primarySort ? `${primarySort.id}.${primarySort.desc ? 'desc' : 'asc'}` : null}
           onValueChange={(value) => {
@@ -88,17 +90,19 @@ export function DataTableCards<T>({
                 )}
               >
                 <div className="flex items-start gap-2">
-                  <label
-                    htmlFor={`${baseId}-${id}`}
-                    className="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center"
-                  >
-                    <Checkbox
-                      id={`${baseId}-${id}`}
-                      aria-label={`Select ${rowLabel(row)}`}
-                      checked={selected}
-                      onCheckedChange={() => table.toggleRow(id)}
-                    />
-                  </label>
+                  {selectable && (
+                    <label
+                      htmlFor={`${baseId}-${id}`}
+                      className="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center"
+                    >
+                      <Checkbox
+                        id={`${baseId}-${id}`}
+                        aria-label={`Select ${rowLabel(row)}`}
+                        checked={selected}
+                        onCheckedChange={() => table.toggleRow(id)}
+                      />
+                    </label>
+                  )}
                   <div className="min-w-0 flex-1 py-2">
                     {onRowOpen ? (
                       <button

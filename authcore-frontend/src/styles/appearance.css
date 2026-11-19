@@ -26,6 +26,8 @@
 :root,
 [data-density='comfortable'] {
   --control-h-sm: 2.25rem;
+  /* List toolbars: search, filters and the buttons next to them. */
+  --control-h-toolbar: 2.5rem;
   --control-h-md: 2.75rem;
   --control-h-lg: 3rem;
   --space-page: 1.5rem;
@@ -35,6 +37,7 @@
 }
 [data-density='compact'] {
   --control-h-sm: 2rem;
+  --control-h-toolbar: 2.25rem;
   --control-h-md: 2.375rem;
   --control-h-lg: 2.75rem;
   --space-page: 1rem;
@@ -44,6 +47,7 @@
 }
 [data-density='spacious'] {
   --control-h-sm: 2.5rem;
+  --control-h-toolbar: 2.75rem;
   --control-h-md: 3rem;
   --control-h-lg: 3.5rem;
   --space-page: 2rem;

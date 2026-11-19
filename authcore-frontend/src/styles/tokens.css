@@ -93,6 +93,7 @@
 
   /* Density: h-control-md, p-card, p-page, gap-form, gap-section */
   --spacing-control-sm: var(--control-h-sm);
+  --spacing-control-toolbar: var(--control-h-toolbar);
   --spacing-control-md: var(--control-h-md);
   --spacing-control-lg: var(--control-h-lg);
   --spacing-page: var(--space-page);
@@ -138,9 +139,10 @@
 
   --z-sidebar: 30;
   --z-navbar: 40;
-  --z-dropdown: 50;
   --z-overlay: 60;
   --z-modal: 70;
+  /* Above dialogs: a select / menu / popover opened inside a dialog must show over it. */
+  --z-dropdown: 75;
   --z-toast: 80;
 
   /* Layout sizes: defaults; the ThemeProvider sets them from layout.config.ts */

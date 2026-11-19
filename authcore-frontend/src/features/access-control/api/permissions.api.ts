@@ -1,4 +1,3 @@
-import type { TablePage, TableQuery } from '@/components/data-table';
 import { apiClient } from '@/lib/api';
 
 import type {
@@ -11,40 +10,48 @@ import type {
 const BASE = '/permissions';
 const byId = (id: string) => `${BASE}/${encodeURIComponent(id)}`;
 
-const SORT_FIELD: Record<string, string> = {
-  permissionName: 'permissionName',
-  permissionKey: 'permissionKey',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-};
-
 export const permissionsApi = {
-  list: async (query: TableQuery, signal?: AbortSignal): Promise<TablePage<PermissionListItem>> => {
-    const sort = query.sort[0];
-    const statusFilter = query.filters.status?.join(',');
-    const actionFilter = query.filters.action?.at(-1);
-    const moduleFilter = query.filters.module?.at(-1);
+  /** Every permission (all pages), sorted by key — for the role permission picker. */
+  all: async (signal?: AbortSignal): Promise<Permission[]> => {
+    const items: Permission[] = [];
+    for (let page = 1; page <= 50; page += 1) {
+      // Pages depend on each other (stop at the last one), so they load one by one.
+      // oxlint-disable-next-line no-await-in-loop
+      const result = await apiClient.getPage<Permission>(BASE, {
+        signal,
+        query: { page, limit: 100, sortBy: 'permissionKey', sortOrder: 'asc' },
+      });
+      items.push(...result.items);
+      if (!result.meta.hasNextPage) break;
+    }
+    return items;
+  },
 
+  list: async (
+    query?: {
+      search?: string;
+      status?: string;
+      action?: string;
+      module?: string;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+    signal?: AbortSignal,
+  ): Promise<PermissionListItem[]> => {
     const page = await apiClient.getPage<Permission>(BASE, {
       signal,
       query: {
-        page: query.page,
-        limit: query.pageSize,
-        search: query.search.trim() || undefined,
-        status: statusFilter || undefined,
-        action: actionFilter || undefined,
-        metadataKey: moduleFilter ? 'module' : undefined,
-        metadataValue: moduleFilter || undefined,
-        sortBy: sort ? (SORT_FIELD[sort.id] ?? 'updatedAt') : 'updatedAt',
-        sortOrder: sort ? (sort.desc ? 'desc' : 'asc') : 'desc',
+        search: query?.search?.trim() || undefined,
+        status: query?.status || undefined,
+        action: query?.action || undefined,
+        metadataKey: query?.module ? 'module' : undefined,
+        metadataValue: query?.module || undefined,
+        sortBy: query?.sortBy || 'permissionKey',
+        sortOrder: query?.sortOrder || 'asc',
       },
     });
 
-    const first = (query.page - 1) * query.pageSize;
-    return {
-      items: page.items.map((item, index) => ({ ...item, rowNumber: first + index + 1 })),
-      total: page.meta.totalItems,
-    };
+    return page.items;
   },
 
   get: (id: string, signal?: AbortSignal) => apiClient.get<Permission>(byId(id), { signal }),

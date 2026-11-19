@@ -16,6 +16,7 @@ export const controlVariants = variants({
     },
     size: {
       sm: 'h-control-sm px-2.5 text-xs',
+      toolbar: 'h-control-toolbar px-3 text-sm',
       md: 'h-control-md px-3',
       lg: 'h-control-lg px-3.5 text-base',
     },
@@ -24,4 +25,4 @@ export const controlVariants = variants({
 });
 
 export type ControlVariant = 'outlined' | 'filled' | 'underlined';
-export type ControlSize = 'sm' | 'md' | 'lg';
+export type ControlSize = 'sm' | 'toolbar' | 'md' | 'lg';

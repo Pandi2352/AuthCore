@@ -52,7 +52,7 @@ import { BusinessSettingsService } from './services/business-settings.service';
 
 const ADMIN_ONLY =
   'Requires BUSINESS_SETTINGS_READ (reading) or BUSINESS_SETTINGS_MANAGE (changing), e.g. through the ' +
-  'system role BUSINESS_SETTINGS_ADMIN, or the ADMIN role (403 FORBIDDEN otherwise).';
+  'default role SUPER_ADMIN, a role holding them, or the ADMIN role (403 FORBIDDEN otherwise).';
 
 const SLOT_PARAM = {
   name: 'slot',

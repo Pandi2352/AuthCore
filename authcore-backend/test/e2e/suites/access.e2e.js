@@ -73,9 +73,8 @@ async function main() {
 
   console.log('\n1. Seeded system data');
   let sysPerms = await col('permissions').find({ isSystem: true, isDeleted: false }).toArray();
-  const sysRole = await col('roles').findOne({ roleKey: 'ACCESS_CONTROL_ADMIN', isDeleted: false });
-  const ppRole = await col('roles').findOne({ roleKey: 'PASSWORD_POLICY_ADMIN', isDeleted: false });
-  check('28 system permissions; ACCESS_CONTROL_ADMIN (16), PASSWORD_POLICY_ADMIN (2), USER_ADMIN (10)', sysPerms.length === 28 && sysRole?.isSystem === true && ppRole?.isSystem === true && (await col('access_mappings').countDocuments({ type: 'ROLE_PERMISSION', roleId: sysRole._id })) === 16 && (await col('access_mappings').countDocuments({ type: 'ROLE_PERMISSION', roleId: ppRole._id })) === 2, String(sysPerms.length));
+  const sysRole = await col('roles').findOne({ roleKey: 'SUPER_ADMIN', isDeleted: false });
+  check('one built-in role SUPER_ADMIN holding every system permission', sysPerms.length >= 28 && sysRole?.isSystem === true && (await col('roles').countDocuments({ isSystem: true, isDeleted: false })) === 1 && (await col('access_mappings').countDocuments({ type: 'ROLE_PERMISSION', roleId: sysRole._id })) === sysPerms.length, String(sysPerms.length));
   check('ids are UUIDs (not ObjectIds)', typeof sysRole._id === 'string' && /^[0-9a-f-]{36}$/.test(sysRole._id));
 
   console.log('\n2. Authorization');
@@ -150,11 +149,10 @@ async function main() {
   r = await R({ roleKey: 'NOCAT', roleName: 'No Category' });
   check('missing category -> 400 "category is required"', r.status === 400 && errs(r).includes('category is required'));
   const rViewer = (await R({ roleKey: 'ACCESS_VIEWER', roleName: 'Access Viewer', category: 'ADMINISTRATION' })).body.data;
-  const rInactive = (await R({ roleKey: 'OLD_ROLE', roleName: 'Old Role', category: 'CUSTOM', status: 'INACTIVE' })).body.data;
   r = await call('GET', '/roles?category=MANAGEMENT&search=hr', { token: A });
-  check('list: search + category, list fields (key, name, category, description, status, updatedAt)', r.body.data.length === 1 && ['roleKey', 'roleName', 'category', 'description', 'status', 'updatedAt'].every((k) => k in r.body.data[0]) && !('createdBy' in r.body.data[0]));
-  r = await call('GET', '/roles?status=INACTIVE', { token: A });
-  check('filter by status', r.body.data.some((x) => x.id === rInactive.id) && r.body.data.every((x) => x.status === 'INACTIVE'));
+  check('list: search + category, list fields (key, name, category, description, updatedAt)', r.body.data.length === 1 && ['roleKey', 'roleName', 'category', 'description', 'updatedAt'].every((k) => k in r.body.data[0]) && !('createdBy' in r.body.data[0]));
+  r = await call('POST', '/roles', { token: A, body: { roleKey: 'OLD_ROLE', roleName: 'Old Role', category: 'CUSTOM', status: 'INACTIVE' } });
+  check('roles have no status -> 400', r.status === 400 && errs(r).includes('status'));
   r = await call('GET', `/roles?updatedFrom=${new Date(Date.now() + 86400000).toISOString()}`, { token: A });
   check('date filter (future updatedFrom -> nothing)', r.body.data.length === 0);
   r = await call('GET', `/roles?createdFrom=2030-01-01T00:00:00Z&createdTo=2020-01-01T00:00:00Z`, { token: A });
@@ -163,7 +161,7 @@ async function main() {
   const names = r.body.data.map((x) => x.roleName.toLowerCase());
   check('sort by roleName asc', names.join() === [...names].sort().join());
   r = await call('GET', '/roles/dropdown', { token: A });
-  check('dropdown: active only (inactive role excluded), system role included', !r.body.data.some((o) => o.id === rInactive.id) && r.body.data.some((o) => o.key === 'ACCESS_CONTROL_ADMIN'));
+  check('dropdown: includes the built-in role', r.body.data.some((o) => o.key === 'SUPER_ADMIN'));
   r = await call('GET', '/roles/categories', { token: A });
   check('categories with SYSTEM marked reserved', r.body.data.find((c) => c.value === 'SYSTEM')?.isReserved === true);
   r = await call('PATCH', `/roles/${sysRole._id}`, { token: A, body: { roleName: 'Mine' } });
@@ -291,9 +289,6 @@ async function main() {
   check('adding a user to a group that grants more than I have -> 403', r.status === 403);
   r = await call('POST', '/access-mappings/group-users', { token: M, body: { groupId: gDev.id, userIds: [ids.mgr] } });
   check('changing my own membership -> 403', r.status === 403 && r.body.message.includes('own group membership'));
-  await call('PATCH', `/roles/${rLimited.id}`, { token: A, body: { status: 'INACTIVE' } });
-  check('role deactivated -> access gone immediately', (await call('GET', '/roles', { token: M })).status === 403);
-  await call('PATCH', `/roles/${rLimited.id}`, { token: A, body: { status: 'ACTIVE' } });
   await call('PATCH', `/groups/${gAdmins.id}`, { token: A, body: { status: 'INACTIVE' } });
   check('group deactivated -> access gone', (await call('GET', '/roles', { token: M })).status === 403);
   r = await call('POST', '/access-mappings/group-users', { token: A, body: { groupId: gAdmins.id, userIds: [ids.u2] } });
@@ -433,7 +428,7 @@ async function main() {
   console.log('\n11. Restart: seeding idempotent; inheritance mode');
   app = await start({ ACCESS_INHERIT_PARENT_GROUPS: 'true' });
   sysPerms = await col('permissions').find({ isSystem: true, isDeleted: false }).toArray();
-  check('still exactly 28 system permissions and three system roles', sysPerms.length === 28 && (await col('roles').countDocuments({ isSystem: true, isDeleted: false })) === 3 && (await col('access_mappings').countDocuments({ type: 'ROLE_PERMISSION', roleId: sysRole._id })) === 16);
+  check('system permissions unchanged and still one built-in role holding them all', (await col('roles').countDocuments({ isSystem: true, isDeleted: false })) === 1 && (await col('access_mappings').countDocuments({ type: 'ROLE_PERMISSION', roleId: sysRole._id })) === sysPerms.length);
   const A2 = await login('admin');
   await call('POST', '/access-mappings/group-roles', { token: A2, body: { groupId: gDev.id, roleIds: [rHr2.id] } });
   await call('POST', '/access-mappings/role-permissions', { token: A2, body: { roleId: rHr2.id, permissionIds: [pCreate.id] } });

@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import { useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -21,6 +21,8 @@ interface ListboxPopupProps {
   multiple?: boolean;
   /** Clicks inside count as "inside" for the trigger's outside-click handling. */
   popupRef: RefObject<HTMLDivElement | null>;
+  /** Pinned under the options (e.g. "+ Add category"); its fields can take focus. */
+  footer?: ReactNode;
 }
 
 /** The floating listbox shared by Select and Combobox (focus stays on the trigger / input). */
@@ -37,6 +39,7 @@ export function ListboxPopup({
   label,
   multiple = false,
   popupRef,
+  footer,
 }: ListboxPopupProps) {
   const { style } = useFloating(anchorRef, popupRef, {
     open,
@@ -60,8 +63,10 @@ export function ListboxPopup({
         ref={popupRef}
         style={{ ...style, zIndex: 'var(--z-dropdown)' }}
         className="flex max-h-72 flex-col overflow-hidden rounded-md border border-border bg-surface text-sm text-surface-foreground shadow-popover"
-        // Keep focus on the trigger / input while clicking options.
-        onMouseDown={(event) => event.preventDefault()}
+        // Keep focus on the trigger / input while clicking options (the footer may take focus).
+        onMouseDown={(event) => {
+          if (!(event.target as Element).closest('[data-listbox-footer]')) event.preventDefault();
+        }}
       >
         <div
           ref={listRef}
@@ -122,6 +127,11 @@ export function ListboxPopup({
             );
           })}
         </div>
+        {footer && (
+          <div data-listbox-footer="" className="shrink-0 border-t border-border p-1">
+            {footer}
+          </div>
+        )}
       </div>
     </Portal>
   );

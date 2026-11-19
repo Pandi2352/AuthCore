@@ -20,9 +20,8 @@ import { Role } from '../schemas/role.schema';
 import { AccessResolverService } from './access-resolver.service';
 
 /**
- * Makes sure the system permissions that protect the access-control and
- * password-policy APIs, and the system roles holding them
- * (ACCESS_CONTROL_ADMIN, PASSWORD_POLICY_ADMIN), exist. Idempotent
+ * Makes sure the system permissions and the one default role (SUPER_ADMIN, holding all
+ * of them) exist, and retires built-in roles from older versions. Idempotent
  * and safe when several instances start at once. Failures are logged; they
  * don't stop the application (ADMIN users can still manage everything).
  */
@@ -71,6 +70,12 @@ export class AccessSeedService implements OnApplicationBootstrap {
           }
         }
       }
+      await this.retireOldSystemRoles();
+      // Roles no longer have a status: older inactive ones grant their permissions again.
+      await this.roleModel.updateMany(
+        { isDeleted: false, status: { $ne: RecordStatus.Active } },
+        { $set: { status: RecordStatus.Active } },
+      );
       this.resolver.invalidate();
     } catch (error) {
       this.logger.error(
@@ -78,6 +83,45 @@ export class AccessSeedService implements OnApplicationBootstrap {
         error instanceof Error ? error.stack : undefined,
       );
     }
+  }
+
+  /**
+   * Older versions seeded several built-in roles; only the default one stays. The others
+   * are soft-deleted and taken off their groups (their permission links go too).
+   */
+  private async retireOldSystemRoles(): Promise<void> {
+    const keep = SYSTEM_ROLES.map((r) => r.roleKey);
+    const old = await this.roleModel
+      .find(
+        { isSystem: true, isDeleted: false, roleKey: { $nin: keep } },
+        { _id: 1, roleKey: 1 },
+      )
+      .lean();
+    if (old.length === 0) {
+      return;
+    }
+    const ids = old.map((r) => r._id);
+    await this.roleModel.updateMany(
+      { _id: { $in: ids } },
+      {
+        $set: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: SYSTEM_ACTOR,
+          updatedBy: SYSTEM_ACTOR,
+        },
+        $inc: { version: 1 },
+      },
+    );
+    const mappings = await this.mappingModel.deleteMany({
+      type: { $in: [MappingType.RolePermission, MappingType.GroupRole] },
+      roleId: { $in: ids },
+    });
+    this.logger.log({
+      message: 'Old built-in roles removed',
+      roleKeys: old.map((r) => r.roleKey),
+      mappingsRemoved: mappings.deletedCount,
+    });
   }
 
   private async linkPermission(

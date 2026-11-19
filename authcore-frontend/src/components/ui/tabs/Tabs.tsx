@@ -113,8 +113,12 @@ export function TabsList({ className, onKeyDown, ...props }: HTMLAttributes<HTML
         'flex',
         orientation === 'vertical'
           ? 'w-48 shrink-0 flex-col gap-1'
-          : 'scrollbar-slim overflow-x-auto',
-        variant === 'underline' && orientation === 'horizontal' && 'gap-1 border-b border-border',
+          : // Sideways scroll only when tabs don't fit; never a vertical scrollbar.
+            'scrollbar-slim overflow-x-auto overflow-y-hidden',
+        // A light strip with the tabs on it; the active one gets a straight bar underneath.
+        variant === 'underline' &&
+          orientation === 'horizontal' &&
+          'gap-1 rounded-md border-b border-border bg-muted/60 px-2',
         variant === 'pills' && orientation === 'horizontal' && 'gap-1 rounded-md bg-muted p-1',
         className,
       )}
@@ -148,7 +152,7 @@ export function TabsTrigger({ value, className, onClick, ...props }: TabsTrigger
         'inline-flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:min-h-11 [&_svg]:size-4',
         ctx.variant === 'underline' &&
           ctx.orientation === 'horizontal' &&
-          '-mb-px border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground',
+          'relative rounded-none px-3.5 py-3 after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-transparent after:transition-colors data-[state=active]:font-semibold data-[state=active]:text-primary data-[state=active]:after:bg-primary',
         ctx.variant === 'underline' &&
           ctx.orientation === 'vertical' &&
           'justify-start data-[state=active]:bg-primary-soft data-[state=active]:text-primary-soft-foreground',

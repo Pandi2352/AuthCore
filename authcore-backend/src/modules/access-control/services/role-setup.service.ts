@@ -49,7 +49,6 @@ export class RoleSetupService {
         ...(dto.description !== undefined
           ? { description: dto.description }
           : {}),
-        ...(dto.status !== undefined ? { status: dto.status } : {}),
       },
       actor,
     );

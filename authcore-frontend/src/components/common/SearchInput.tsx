@@ -13,7 +13,7 @@ export interface SearchInputProps extends Omit<
   /** Called `debounceMs` after typing stops, immediately on clear / Enter. */
   onSearch: (value: string) => void;
   debounceMs?: number;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'toolbar' | 'md' | 'lg';
   /** Accessible name when there is no visible label. */
   'aria-label'?: string;
 }

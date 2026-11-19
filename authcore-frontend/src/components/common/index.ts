@@ -8,3 +8,4 @@ export { StatusBadge, type StatusBadgeProps } from './StatusBadge';
 export { ThemeCustomizer } from './ThemeCustomizer';
 export { EmojiIcon } from './EmojiIcon';
 export { ThemeToggle } from './ThemeToggle';
+export { StatCard, type StatTone } from './StatCard';

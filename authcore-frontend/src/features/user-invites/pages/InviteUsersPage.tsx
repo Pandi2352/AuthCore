@@ -204,7 +204,7 @@ export function InviteUsersPage() {
       >
         <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center">
           <SearchInput
-            size="sm"
+            size="toolbar"
             key={tab}
             value={search}
             onSearch={(value) => {
@@ -220,7 +220,7 @@ export function InviteUsersPage() {
           {tab === 'pending' && (
             <Select
               aria-label="Invite status"
-              size="sm"
+              size="toolbar"
               value={openStatus}
               className="sm:w-44"
               options={[

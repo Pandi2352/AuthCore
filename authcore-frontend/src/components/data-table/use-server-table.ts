@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useQueryParams } from '@/hooks/useQueryParams';
 import { isAbortError } from '@/lib/api';
 
 import type {
@@ -34,15 +33,14 @@ export interface UseServerTableOptions<T> {
   filters?: readonly DataTableFilter[];
   defaultSort?: SortRule[];
   defaultPageSize?: number;
-  /** Prefix for URL params when two tables share a page. */
-  paramPrefix?: string;
   /** Plural noun for announcements ("users"). */
   itemsLabel?: string;
 }
 
 /**
- * State + data for a server-paged table. Page, page size, search, sort and filters live in
- * the URL (shareable, survive reload / back). Paging, sorting and filtering happen on the
+ * State + data for a server-paged table. Page, page size, search, sort and filters are local
+ * state, not the URL: changing them only refetches and redraws the table (no navigation,
+ * no route re-render). Paging, sorting and filtering happen on the
  * server — the client never sorts one page of a paginated result. Previous rows stay
  * visible (dimmed) while the next page loads, so the layout never jumps.
  */
@@ -52,31 +50,34 @@ export function useServerTable<T>({
   filters = [],
   defaultSort = [],
   defaultPageSize = 25,
-  paramPrefix = '',
   itemsLabel = 'rows',
 }: UseServerTableOptions<T>) {
-  const p = (name: string) => `${paramPrefix}${name}`;
-  const [params, setParams] = useQueryParams<Record<string, string | number>>({
-    [p('page')]: 1,
-    [p('size')]: defaultPageSize,
-    [p('q')]: '',
-    [p('sort')]: encodeSort(defaultSort),
-    ...Object.fromEntries(filters.map((f) => [p(f.id), ''])),
-  });
+  type Params = Record<string, string | number>;
+  const [params, setParamsState] = useState<Params>(() => ({
+    page: 1,
+    size: defaultPageSize,
+    q: '',
+    sort: encodeSort(defaultSort),
+    ...Object.fromEntries(filters.map((f) => [f.id, ''])),
+  }));
+  const setParams = useCallback(
+    (patch: Params) => setParamsState((current) => ({ ...current, ...patch })),
+    [],
+  );
 
-  const pageSize = PAGE_SIZE_OPTIONS.includes(Number(params[p('size')]))
-    ? Number(params[p('size')])
+  const pageSize = PAGE_SIZE_OPTIONS.includes(Number(params.size))
+    ? Number(params.size)
     : defaultPageSize;
   const filterValues = Object.fromEntries(
     filters
-      .map((f) => [f.id, splitList(String(params[p(f.id)] ?? ''))] as const)
+      .map((f) => [f.id, splitList(String(params[f.id] ?? ''))] as const)
       .filter(([, values]) => values.length > 0),
   );
   const query: TableQuery = {
-    page: Math.max(1, Number(params[p('page')]) || 1),
+    page: Math.max(1, Number(params.page) || 1),
     pageSize,
-    search: String(params[p('q')] ?? ''),
-    sort: decodeSort(String(params[p('sort')] ?? '')),
+    search: String(params.q ?? ''),
+    sort: decodeSort(String(params.sort ?? '')),
     filters: filterValues,
   };
   const queryKey = JSON.stringify(query);
@@ -116,10 +117,10 @@ export function useServerTable<T>({
   const total = page?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
-  // A page past the end (rows deleted, URL edited) → go to the last page.
+  // A page past the end (rows deleted) → go to the last page.
   useEffect(() => {
     if (page && !isFetching && query.page > pageCount) {
-      setParams({ [p('page')]: pageCount });
+      setParams({ page: pageCount });
     }
     // oxlint-disable-next-line react/exhaustive-deps
   }, [page, isFetching, query.page, pageCount]);
@@ -205,16 +206,16 @@ export function useServerTable<T>({
         };
 
   // ---- query setters
-  const setPage = (next: number) => setParams({ [p('page')]: next }, { replace: false });
-  const setPageSize = (next: number) => setParams({ [p('size')]: next, [p('page')]: 1 });
-  const setSearch = (next: string) => setParams({ [p('q')]: next.trim(), [p('page')]: 1 });
+  const setPage = (next: number) => setParams({ page: next });
+  const setPageSize = (next: number) => setParams({ size: next, page: 1 });
+  const setSearch = (next: string) => setParams({ q: next.trim(), page: 1 });
   const setFilter = (id: string, values: string[]) =>
-    setParams({ [p(id)]: values.join(','), [p('page')]: 1 });
+    setParams({ [id]: values.join(','), page: 1 });
   const clearFilters = () =>
     setParams({
-      [p('q')]: '',
-      [p('page')]: 1,
-      ...Object.fromEntries(filters.map((f) => [p(f.id), ''])),
+      q: '',
+      page: 1,
+      ...Object.fromEntries(filters.map((f) => [f.id, ''])),
     });
 
   /** Click: asc → desc → off (single sort). Shift+click: add / cycle a secondary sort. */
@@ -231,7 +232,7 @@ export function useServerTable<T>({
     } else {
       next = current.filter((r) => r.id !== id);
     }
-    setParams({ [p('sort')]: encodeSort(next) || encodeSort(defaultSort), [p('page')]: 1 });
+    setParams({ sort: encodeSort(next) || encodeSort(defaultSort), page: 1 });
     const primary = next[0];
     setAnnouncement(
       primary
@@ -239,8 +240,7 @@ export function useServerTable<T>({
         : 'Sorting removed',
     );
   };
-  const setSort = (rules: SortRule[]) =>
-    setParams({ [p('sort')]: encodeSort(rules), [p('page')]: 1 });
+  const setSort = (rules: SortRule[]) => setParams({ sort: encodeSort(rules), page: 1 });
 
   const retry = useCallback(() => setNonce((n) => n + 1), []);
 

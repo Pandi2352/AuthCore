@@ -1,7 +1,8 @@
-import { Copy, MoreHorizontal, Pencil, RotateCcw, Shield, UserX } from 'lucide-react';
+import { Copy, MoreHorizontal, Pencil, RotateCcw, Shield, SquarePen, UserX } from 'lucide-react';
 import { useState } from 'react';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { TableAction } from '@/components/data-table';
 import { notifyError, notifySuccess } from '@/components/feedback';
 import {
   DropdownMenu,
@@ -9,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  IconButton,
 } from '@/components/ui';
 
 import { adminUsersApi } from '../api/admin-users.api';
@@ -60,27 +60,21 @@ export function UserRowActions({
   };
 
   return (
-    <span className="flex items-center justify-end gap-1">
+    <span className="flex items-center justify-end gap-1.5">
       {canUpdate && (
-        <IconButton
-          aria-label={`Edit ${name}`}
-          icon={<Pencil />}
-          variant="outline"
-          size="sm"
-          className="size-7! pointer-coarse:size-11!"
+        <TableAction
+          tone="primary"
+          icon={<SquarePen />}
+          label={`Edit ${name}`}
           onClick={() => onEdit(user)}
         />
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <IconButton
-            aria-label={`More actions for ${name}`}
+          <TableAction
             icon={<MoreHorizontal />}
-            variant="ghost"
-            size="sm"
+            label={`More actions for ${name}`}
             showTooltip={false}
-            // size-7!: tailwind-merge does not see size-control-sm as a size class.
-            className="size-7! pointer-coarse:size-11!"
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
