@@ -15,10 +15,12 @@ export const CATEGORY_LABEL_MAX_LENGTH = 40;
 export const ROLE_KEY_MAX_LENGTH = 50;
 export const PERMISSION_KEY_MAX_LENGTH = 80;
 
-/** Group IDs (business code): stored uppercase, e.g. GRP-DEV, DEPT:HR_01. */
-export const GROUP_ID_PATTERN = /^[A-Z0-9][A-Z0-9_:-]*$/;
+/** Group IDs: same format as role keys (GRP-01, the default numbered series). */
+export const GROUP_ID_PATTERN = ROLE_KEY_PATTERN;
 export const GROUP_ID_MAX_LENGTH = 40;
 export const GROUP_ID_PREFIX = 'GRP-';
+/** Default group IDs: GRP-01, GRP-02 … */
+export const GROUP_ID_SERIES = 'GRP';
 
 /** Tags: letters, digits, '_', '-', ':' only (checked per tag). Stored lowercase. */
 export const TAG_PATTERN = /^[A-Za-z0-9_:-]+$/;

@@ -39,6 +39,7 @@ export const paths = {
     roleDetail: (id: string) => `/admin/access/roles/${segment(id)}`,
     permissions: '/admin/access/permissions',
     groups: '/admin/access/groups',
+    groupDetail: (id: string) => `/admin/access/groups/${segment(id)}`,
     assignments: '/admin/access/assignments',
     auditLog: '/admin/access/audit-log',
     passwordPolicy: '/admin/security/password-policy',
@@ -75,6 +76,7 @@ export const paths = {
 export const routePatterns = {
   adminUserDetail: '/admin/users/:id',
   adminRoleDetail: '/admin/access/roles/:id',
+  adminGroupDetail: '/admin/access/groups/:id',
   adminPasswordPolicyEdit: '/admin/security/password-policy/:id',
 } as const;
 

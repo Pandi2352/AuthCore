@@ -147,6 +147,21 @@ export const adminRoutes: RouteObject[] = [
     element: <Navigate to={paths.admin.roles} replace />,
   },
   {
+    path: routePatterns.adminGroupDetail,
+    handle: {
+      title: 'Group',
+      breadcrumb: [
+        { label: 'Administration' },
+        { label: 'Access control' },
+        { label: 'Groups', href: paths.admin.groups },
+        { label: 'Group' },
+      ],
+      featureFlag: 'admin.enabled',
+      permission: 'GROUP_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(() => import('@/features/access-control/pages/GroupViewPage'), 'GroupViewPage'),
+  },
+  {
     path: paths.admin.groups,
     handle: {
       title: 'Groups',

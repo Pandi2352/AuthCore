@@ -36,8 +36,8 @@ import {
 } from '@common/utils/transform.util';
 
 import {
+  CATEGORY_VALUE_PATTERN,
   DESCRIPTION_MAX_LENGTH,
-  GROUP_CATEGORY_VALUES,
   GROUP_ID_MAX_LENGTH,
   GROUP_ID_PATTERN,
   MAX_TAG_LENGTH,
@@ -45,7 +45,8 @@ import {
   NAME_MAX_LENGTH,
   TAG_PATTERN,
 } from '../constants/access-control.constants';
-import { RecordStatus, TagMatchMode } from '../enums/access-control.enum';
+import { TagMatchMode } from '../enums/access-control.enum';
+import { CreateRoleCategoryDto, RoleCategoryDto } from './role.dto';
 
 export const GROUP_SORT_FIELDS = [
   'groupName',
@@ -64,11 +65,11 @@ const toBoolean = ({ value }: { value: unknown }): unknown =>
 export class CreateGroupDto {
   @ApiProperty({
     example: 'DEPARTMENT',
-    enum: GROUP_CATEGORY_VALUES,
-    description: 'See GET /groups/categories',
+    description:
+      'A value from GET /groups/categories (built-in or added with POST /groups/categories)',
   })
-  @IsIn(GROUP_CATEGORY_VALUES, {
-    message: `category must be one of: ${GROUP_CATEGORY_VALUES.join(', ')}`,
+  @Matches(CATEGORY_VALUE_PATTERN, {
+    message: 'category must be a category value, e.g. DEPARTMENT',
   })
   @Transform(trimUpper)
   @IsString()
@@ -97,13 +98,14 @@ export class CreateGroupDto {
   parentGroupId?: string | null;
 
   @ApiPropertyOptional({
-    example: 'GRP-DEV',
+    example: 'GRP-01',
     description:
-      'Unique group ID (stored uppercase; letters, numbers, _ - :). Generated (GRP-XXXXXX) when omitted.',
+      'Unique group ID. Stored uppercase; letters, digits, _ and - (starts with a letter). Default: the next GRP-NN (GET /groups/next-id).',
     maxLength: GROUP_ID_MAX_LENGTH,
   })
   @Matches(GROUP_ID_PATTERN, {
-    message: "groupId may contain only letters, numbers, '_', '-' and ':'",
+    message:
+      'groupId may contain only letters, digits, _ and - and must start with a letter',
   })
   @MaxLength(GROUP_ID_MAX_LENGTH)
   @MinLength(2)
@@ -159,11 +161,6 @@ export class CreateGroupDto {
   @IsOptional()
   tags?: string[];
 
-  @ApiPropertyOptional({ enum: RecordStatus, default: RecordStatus.Active })
-  @IsEnum(RecordStatus)
-  @IsOptional()
-  status?: RecordStatus;
-
   @ApiPropertyOptional({
     default: false,
     description:
@@ -180,7 +177,8 @@ export class UpdateGroupDto extends PartialType(
 ) {
   @ApiPropertyOptional({ example: 'GRP-DEV', maxLength: GROUP_ID_MAX_LENGTH })
   @Matches(GROUP_ID_PATTERN, {
-    message: "groupId may contain only letters, numbers, '_', '-' and ':'",
+    message:
+      'groupId may contain only letters, digits, _ and - and must start with a letter',
   })
   @MaxLength(GROUP_ID_MAX_LENGTH)
   @MinLength(2)
@@ -201,8 +199,8 @@ export class UpdateGroupDto extends PartialType(
 }
 
 export class GroupListQueryDto extends ListQueryDto {
-  @ApiPropertyOptional({ enum: GROUP_CATEGORY_VALUES })
-  @IsIn(GROUP_CATEGORY_VALUES)
+  @ApiPropertyOptional({ example: 'DEPARTMENT' })
+  @Matches(CATEGORY_VALUE_PATTERN)
   @Transform(trimUpper)
   @IsOptional()
   category?: string;
@@ -244,11 +242,6 @@ export class GroupListQueryDto extends ListQueryDto {
   @IsOptional()
   tagMode?: TagMatchMode;
 
-  @ApiPropertyOptional({ enum: RecordStatus })
-  @IsEnum(RecordStatus)
-  @IsOptional()
-  status?: RecordStatus;
-
   @ApiPropertyOptional({
     description: 'Only default groups (true) or only others (false)',
   })
@@ -273,8 +266,8 @@ export class GroupDropdownQueryDto extends DropdownQueryDto {
   @IsOptional()
   withPath?: boolean;
 
-  @ApiPropertyOptional({ enum: GROUP_CATEGORY_VALUES })
-  @IsIn(GROUP_CATEGORY_VALUES)
+  @ApiPropertyOptional({ example: 'DEPARTMENT' })
+  @Matches(CATEGORY_VALUE_PATTERN)
   @Transform(trimUpper)
   @IsOptional()
   category?: string;
@@ -346,14 +339,17 @@ export class GroupListItemDto {
   @ApiProperty({ type: [String], example: ['backend', 'node_js'] })
   tags!: string[];
 
-  @ApiProperty({ enum: RecordStatus, example: RecordStatus.Active })
-  status!: RecordStatus;
-
   @ApiProperty({
     example: false,
     description: 'New users join it automatically',
   })
   isDefault!: boolean;
+
+  @ApiPropertyOptional({ example: 12, description: 'Users in the group' })
+  memberCount?: number;
+
+  @ApiPropertyOptional({ example: 3, description: 'Roles given to the group' })
+  roleCount?: number;
 
   @ApiProperty({ example: '2026-11-16T05:30:00.000Z' })
   updatedAt!: Date;
@@ -391,18 +387,6 @@ export class GroupResponseDto extends GroupListItemDto {
   childCount?: number;
 
   @ApiPropertyOptional({
-    example: 12,
-    description: 'Details only: users in the group',
-  })
-  memberCount?: number;
-
-  @ApiPropertyOptional({
-    example: 3,
-    description: 'Details only: roles assigned to the group',
-  })
-  roleCount?: number;
-
-  @ApiPropertyOptional({
     type: () => [GroupRoleRefDto],
     description: 'Details only: the roles assigned to the group',
   })
@@ -413,17 +397,16 @@ export class GroupRoleRefDto {
   @ApiProperty() id!: string;
   @ApiProperty({ example: 'HR_MANAGER' }) roleKey!: string;
   @ApiProperty({ example: 'HR Manager' }) roleName!: string;
-  @ApiProperty({ enum: RecordStatus }) status!: RecordStatus;
 }
 
 /** GET /groups/tree */
 export class GroupTreeQueryDto {
   @ApiPropertyOptional({
-    enum: GROUP_CATEGORY_VALUES,
+    example: 'DEPARTMENT',
     description:
       'Only groups of this category (a group whose parent is in another category becomes a top node)',
   })
-  @IsIn(GROUP_CATEGORY_VALUES)
+  @Matches(CATEGORY_VALUE_PATTERN)
   @Transform(trimUpper)
   @IsOptional()
   category?: string;
@@ -449,14 +432,6 @@ export class GroupTreeQueryDto {
   maxDepth?: number;
 
   @ApiPropertyOptional({
-    enum: RecordStatus,
-    description: 'Default: all statuses',
-  })
-  @IsEnum(RecordStatus)
-  @IsOptional()
-  status?: RecordStatus;
-
-  @ApiPropertyOptional({
     description: 'Add memberCount and roleCount to every node',
   })
   @IsBoolean()
@@ -472,7 +447,6 @@ export class GroupTreeNodeDto {
   @ApiProperty({ example: 'DEPARTMENT' }) category!: string;
   @ApiProperty({ type: String, nullable: true }) parentGroupId!: string | null;
   @ApiProperty({ example: 0 }) level!: number;
-  @ApiProperty({ enum: RecordStatus }) status!: RecordStatus;
   @ApiProperty({ type: [String] }) tags!: string[];
   @ApiPropertyOptional({ example: 12 }) memberCount?: number;
   @ApiPropertyOptional({ example: 2 }) roleCount?: number;
@@ -483,10 +457,10 @@ export class GroupTreeNodeDto {
 /** Optional category constraint for lookups (by code, permission matrix). */
 export class GroupCategoryQueryDto {
   @ApiPropertyOptional({
-    enum: GROUP_CATEGORY_VALUES,
+    example: 'DEPARTMENT',
     description: 'The group must be in this category (404 otherwise)',
   })
-  @IsIn(GROUP_CATEGORY_VALUES)
+  @Matches(CATEGORY_VALUE_PATTERN)
   @Transform(trimUpper)
   @IsOptional()
   category?: string;
@@ -599,9 +573,38 @@ export class GroupChildrenQueryDto {
   @Transform(toBoolean)
   @IsOptional()
   recursive?: boolean;
+}
 
-  @ApiPropertyOptional({ enum: RecordStatus })
-  @IsEnum(RecordStatus)
-  @IsOptional()
-  status?: RecordStatus;
+/** Same shape as role categories (isReserved is always false for groups). */
+export class GroupCategoryDto extends RoleCategoryDto {}
+
+export class CreateGroupCategoryDto extends CreateRoleCategoryDto {}
+
+export class NextGroupIdDto {
+  @ApiProperty({
+    example: 'GRP-07',
+    description: 'The next free ID in the GRP-NN series',
+  })
+  groupId!: string;
+}
+
+export class GroupStatsDto {
+  @ApiProperty({ example: 12 }) totalGroups!: number;
+  @ApiProperty({ example: 4, description: 'No parent' })
+  topLevelGroups!: number;
+  @ApiProperty({ example: 8, description: 'Inside another group' })
+  subGroups!: number;
+  @ApiProperty({
+    example: 40,
+    description: 'Different users in at least one group',
+  })
+  members!: number;
+  @ApiProperty({ example: 9, description: 'Groups with at least one role' })
+  groupsWithRoles!: number;
+  @ApiProperty({ example: 2, description: 'Groups nobody is in' })
+  groupsWithoutMembers!: number;
+  @ApiProperty({ example: 1, description: 'New users join them automatically' })
+  defaultGroups!: number;
+  @ApiProperty({ example: 7, description: 'Built-in + custom categories' })
+  categories!: number;
 }

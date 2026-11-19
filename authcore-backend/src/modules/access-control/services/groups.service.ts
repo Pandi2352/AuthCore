@@ -1,5 +1,3 @@
-import { randomInt } from 'node:crypto';
-
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
@@ -15,6 +13,10 @@ import {
   buildSort,
   containsPattern,
 } from '@common/utils/query.util';
+import {
+  nextSequenceCode,
+  toCodeValue,
+} from '@common/utils/sequence-code.util';
 import { generateUuid } from '@common/utils/uuid.util';
 import { accessControlConfig } from '@config/configuration';
 import {
@@ -25,14 +27,16 @@ import {
 } from '@database/utils/unique-check.util';
 
 import {
+  CATEGORY_VALUE_PATTERN,
   GROUP_CATEGORIES,
-  GROUP_ID_PREFIX,
+  GROUP_ID_SERIES,
   MAX_GROUP_DEPTH,
   PERMISSION_ACTION_VALUES,
 } from '../constants/access-control.constants';
 import {
   type CreateGroupDto,
   GROUP_SORT_FIELDS,
+  type GroupCategoryDto,
   type GroupChildrenQueryDto,
   type GroupDropdownQueryDto,
   type GroupExistsQueryDto,
@@ -40,8 +44,10 @@ import {
   type GroupListQueryDto,
   type GroupRefDto,
   type GroupResponseDto,
+  type GroupStatsDto,
   type GroupTreeNodeDto,
   type GroupTreeQueryDto,
+  type NextGroupIdDto,
   type PermissionMatrixDto,
   type UpdateGroupDto,
 } from '../dto/group.dto';
@@ -56,6 +62,7 @@ import {
 import type { Actor } from '../interfaces/actor.interface';
 import { AccessMapping } from '../schemas/access-mapping.schema';
 import { Group } from '../schemas/group.schema';
+import { GroupCategory } from '../schemas/group-category.schema';
 import { Permission } from '../schemas/permission.schema';
 import { Role } from '../schemas/role.schema';
 import { AccessErrors, changedValues } from '../utils/access-errors.util';
@@ -63,7 +70,6 @@ import { AccessAuditService } from './access-audit.service';
 import { AccessResolverService } from './access-resolver.service';
 
 const ENTITY = 'Group';
-const GENERATED_ID_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_SUBTREE_RESULTS = 1000;
 
 @Injectable()
@@ -77,6 +83,8 @@ export class GroupsService {
     @InjectModel(Role.name) private readonly roleModel: Model<Role>,
     @InjectModel(Permission.name)
     private readonly permissionModel: Model<Permission>,
+    @InjectModel(GroupCategory.name)
+    private readonly categoryModel: Model<GroupCategory>,
     private readonly auditService: AccessAuditService,
     private readonly resolver: AccessResolverService,
     @Inject(accessControlConfig.KEY)
@@ -92,7 +100,8 @@ export class GroupsService {
         `Groups can be nested at most ${String(MAX_GROUP_DEPTH)} levels deep`,
       );
     }
-    const groupId = dto.groupId ?? (await this.generateGroupId());
+    await this.assertCategory(dto.category);
+    const groupId = dto.groupId ?? (await this.nextGroupId()).groupId;
     const parentGroupId = parent?._id ?? null;
     await this.assertUniqueFields(groupId, dto.groupName, parentGroupId);
 
@@ -106,7 +115,8 @@ export class GroupsService {
       level: parent ? parent.level + 1 : 0,
       description: dto.description ?? '',
       tags: dto.tags ?? [],
-      status: dto.status ?? RecordStatus.Active,
+      // Groups are always in effect (status stays ACTIVE).
+      status: RecordStatus.Active,
       isDefault: dto.isDefault ?? false,
       createdBy: actor.auth.userId,
       updatedBy: actor.auth.userId,
@@ -168,7 +178,6 @@ export class GroupsService {
       ...(query.level === 'CHILD' && !query.parentGroupId
         ? { parentGroupId: { $ne: null } }
         : {}),
-      ...(query.status ? { status: query.status } : {}),
       ...(query.isDefault !== undefined ? { isDefault: query.isDefault } : {}),
       ...(createdAt ? { createdAt } : {}),
       ...(updatedAt ? { updatedAt } : {}),
@@ -190,7 +199,14 @@ export class GroupsService {
         .lean(),
       this.groupModel.countDocuments(filter),
     ]);
-    return paginate(await this.withParentNames(groups), page, limit, total);
+    const counts = await this.mappingCounts(groups.map((g) => g._id));
+    const items = (await this.withParentNames(groups)).map((g) =>
+      Object.assign(g, {
+        memberCount: counts.get(`${g.id}|${MappingType.GroupUser}`) ?? 0,
+        roleCount: counts.get(`${g.id}|${MappingType.GroupRole}`) ?? 0,
+      }),
+    );
+    return paginate(items, page, limit, total);
   }
 
   /**
@@ -268,7 +284,6 @@ export class GroupsService {
           ? { $or: [{ _id: root._id }, { ancestorIds: root._id }] }
           : {}),
         ...(query.category ? { category: query.category } : {}),
-        ...(query.status ? { status: query.status } : {}),
         ...(query.maxDepth !== undefined
           ? { level: { $lte: baseLevel + query.maxDepth } }
           : {}),
@@ -290,7 +305,6 @@ export class GroupsService {
         category: g.category,
         parentGroupId: g.parentGroupId,
         level: g.level,
-        status: g.status,
         tags: g.tags,
         ...(counts
           ? {
@@ -434,7 +448,6 @@ export class GroupsService {
         id: r._id,
         roleKey: r.roleKey,
         roleName: r.roleName,
-        status: r.status,
         viaGroupId: viaGroup.get(r._id) ?? group._id,
         isInherited: (viaGroup.get(r._id) ?? group._id) !== group._id,
       })),
@@ -522,8 +535,130 @@ export class GroupsService {
     );
   }
 
-  categories() {
-    return GROUP_CATEGORIES.map((c) => ({ ...c }));
+  /** Built-in categories, then the ones admins added (by label). */
+  async categories(): Promise<GroupCategoryDto[]> {
+    const custom = await this.categoryModel.find().sort({ label: 1 }).lean();
+    return [
+      ...GROUP_CATEGORIES.map((c) => ({
+        value: c.value,
+        label: c.label,
+        isReserved: false,
+        isCustom: false,
+      })),
+      ...custom.map((c) => ({
+        value: c.value,
+        label: c.label,
+        isReserved: false,
+        isCustom: true,
+      })),
+    ];
+  }
+
+  /** Add a category (or return the existing one with the same value). */
+  async createCategory(label: string, actor: Actor): Promise<GroupCategoryDto> {
+    const value = toCodeValue(label);
+    if (!CATEGORY_VALUE_PATTERN.test(value)) {
+      throw new ValidationException([
+        {
+          field: 'label',
+          message: 'Use at least two letters or digits, starting with a letter',
+        },
+      ]);
+    }
+    const builtIn = GROUP_CATEGORIES.find((c) => c.value === value);
+    if (builtIn) {
+      return {
+        value,
+        label: builtIn.label,
+        isReserved: false,
+        isCustom: false,
+      };
+    }
+    const existing = await this.categoryModel.findOne({ value }).lean();
+    if (existing) {
+      return {
+        value,
+        label: existing.label,
+        isReserved: false,
+        isCustom: true,
+      };
+    }
+    await this.categoryModel.create({
+      _id: generateUuid(),
+      value,
+      label,
+      createdBy: actor.auth.userId,
+    });
+    this.logger.log({
+      message: 'Group category created',
+      value,
+      userId: actor.auth.userId,
+    });
+    return { value, label, isReserved: false, isCustom: true };
+  }
+
+  /** The next free ID in the GRP-NN series (deleted groups' IDs count as used). */
+  async nextGroupId(): Promise<NextGroupIdDto> {
+    const used = await this.groupModel
+      .find(
+        { groupId: { $regex: `^${GROUP_ID_SERIES}-\\d+$` } },
+        { groupId: 1 },
+      )
+      .lean();
+    return {
+      groupId: nextSequenceCode(
+        GROUP_ID_SERIES,
+        used.map((g) => g.groupId),
+      ),
+    };
+  }
+
+  /** Counts for the groups page cards. */
+  async stats(): Promise<GroupStatsDto> {
+    const live = { isDeleted: false };
+    const [groups, members, withRoles, custom] = await Promise.all([
+      this.groupModel
+        .find(live, { _id: 1, parentGroupId: 1, isDefault: 1 })
+        .lean(),
+      this.mappingModel.distinct('userId', { type: MappingType.GroupUser }),
+      this.mappingModel.distinct('groupId', { type: MappingType.GroupRole }),
+      this.categoryModel.countDocuments(),
+    ]);
+    const liveIds = new Set(groups.map((g) => g._id));
+    const withMembers = new Set(
+      (
+        await this.mappingModel.distinct('groupId', {
+          type: MappingType.GroupUser,
+        })
+      ).filter((id) => liveIds.has(id)),
+    );
+    const topLevelGroups = groups.filter(
+      (g) => g.parentGroupId === null,
+    ).length;
+    return {
+      totalGroups: groups.length,
+      topLevelGroups,
+      subGroups: groups.length - topLevelGroups,
+      members: members.length,
+      groupsWithRoles: withRoles.filter((id) => liveIds.has(id)).length,
+      groupsWithoutMembers: groups.length - withMembers.size,
+      defaultGroups: groups.filter((g) => g.isDefault).length,
+      categories: GROUP_CATEGORIES.length + custom,
+    };
+  }
+
+  /** Built-in or admin-added category, else 400. */
+  private async assertCategory(category: string): Promise<void> {
+    const isBuiltIn = GROUP_CATEGORIES.some((c) => c.value === category);
+    if (isBuiltIn || (await this.categoryModel.exists({ value: category }))) {
+      return;
+    }
+    throw new ValidationException([
+      {
+        field: 'category',
+        message: `Unknown category "${category}" — pick one or add it first`,
+      },
+    ]);
   }
 
   async get(id: string): Promise<GroupResponseDto> {
@@ -561,7 +696,7 @@ export class GroupsService {
       ? await this.roleModel
           .find(
             { _id: { $in: roleIds }, isDeleted: false },
-            { roleKey: 1, roleName: 1, status: 1 },
+            { roleKey: 1, roleName: 1 },
           )
           .collation(CASE_INSENSITIVE)
           .sort({ roleName: 1 })
@@ -573,7 +708,6 @@ export class GroupsService {
         id: r._id,
         roleKey: r.roleKey,
         roleName: r.roleName,
-        status: r.status,
       })),
       parent,
       path,
@@ -598,7 +732,6 @@ export class GroupsService {
       .find({
         isDeleted: false,
         ...(query.recursive ? { ancestorIds: id } : { parentGroupId: id }),
-        ...(query.status ? { status: query.status } : {}),
       })
       .collation(CASE_INSENSITIVE)
       .sort({ level: 1, groupName: 1 })
@@ -637,12 +770,14 @@ export class GroupsService {
       parentGroupId,
       description: dto.description ?? group.description,
       tags: dto.tags ?? group.tags,
-      status: dto.status ?? group.status,
       isDefault: dto.isDefault ?? group.isDefault,
     };
     const diff = changedValues(auditView(group), next);
     if (Object.keys(diff.after).length === 0) {
       return this.get(id);
+    }
+    if ('category' in diff.after) {
+      await this.assertCategory(next.category);
     }
     await this.assertUniqueFields(
       next.groupId,
@@ -681,7 +816,7 @@ export class GroupsService {
     if (isMoving) {
       await this.moveSubtree(id, ancestorIds);
     }
-    if ('status' in diff.after || isMoving) {
+    if (isMoving) {
       this.resolver.invalidate();
     }
     await this.auditService.record(actor, [
@@ -862,25 +997,6 @@ export class GroupsService {
     );
   }
 
-  /** GRP-XXXXXX, retried on the (rare) clash. */
-  private async generateGroupId(): Promise<string> {
-    for (;;) {
-      const suffix = Array.from(
-        { length: 6 },
-        () => GENERATED_ID_CHARS[randomInt(GENERATED_ID_CHARS.length)],
-      ).join('');
-      const candidate = `${GROUP_ID_PREFIX}${suffix}`;
-      if (
-        !(await this.groupModel.exists({
-          groupId: candidate,
-          isDeleted: false,
-        }))
-      ) {
-        return candidate;
-      }
-    }
-  }
-
   private async withParentNames(groups: Group[]): Promise<GroupListItemDto[]> {
     const parentIds = [
       ...new Set(
@@ -939,7 +1055,6 @@ function auditView(group: Group): Record<string, unknown> {
     parentGroupId: group.parentGroupId,
     description: group.description,
     tags: group.tags,
-    status: group.status,
     isDefault: group.isDefault,
   };
 }
@@ -958,7 +1073,6 @@ function toListItem(
     level: group.level,
     description: group.description,
     tags: group.tags,
-    status: group.status,
     isDefault: group.isDefault,
     updatedAt: group.updatedAt,
   };

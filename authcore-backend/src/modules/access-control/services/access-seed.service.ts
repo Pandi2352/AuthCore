@@ -15,6 +15,7 @@ import {
 } from '../constants/access-control.constants';
 import { MappingType, RecordStatus } from '../enums/access-control.enum';
 import { AccessMapping } from '../schemas/access-mapping.schema';
+import { Group } from '../schemas/group.schema';
 import { Permission } from '../schemas/permission.schema';
 import { Role } from '../schemas/role.schema';
 import { AccessResolverService } from './access-resolver.service';
@@ -33,6 +34,7 @@ export class AccessSeedService implements OnApplicationBootstrap {
     @InjectModel(Permission.name)
     private readonly permissionModel: Model<Permission>,
     @InjectModel(Role.name) private readonly roleModel: Model<Role>,
+    @InjectModel(Group.name) private readonly groupModel: Model<Group>,
     @InjectModel(AccessMapping.name)
     private readonly mappingModel: Model<AccessMapping>,
     private readonly resolver: AccessResolverService,
@@ -73,6 +75,11 @@ export class AccessSeedService implements OnApplicationBootstrap {
       await this.retireOldSystemRoles();
       // Roles no longer have a status: older inactive ones grant their permissions again.
       await this.roleModel.updateMany(
+        { isDeleted: false, status: { $ne: RecordStatus.Active } },
+        { $set: { status: RecordStatus.Active } },
+      );
+      // Groups no longer have a status either.
+      await this.groupModel.updateMany(
         { isDeleted: false, status: { $ne: RecordStatus.Active } },
         { $set: { status: RecordStatus.Active } },
       );

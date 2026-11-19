@@ -1,22 +1,25 @@
 import {
-  ChevronDown,
-  ChevronRight,
   FolderTree,
-  Grid3X3,
   Layers,
+  ListTree,
   Network,
   Plus,
-  RefreshCw,
-  Rows3,
+  ScanEye,
+  Shield,
   SquarePen,
+  Tags,
   Trash2,
   UserRoundPlus,
+  UserRoundX,
   Users,
+  UsersRound,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { DateTime } from '@/components/common/DateTime';
+import { StatCard } from '@/components/common/StatCard';
 import {
   DataTable,
   TableAction,
@@ -24,162 +27,260 @@ import {
   type DataTableColumn,
   type DataTableFilter,
 } from '@/components/data-table';
-import {
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  notifyError,
-  notifySuccess,
-} from '@/components/feedback';
+import { notifyError, notifySuccess } from '@/components/feedback';
 import { PageContainer, PageHeader } from '@/components/page';
-import {
-  Badge,
-  Button,
-  IconButton,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui';
+import { Badge, Button } from '@/components/ui';
+import { paths } from '@/config';
 import { usePermissions } from '@/features/auth';
+import { isAbortError } from '@/lib/api';
 
 import { groupsApi } from '../api/groups.api';
-import { GroupAssignSheet } from '../components/GroupAssignSheet';
-import { GroupEditorSheet } from '../components/GroupEditorSheet';
-import { GroupMatrixSheet } from '../components/GroupMatrixSheet';
-import type { Group, GroupListItem, GroupTreeNode } from '../types/access-control.types';
+import { GroupAssignDialog } from '../components/GroupAssignDialog';
+import { GroupFormDialog } from '../components/GroupFormDialog';
+import type {
+  Group,
+  GroupCategory,
+  GroupListItem,
+  GroupStats,
+} from '../types/access-control.types';
 
-function buildGroupColumns(): DataTableColumn<GroupListItem>[] {
+const humanize = (value: string) =>
+  value.charAt(0) + value.slice(1).toLowerCase().replaceAll('_', ' ');
+
+/** Columns (category labels include admin-added categories). */
+function buildGroupColumns(
+  categoryLabel: (value: string) => string,
+): DataTableColumn<GroupListItem>[] {
   return [
     {
       id: 'rowNumber',
-      header: '#',
-      numeric: true,
-      width: 60,
+      header: 'S.No',
+      width: 64,
+      fit: true,
       mobile: 'hidden',
       cell: (r) => <span className="text-muted-foreground tabular-nums">{r.rowNumber}</span>,
     },
     {
+      // Name on the first line, the group ID under it.
       id: 'groupName',
       header: 'Group',
       sortable: true,
-      width: 260,
+      // As wide as the longest name / ID on the page (at most 320 px, then it wraps).
+      width: 320,
+      fitText: (r) => [r.groupName, r.groupId],
+      wrap: true,
       mobile: 'title',
       cell: (r) => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-foreground">{r.groupName}</span>
-          <code className="text-2xs text-muted-foreground">{r.groupId}</code>
-        </div>
+        <span className="block min-w-0">
+          <span className="block font-medium text-foreground">{r.groupName}</span>
+          <code className="block font-mono text-xs break-all text-primary">{r.groupId}</code>
+        </span>
       ),
     },
     {
       id: 'category',
       header: 'Category',
       sortable: true,
-      width: 140,
+      width: 150,
+      fit: true,
       cell: (r) => (
-        <Badge size="sm" tone="primary">
-          {r.category}
+        <Badge size="sm" tone="neutral">
+          {categoryLabel(r.category)}
         </Badge>
       ),
     },
     {
       id: 'parent',
-      header: 'Parent Group',
-      width: 180,
+      header: 'Parent',
+      width: 220,
+      fitText: (r) => [r.parentGroupName ?? 'Top level'],
+      wrap: true,
       cell: (r) =>
-        r.parentGroup ? (
-          <span className="text-sm text-foreground">{r.parentGroup.groupName}</span>
+        r.parentGroupName ? (
+          <span className="text-foreground">{r.parentGroupName}</span>
         ) : (
-          <span className="text-xs text-muted-foreground">—</span>
+          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+            <Network className="size-3.5" aria-hidden="true" /> Top level
+          </span>
         ),
     },
     {
-      id: 'level',
-      header: 'Level',
-      sortable: true,
-      width: 100,
+      id: 'description',
+      header: 'Description',
+      width: 420,
+      wrap: true,
+      cell: (r) =>
+        r.description ? (
+          // Two lines at most; the full text on hover.
+          <span className="line-clamp-2 text-muted-foreground" title={r.description}>
+            {r.description}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      id: 'roleCount',
+      header: 'Roles',
+      width: 84,
+      fit: true,
       cell: (r) => (
-        <Badge size="sm" tone={r.level === 'ROOT' ? 'info' : 'neutral'}>
-          {r.level}
+        <Badge size="sm" tone={r.roleCount ? 'success' : 'neutral'} className="tabular-nums">
+          <Shield className="size-3" aria-hidden="true" />
+          {r.roleCount ?? 0}
         </Badge>
       ),
     },
     {
-      id: 'stats',
-      header: 'Members & Roles',
-      width: 160,
+      id: 'memberCount',
+      header: 'Members',
+      width: 100,
+      fit: true,
       cell: (r) => (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{r.memberCount ?? 0} members</span>
-          <span>·</span>
-          <span>{r.roleCount ?? 0} roles</span>
-        </div>
-      ),
-    },
-    {
-      id: 'status',
-      header: 'Status',
-      sortable: true,
-      width: 110,
-      cell: (r) => (
-        <Badge size="sm" tone={r.status === 'ACTIVE' ? 'success' : 'neutral'}>
-          {r.status}
+        <Badge size="sm" tone={r.memberCount ? 'warning' : 'neutral'} className="tabular-nums">
+          <Users className="size-3" aria-hidden="true" />
+          {r.memberCount ?? 0}
         </Badge>
       ),
     },
     {
       id: 'updatedAt',
-      header: 'Updated',
+      header: 'Updated on',
       sortable: true,
-      width: 140,
-      mobile: 'subtitle',
-      cell: (r) => <DateTime value={r.updatedAt} format="relative" />,
+      width: 200,
+      fit: true,
+      cell: (r) => <DateTime value={r.updatedAt} format="full" />,
     },
   ];
 }
 
-const groupColumns = buildGroupColumns();
+/** The eight count cards (props change only when the counts are reloaded). */
+const GroupStatCards = memo(function GroupStatCards({ stats: s }: { stats: GroupStats | null }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        tone="primary"
+        pattern="rings"
+        icon={Layers}
+        label="Total groups"
+        value={s?.totalGroups ?? null}
+        hint="Every group"
+      />
+      <StatCard
+        tone="info"
+        pattern="grid"
+        icon={Network}
+        label="Top-level groups"
+        value={s?.topLevelGroups ?? null}
+        hint="Not inside another group"
+      />
+      <StatCard
+        tone="violet"
+        pattern="sparkles"
+        icon={ListTree}
+        label="Sub-groups"
+        value={s?.subGroups ?? null}
+        hint="Inside another group"
+      />
+      <StatCard
+        tone="warning"
+        pattern="waves"
+        icon={UsersRound}
+        label="Members"
+        value={s?.members ?? null}
+        hint="People in at least one group"
+      />
+      <StatCard
+        tone="success"
+        pattern="bars"
+        icon={Shield}
+        label="Groups with roles"
+        value={s?.groupsWithRoles ?? null}
+        hint="Giving their members access"
+      />
+      <StatCard
+        tone="danger"
+        pattern="stripes"
+        icon={UserRoundX}
+        label="Groups without members"
+        value={s?.groupsWithoutMembers ?? null}
+        hint="Nobody in them yet"
+      />
+      <StatCard
+        tone="cyan"
+        pattern="dots"
+        icon={FolderTree}
+        label="Default groups"
+        value={s?.defaultGroups ?? null}
+        hint="New users join them"
+      />
+      <StatCard
+        tone="primary"
+        pattern="bubbles"
+        icon={Tags}
+        label="Categories"
+        value={s?.categories ?? null}
+        hint="Built-in and custom"
+      />
+    </div>
+  );
+});
 
+/** Administration → Access control → Groups. */
 export function GroupsListPage() {
+  const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission('GROUP_CREATE');
   const canUpdate = hasPermission('GROUP_UPDATE');
   const canDelete = hasPermission('GROUP_DELETE');
-  const canAssignAccess =
+  const canAssign =
     hasPermission('ACCESS_MAPPING_ASSIGN') || hasPermission('ACCESS_MAPPING_REVOKE');
-  const [assigning, setAssigning] = useState<{
-    group: { id: string; groupName: string } | null;
-    open: boolean;
-  }>({ group: null, open: false });
 
-  const [activeTab, setActiveTab] = useState<'table' | 'tree'>('table');
-
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
-
-  const [matrixOpen, setMatrixOpen] = useState(false);
-  const [matrixGroupId, setMatrixGroupId] = useState<string | null>(null);
-
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
-
-  const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([]);
-  const [treeResetKey, setTreeResetKey] = useState(0);
-  /** Member / role counts changed: reload the table and the tree. */
-  const refreshGroups = () => {
-    table.refresh();
-    setTreeResetKey((k) => k + 1);
-  };
+  const [form, setForm] = useState<{ open: boolean; group: Group | null }>({
+    open: false,
+    group: null,
+  });
+  const [deleting, setDeleting] = useState<Group | null>(null);
+  const [assigning, setAssigning] = useState<Group | null>(null);
+  const [categoryState, setCategories] = useState<{ key: number; items: GroupCategory[] } | null>(
+    null,
+  );
+  const categories = useMemo(() => categoryState?.items ?? [], [categoryState]);
+  const [stats, setStats] = useState<{ key: number; value: GroupStats } | null>(null);
+  const [statsKey, setStatsKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
-    void groupsApi
-      .categories(controller.signal)
-      .then(setCategories)
-      .catch(() => {});
+    const load = async () => {
+      try {
+        // Reloaded with the counts (a category may have been added in the group popup).
+        setCategories({ key: statsKey, items: await groupsApi.categories(controller.signal) });
+      } catch {
+        // The filter just has no options.
+      }
+    };
+    void load();
     return () => controller.abort();
-  }, []);
+  }, [statsKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const load = async () => {
+      try {
+        setStats({ key: statsKey, value: await groupsApi.stats(controller.signal) });
+      } catch (error) {
+        if (!isAbortError(error)) notifyError(error, 'Could not load the group counts');
+      }
+    };
+    void load();
+    return () => controller.abort();
+  }, [statsKey]);
+
+  const categoryLabel = useCallback(
+    (value: string) => categories.find((c) => c.value === value)?.label ?? humanize(value),
+    [categories],
+  );
+  const columns = useMemo(() => buildGroupColumns(categoryLabel), [categoryLabel]);
 
   const filters = useMemo<DataTableFilter[]>(
     () => [
@@ -189,11 +290,11 @@ export function GroupsListPage() {
         options: categories.map((c) => ({ value: c.value, label: c.label })),
       },
       {
-        id: 'status',
-        label: 'Status',
+        id: 'level',
+        label: 'Level',
         options: [
-          { value: 'ACTIVE', label: 'Active' },
-          { value: 'INACTIVE', label: 'Inactive' },
+          { value: 'ROOT', label: 'Top-level groups' },
+          { value: 'CHILD', label: 'Sub-groups' },
         ],
       },
     ],
@@ -208,85 +309,75 @@ export function GroupsListPage() {
     defaultSort: [{ id: 'updatedAt', desc: true }],
     itemsLabel: 'groups',
   });
-
-  const handleDelete = async () => {
-    if (!deletingGroup) return;
-    try {
-      await groupsApi.remove(deletingGroup.id);
-      notifySuccess(`Group "${deletingGroup.groupName}" deleted`);
-      setDeleteConfirmOpen(false);
-      setDeletingGroup(null);
-      table.refresh();
-      setTreeResetKey((k) => k + 1);
-    } catch (err) {
-      notifyError(err, 'Could not delete group');
-    }
-  };
-
-  const handleSaved = () => {
-    table.refresh();
-    setTreeResetKey((k) => k + 1);
-  };
+  const { refresh } = table;
+  const refreshAll = useCallback(() => {
+    refresh();
+    setStatsKey((n) => n + 1);
+  }, [refresh]);
 
   const renderRowActions = (r: GroupListItem) => (
     <div className="flex items-center justify-end gap-1.5">
-      {canAssignAccess && (
+      {canAssign && (
         <TableAction
           tone="warning"
           icon={<UserRoundPlus />}
-          text="Assign"
+          tooltip="Assign"
           label={`Assign roles and members to ${r.groupName}`}
-          onClick={() => setAssigning({ group: r, open: true })}
+          onClick={() => setAssigning(r)}
         />
       )}
       <TableAction
-        label={`View permission matrix for ${r.groupName}`}
-        icon={<Grid3X3 />}
-        tone="violet"
-        onClick={() => {
-          setMatrixGroupId(r.id);
-          setMatrixOpen(true);
-        }}
+        tone="info"
+        icon={<ScanEye />}
+        tooltip="View"
+        label={`View ${r.groupName}`}
+        onClick={() => void navigate(paths.admin.groupDetail(r.id))}
       />
       {canUpdate && (
         <TableAction
-          label={`Edit ${r.groupName}`}
-          icon={<SquarePen />}
           tone="primary"
-          onClick={() => {
-            setEditingGroup(r);
-            setEditorOpen(true);
-          }}
+          icon={<SquarePen />}
+          tooltip="Edit"
+          label={`Edit ${r.groupName}`}
+          onClick={() => setForm({ open: true, group: r })}
         />
       )}
       {canDelete && (
         <TableAction
-          label={`Delete ${r.groupName}`}
-          icon={<Trash2 />}
           tone="danger"
-          onClick={() => {
-            setDeletingGroup(r);
-            setDeleteConfirmOpen(true);
-          }}
+          icon={<Trash2 />}
+          tooltip="Delete"
+          label={`Delete ${r.groupName}`}
+          onClick={() => setDeleting(r)}
         />
       )}
     </div>
   );
 
+  const handleDelete = async () => {
+    if (!deleting) return;
+    try {
+      await groupsApi.remove(deleting.id);
+      notifySuccess(`Group “${deleting.groupName}” deleted`);
+      setDeleting(null);
+      refreshAll();
+    } catch (err) {
+      notifyError(err, 'Could not delete the group');
+      throw err;
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
-        title="Permission Groups"
-        description="Organize users into structural and functional groups with hierarchical role and permission inheritance."
+        title="Groups"
+        description="Put people in groups and give each group roles. Members get every permission of their groups' roles."
         actions={
           canCreate && (
             <Button
-              size="sm"
+              size="toolbar"
               leftIcon={<Plus />}
-              onClick={() => {
-                setEditingGroup(null);
-                setEditorOpen(true);
-              }}
+              onClick={() => setForm({ open: true, group: null })}
             >
               Create group
             </Button>
@@ -294,382 +385,55 @@ export function GroupsListPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="flex items-center gap-3 rounded-md border border-border bg-surface p-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-            <Users className="size-5" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Total groups</p>
-            <p className="text-xl font-bold text-foreground">{table.total}</p>
-          </div>
-        </div>
+      {/* Memoized: paging / sorting the table does not redraw the cards. */}
+      <GroupStatCards stats={stats?.value ?? null} />
 
-        <div className="flex items-center gap-3 rounded-md border border-border bg-surface p-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-info/10 text-info">
-            <FolderTree className="size-5" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Group categories</p>
-            <p className="text-xl font-bold text-foreground">{categories.length}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-md border border-border bg-surface p-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-success/10 text-success">
-            <Layers className="size-5" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Inheritance model</p>
-            <p className="text-sm font-semibold text-foreground">Multi-Tier Cascading RBAC</p>
-          </div>
-        </div>
-      </div>
-
-      <Tabs
-        value={activeTab}
-        onValueChange={(val) => setActiveTab(val as 'table' | 'tree')}
-        variant="pills"
-      >
-        <div className="flex items-center justify-between pb-2">
-          <TabsList>
-            <TabsTrigger value="table" className="flex items-center gap-2">
-              <Rows3 className="size-4" aria-hidden="true" />
-              Table View
-            </TabsTrigger>
-            <TabsTrigger value="tree" className="flex items-center gap-2">
-              <Network className="size-4" aria-hidden="true" />
-              Hierarchy Tree
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="table">
-          <DataTable
-            table={table}
-            columns={groupColumns}
-            rowActions={renderRowActions}
-            actionsWidth={190}
-            layoutKey="admin-groups"
-            itemName={{ singular: 'group', plural: 'groups' }}
-            rowLabel={(g) => g.groupName}
-            searchPlaceholder="Search groups by code, name, or description..."
-            emptyState={{
-              icon: <Users />,
-              title: 'No permission groups found',
-              description:
-                'Create a group to start granting roles and permissions to collections of users.',
-            }}
-          />
-        </TabsContent>
-
-        <TabsContent value="tree">
-          {activeTab === 'tree' && (
-            <GroupHierarchyTree
-              key={treeResetKey}
-              canUpdate={canUpdate}
-              canDelete={canDelete}
-              canAssign={canAssignAccess}
-              onAssign={(node) => setAssigning({ group: node, open: true })}
-              onViewMatrix={(id) => {
-                setMatrixGroupId(id);
-                setMatrixOpen(true);
-              }}
-              onEdit={(node) => {
-                setEditingGroup({
-                  id: node.id,
-                  groupId: node.groupId,
-                  groupName: node.groupName,
-                  category: node.category,
-                  description: '',
-                  status: node.status,
-                  level: node.level,
-                  parentGroupId: null,
-                  tags: [],
-                  version: 1,
-                  createdAt: '',
-                  updatedAt: '',
-                });
-                setEditorOpen(true);
-              }}
-              onDelete={(node) => {
-                setDeletingGroup({
-                  id: node.id,
-                  groupId: node.groupId,
-                  groupName: node.groupName,
-                  category: node.category,
-                  description: '',
-                  status: node.status,
-                  level: node.level,
-                  parentGroupId: null,
-                  tags: [],
-                  version: 1,
-                  createdAt: '',
-                  updatedAt: '',
-                });
-                setDeleteConfirmOpen(true);
-              }}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <GroupEditorSheet
-        open={editorOpen}
-        group={editingGroup}
-        onOpenChange={setEditorOpen}
-        onSaved={handleSaved}
+      <DataTable
+        table={table}
+        columns={columns}
+        rowActions={renderRowActions}
+        actionsWidth={160}
+        layoutKey="admin-groups:v2"
+        viewOptions={false}
+        // Refresh also reloads the count cards (and categories).
+        onRefresh={() => setStatsKey((n) => n + 1)}
+        itemName={{ singular: 'group', plural: 'groups' }}
+        rowLabel={(g) => g.groupName}
+        onRowOpen={(g) => void navigate(paths.admin.groupDetail(g.id))}
+        searchPlaceholder="Search groups by name, ID or description"
+        emptyState={{
+          icon: <Layers />,
+          title: 'No groups yet',
+          description: 'Create a group, then give it roles and add people.',
+        }}
       />
 
-      <GroupMatrixSheet open={matrixOpen} groupId={matrixGroupId} onOpenChange={setMatrixOpen} />
+      <GroupFormDialog
+        open={form.open}
+        group={form.group}
+        onOpenChange={(open) => setForm((f) => ({ ...f, open }))}
+        onSaved={(saved, created) => {
+          refreshAll();
+          // A new group is empty: go straight to giving it roles and members.
+          if (created) setAssigning(saved);
+        }}
+      />
 
-      <GroupAssignSheet
-        group={assigning.group}
-        open={assigning.open}
-        onOpenChange={(open) => setAssigning((a) => ({ ...a, open }))}
-        onChanged={refreshGroups}
+      <GroupAssignDialog
+        group={assigning}
+        onClose={() => setAssigning(null)}
+        onChanged={refreshAll}
       />
 
       <ConfirmDialog
-        open={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
-        title={`Delete group ${deletingGroup?.groupName}?`}
-        description="This will permanently delete the group. Any nested child groups or assigned users will lose associated group roles and permissions."
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={`Delete group ${deleting?.groupName ?? ''}?`}
+        description="A group can only be deleted once it has no members and no sub-groups. This cannot be undone."
         confirmText="Delete group"
         destructive
         onConfirm={handleDelete}
       />
     </PageContainer>
-  );
-}
-
-function GroupHierarchyTree({
-  canUpdate,
-  canDelete,
-  canAssign,
-  onAssign,
-  onViewMatrix,
-  onEdit,
-  onDelete,
-}: {
-  canUpdate: boolean;
-  canDelete: boolean;
-  canAssign: boolean;
-  onAssign: (node: GroupTreeNode) => void;
-  onViewMatrix: (id: string) => void;
-  onEdit: (node: GroupTreeNode) => void;
-  onDelete: (node: GroupTreeNode) => void;
-}) {
-  const [treeData, setTreeData] = useState<GroupTreeNode[]>([]);
-  const [isTreeLoading, setIsTreeLoading] = useState(true);
-  const [treeError, setTreeError] = useState<unknown | null>(null);
-
-  const fetchTree = useCallback(async (signal?: AbortSignal) => {
-    setIsTreeLoading(true);
-    setTreeError(null);
-    try {
-      const data = await groupsApi.tree(undefined, signal);
-      setTreeData(data);
-    } catch (err) {
-      if (!signal?.aborted) {
-        setTreeError(err);
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setIsTreeLoading(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let cancelled = false;
-
-    const run = async () => {
-      try {
-        const data = await groupsApi.tree(undefined, controller.signal);
-        if (!cancelled) {
-          setTreeData(data);
-        }
-      } catch (err) {
-        if (!cancelled && !controller.signal.aborted) {
-          setTreeError(err);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsTreeLoading(false);
-        }
-      }
-    };
-
-    void run();
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, []);
-
-  return (
-    <div className="space-y-3 rounded-md border border-border bg-surface p-4">
-      <div className="flex items-center justify-between pb-1">
-        <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          Organizational Tree ({treeData.length} root branches)
-        </span>
-        <IconButton
-          aria-label="Refresh tree"
-          icon={<RefreshCw className={`size-4 ${isTreeLoading ? 'animate-spin' : ''}`} />}
-          variant="outline"
-          size="sm"
-          onClick={() => void fetchTree()}
-        />
-      </div>
-
-      {isTreeLoading ? (
-        <LoadingState label="Loading hierarchy tree..." />
-      ) : treeError ? (
-        <ErrorState
-          error={treeError}
-          title="Failed to load hierarchy"
-          onRetry={() => void fetchTree()}
-        />
-      ) : treeData.length === 0 ? (
-        <EmptyState
-          icon={<FolderTree />}
-          title="No group hierarchy"
-          description="Create root and child groups to see your organizational hierarchy here."
-        />
-      ) : (
-        <div className="space-y-2">
-          {treeData.map((node) => (
-            <TreeNodeItem
-              key={node.id}
-              node={node}
-              canUpdate={canUpdate}
-              canDelete={canDelete}
-              canAssign={canAssign}
-              onAssign={onAssign}
-              onViewMatrix={onViewMatrix}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TreeNodeItem({
-  node,
-  canUpdate,
-  canDelete,
-  canAssign,
-  onAssign,
-  onViewMatrix,
-  onEdit,
-  onDelete,
-  depth = 0,
-}: {
-  node: GroupTreeNode;
-  canUpdate: boolean;
-  canDelete: boolean;
-  canAssign: boolean;
-  onAssign: (node: GroupTreeNode) => void;
-  onViewMatrix: (id: string) => void;
-  onEdit: (node: GroupTreeNode) => void;
-  onDelete: (node: GroupTreeNode) => void;
-  depth?: number;
-}) {
-  const [expanded, setExpanded] = useState(true);
-  const hasChildren = node.children && node.children.length > 0;
-
-  return (
-    <div className="space-y-1">
-      <div
-        className="flex items-center justify-between rounded-md border border-border/60 bg-surface px-3 py-2 text-sm hover:border-border hover:bg-muted/30"
-        style={{ marginLeft: `${depth * 24}px` }}
-      >
-        <div className="flex min-w-0 items-center gap-2">
-          {hasChildren ? (
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-            </button>
-          ) : (
-            <div className="size-4" />
-          )}
-
-          <FolderTree className="size-4 shrink-0 text-primary" />
-          <span className="truncate font-semibold text-foreground">{node.groupName}</span>
-          <code className="text-2xs text-muted-foreground">{node.groupId}</code>
-          <Badge size="sm" tone={node.level === 'ROOT' ? 'info' : 'neutral'}>
-            {node.level}
-          </Badge>
-          <Badge size="sm" tone="primary">
-            {node.category}
-          </Badge>
-          <span className="text-2xs hidden text-muted-foreground sm:inline">
-            {node.memberCount ?? 0} members · {node.roleCount ?? 0} roles
-          </span>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1.5">
-          {canAssign && (
-            <TableAction
-              tone="warning"
-              icon={<UserRoundPlus />}
-              text="Assign"
-              label={`Assign roles and members to ${node.groupName}`}
-              onClick={() => onAssign(node)}
-            />
-          )}
-          <TableAction
-            label={`View matrix for ${node.groupName}`}
-            icon={<Grid3X3 />}
-            tone="violet"
-            onClick={() => onViewMatrix(node.id)}
-          />
-          {canUpdate && (
-            <TableAction
-              label={`Edit ${node.groupName}`}
-              icon={<SquarePen />}
-              tone="primary"
-              onClick={() => onEdit(node)}
-            />
-          )}
-          {canDelete && (
-            <TableAction
-              label={`Delete ${node.groupName}`}
-              icon={<Trash2 />}
-              tone="danger"
-              onClick={() => onDelete(node)}
-            />
-          )}
-        </div>
-      </div>
-
-      {hasChildren && expanded && (
-        <div className="space-y-1">
-          {node.children.map((child) => (
-            <TreeNodeItem
-              key={child.id}
-              node={child}
-              canUpdate={canUpdate}
-              canDelete={canDelete}
-              canAssign={canAssign}
-              onAssign={onAssign}
-              onViewMatrix={onViewMatrix}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              depth={depth + 1}
-            />
-          ))}
-        </div>
-      )}
-    </div>
   );
 }

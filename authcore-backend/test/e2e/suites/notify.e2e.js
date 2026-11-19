@@ -128,7 +128,6 @@ async function main() {
   const gDefault = r.body.data;
   check('create a default group', r.status === 201 && gDefault.isDefault === true, dump(r));
   await call('POST', '/access-mappings/group-roles', { token: A, body: { groupId: gDefault.id, roleIds: [role.id] } });
-  const gInactive = (await call('POST', '/groups', { token: A, body: { category: 'TEAM', groupName: `NT Inactive ${Date.now()}`, isDefault: true, status: 'INACTIVE' } })).body.data;
   const gNormal = (await call('POST', '/groups', { token: A, body: { category: 'TEAM', groupName: `NT Normal ${Date.now()}` } })).body.data;
   r = await call('GET', '/groups?isDefault=true&search=NT&limit=50', { token: A });
   check('list ?isDefault=true', r.status === 200 && r.body.data.some((g) => g.id === gDefault.id) && !r.body.data.some((g) => g.id === gNormal.id) && r.body.data.every((g) => g.isDefault === true), dump(r));
@@ -136,7 +135,7 @@ async function main() {
   await reg('new1');
   const new1 = await uid('new1');
   let groupsOf = await memberOf(new1);
-  check('registered user joined the active default group only', groupsOf.includes(gDefault.id) && !groupsOf.includes(gInactive.id) && !groupsOf.includes(gNormal.id), JSON.stringify(groupsOf));
+  check('registered user joined the default group only', groupsOf.includes(gDefault.id) && !groupsOf.includes(gNormal.id), JSON.stringify(groupsOf));
   const mapping = await col('access_mappings').findOne({ type: 'GROUP_USER', userId: new1, groupId: gDefault.id });
   check('assignment recorded as "system" (audited)', mapping.assignedBy === 'system' && !!(await col('access_control_audit_logs').findOne({ entityId: mapping._id, changedBy: 'system' })));
   const N1 = (await login('new1')).body.data.accessToken;

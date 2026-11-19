@@ -4,7 +4,9 @@ import { apiClient } from '@/lib/api';
 import type {
   CreateGroupInput,
   Group,
+  GroupCategory,
   GroupListItem,
+  GroupStats,
   GroupTreeNode,
   PermissionMatrix,
   UpdateGroupInput,
@@ -27,7 +29,6 @@ export const groupsApi = {
     const sort = query.sort[0];
     const categoryFilter = query.filters.category?.join(',');
     const levelFilter = query.filters.level?.at(-1);
-    const statusFilter = query.filters.status?.join(',');
     const tagsFilter = query.filters.tags?.join(',');
 
     const page = await apiClient.getPage<Group>(BASE, {
@@ -38,7 +39,6 @@ export const groupsApi = {
         search: query.search.trim() || undefined,
         category: categoryFilter || undefined,
         level: levelFilter || undefined,
-        status: statusFilter || undefined,
         tags: tagsFilter || undefined,
         sortBy: sort ? (SORT_FIELD[sort.id] ?? 'updatedAt') : 'updatedAt',
         sortOrder: sort ? (sort.desc ? 'desc' : 'asc') : 'desc',
@@ -84,28 +84,34 @@ export const groupsApi = {
       },
     ),
 
+  /** Built-in categories, then admin-added ones. */
   categories: (signal?: AbortSignal) =>
-    apiClient.get<Array<{ value: string; label: string }>>(`${BASE}/categories`, { signal }),
+    apiClient.get<GroupCategory[]>(`${BASE}/categories`, { signal }),
 
-  tree: (
-    query?: { category?: string; rootId?: string; maxDepth?: number; status?: string },
-    signal?: AbortSignal,
-  ) =>
+  /** Add a category from its label ("Field teams" → FIELD_TEAMS). */
+  createCategory: (label: string) => apiClient.post<GroupCategory>(`${BASE}/categories`, { label }),
+
+  /** Next free ID in the GRP-NN series, e.g. GRP-07. */
+  nextId: (signal?: AbortSignal) =>
+    apiClient.get<{ groupId: string }>(`${BASE}/next-id`, { signal }),
+
+  stats: (signal?: AbortSignal) => apiClient.get<GroupStats>(`${BASE}/stats`, { signal }),
+
+  tree: (query?: { category?: string; rootId?: string; maxDepth?: number }, signal?: AbortSignal) =>
     apiClient.get<GroupTreeNode[]>(`${BASE}/tree`, {
       signal,
       query: {
         category: query?.category,
         rootId: query?.rootId,
         maxDepth: query?.maxDepth,
-        status: query?.status,
         withCounts: true,
       },
     }),
 
-  children: (id: string, query?: { recursive?: boolean; status?: string }, signal?: AbortSignal) =>
+  children: (id: string, query?: { recursive?: boolean }, signal?: AbortSignal) =>
     apiClient.get<Group[]>(`${byId(id)}/children`, {
       signal,
-      query: { recursive: query?.recursive, status: query?.status },
+      query: { recursive: query?.recursive },
     }),
 
   permissionMatrix: (id: string, category?: string, signal?: AbortSignal) =>

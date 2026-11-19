@@ -173,7 +173,7 @@ async function main() {
   const G = (b) => call('POST', '/groups', { token: A, body: b });
   r = await G({ category: 'department', groupName: 'Development', description: 'All engineering', tags: 'development, Engineering ,  , development' });
   const gDev = r.body.data;
-  check('main group: generated GRP-XXXXXX, level 0, tags trimmed / lowercased / deduped', r.status === 201 && /^GRP-[A-Z0-9]{6}$/.test(gDev.groupId) && gDev.level === 0 && gDev.parent === null && JSON.stringify(gDev.tags) === '["development","engineering"]', JSON.stringify(gDev).slice(0, 300));
+  check('main group: generated GRP-NN, level 0, tags trimmed / lowercased / deduped', r.status === 201 && /^GRP-d{2,}$/.test(gDev.groupId) && gDev.level === 0 && gDev.parent === null && JSON.stringify(gDev.tags) === '["development","engineering"]', JSON.stringify(gDev).slice(0, 300));
   r = await G({ category: 'TEAM', parentGroupId: gDev.id, groupId: 'grp-backend', groupName: 'Backend Team', tags: ['backend', 'node_js', 'api-v1'] });
   const gBack = r.body.data;
   check('sub-group: groupId uppercased, level 1, path + parent', r.status === 201 && gBack.groupId === 'GRP-BACKEND' && gBack.level === 1 && gBack.parent.id === gDev.id && gBack.path.length === 1 && gBack.parentGroupName === 'Development');
@@ -289,11 +289,8 @@ async function main() {
   check('adding a user to a group that grants more than I have -> 403', r.status === 403);
   r = await call('POST', '/access-mappings/group-users', { token: M, body: { groupId: gDev.id, userIds: [ids.mgr] } });
   check('changing my own membership -> 403', r.status === 403 && r.body.message.includes('own group membership'));
-  await call('PATCH', `/groups/${gAdmins.id}`, { token: A, body: { status: 'INACTIVE' } });
-  check('group deactivated -> access gone', (await call('GET', '/roles', { token: M })).status === 403);
-  r = await call('POST', '/access-mappings/group-users', { token: A, body: { groupId: gAdmins.id, userIds: [ids.u2] } });
-  check('assigning to an inactive group -> 400', r.body.code === 'RESOURCE_INACTIVE');
-  await call('PATCH', `/groups/${gAdmins.id}`, { token: A, body: { status: 'ACTIVE' } });
+  r = await call('PATCH', `/groups/${gAdmins.id}`, { token: A, body: { status: 'INACTIVE' } });
+  check('groups have no status -> 400', r.status === 400 && errs(r).includes('status'));
 
   console.log('\n8. Delete rules');
   r = await call('DELETE', `/roles/${rHr.id}`, { token: A });
@@ -377,8 +374,8 @@ async function main() {
   check('delete by key', r.status === 200 && r.body.data.id === tmp.id);
   const b1 = (await R({ roleKey: 'BULK_A', roleName: 'Bulk A', category: 'CUSTOM' })).body.data;
   const b2 = (await R({ roleKey: 'BULK_B', roleName: 'Bulk B', category: 'CUSTOM' })).body.data;
-  r = await call('PATCH', '/roles/bulk', { token: A, body: { roles: [{ id: b1.id, description: 'bulk 1', version: 1 }, { id: b2.id, status: 'INACTIVE' }] } });
-  check('bulk update -> 200, both updated, in request order', r.status === 200 && r.body.data.updatedCount === 2 && r.body.data.roles[0].id === b1.id && r.body.data.roles[1].status === 'INACTIVE');
+  r = await call('PATCH', '/roles/bulk', { token: A, body: { roles: [{ id: b1.id, description: 'bulk 1', version: 1 }, { id: b2.id, description: 'bulk 2' }] } });
+  check('bulk update -> 200, both updated, in request order', r.status === 200 && r.body.data.updatedCount === 2 && r.body.data.roles[0].id === b1.id && r.body.data.roles[1].description === 'bulk 2');
   r = await call('PATCH', '/roles/bulk', { token: A, body: { roles: [{ id: b1.id, description: 'should not apply' }, { id: sysRole._id, description: 'x' }] } });
   check('bulk with a system role -> 400 BULK_OPERATION_FAILED, nothing applied', r.status === 400 && r.body.code === 'BULK_OPERATION_FAILED' && errs(r).includes('roles.1.id') && (await col('roles').findOne({ _id: b1.id })).description === 'bulk 1');
   r = await call('PATCH', '/roles/bulk', { token: A, body: { roles: [{ id: b1.id, roleKey: 'SAME_KEY' }, { id: b2.id, roleKey: 'SAME_KEY' }] } });

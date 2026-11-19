@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpStatus,
   Param,
   Patch,
@@ -21,7 +22,7 @@ import {
 } from '@common/decorators/api-response.decorator';
 import { RequirePermissions } from '@common/decorators/require-permissions.decorator';
 import { ResponseMessage } from '@common/decorators/response-message.decorator';
-import { DropdownOptionDto, OptionDto } from '@common/dto/dropdown.dto';
+import { DropdownOptionDto } from '@common/dto/dropdown.dto';
 import { ExistsResponseDto } from '@common/dto/exists.dto';
 import type { Paginated } from '@common/interfaces/api-response.interface';
 import { ParseIdPipe } from '@common/pipes/parse-id.pipe';
@@ -32,7 +33,9 @@ import {
 } from '../constants/access-control.constants';
 import { CurrentActor } from '../decorators/current-actor.decorator';
 import {
+  CreateGroupCategoryDto,
   CreateGroupDto,
+  GroupCategoryDto,
   GroupCategoryQueryDto,
   GroupChildrenQueryDto,
   GroupDropdownQueryDto,
@@ -40,8 +43,10 @@ import {
   GroupListItemDto,
   GroupListQueryDto,
   GroupResponseDto,
+  GroupStatsDto,
   GroupTreeNodeDto,
   GroupTreeQueryDto,
+  NextGroupIdDto,
   PermissionMatrixDto,
   UpdateGroupDto,
 } from '../dto/group.dto';
@@ -70,7 +75,7 @@ export class GroupsController {
   @ApiOperation({
     summary: 'Create a group or sub-group',
     description:
-      'Needs GROUP_CREATE. No `parentGroupId` = main group. `groupId` is optional (generated GRP-XXXXXX). ' +
+      'Needs GROUP_CREATE. No `parentGroupId` = main group. `groupId` is optional (default: the next GRP-NN, see GET /groups/next-id). ' +
       'Tags: comma-separated string or array; letters, numbers, `_ - :` only. Name unique among siblings. ' +
       'Max nesting 10 levels.',
   })
@@ -90,7 +95,7 @@ export class GroupsController {
     summary: 'List groups',
     description:
       'Needs GROUP_READ. Search (name, group ID, description, tags); filter by category, parent, level ' +
-      '(ROOT / CHILD), tags (`tags=a,b` with tagMode ANY or ALL), status, created & updated date; sort.',
+      '(ROOT / CHILD), tags (`tags=a,b` with tagMode ANY or ALL), created & updated date; sort.',
   })
   @ApiPaginatedResponse(GroupListItemDto)
   @ApiErrorResponses(...ERRORS_READ)
@@ -123,12 +128,65 @@ export class GroupsController {
   @ResponseMessage('Group categories')
   @ApiOperation({
     summary: 'Group categories',
-    description: 'Needs GROUP_READ.',
+    description:
+      'Needs GROUP_READ. Built-in categories, then the ones admins added (`isCustom`).',
   })
-  @ApiWrappedResponse(OptionDto, { isArray: true })
+  @ApiWrappedResponse(GroupCategoryDto, { isArray: true })
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
-  categories() {
+  categories(): Promise<GroupCategoryDto[]> {
     return this.groupsService.categories();
+  }
+
+  @Post('categories')
+  @RequirePermissions(P.GroupCreate)
+  @Throttle({ default: ACCESS_ADMIN_THROTTLE })
+  @ResponseMessage('Group category added')
+  @ApiOperation({
+    summary: 'Add a group category',
+    description:
+      'Needs GROUP_CREATE. The value is made from the label ("Field teams" → FIELD_TEAMS); an existing one with the same value is returned instead of a duplicate.',
+  })
+  @ApiWrappedResponse(GroupCategoryDto, { status: HttpStatus.CREATED })
+  @ApiErrorResponses(
+    HttpStatus.BAD_REQUEST,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.FORBIDDEN,
+  )
+  createCategory(
+    @Body() dto: CreateGroupCategoryDto,
+    @CurrentActor() actor: Actor,
+  ): Promise<GroupCategoryDto> {
+    return this.groupsService.createCategory(dto.label, actor);
+  }
+
+  @Get('next-id')
+  @RequirePermissions(P.GroupCreate)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Next group ID')
+  @ApiOperation({
+    summary: 'Suggested ID for a new group',
+    description:
+      'Needs GROUP_CREATE. The next free ID in the GRP-NN series (GRP-01, GRP-02 …). Any other unique ID can still be used.',
+  })
+  @ApiWrappedResponse(NextGroupIdDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  nextId(): Promise<NextGroupIdDto> {
+    return this.groupsService.nextGroupId();
+  }
+
+  @Get('stats')
+  @RequirePermissions(P.GroupRead)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Group statistics')
+  @ApiOperation({
+    summary: 'Counts for the groups page',
+    description:
+      'Needs GROUP_READ. Groups (total / top-level / sub-groups / with roles / without members / default), members and categories.',
+  })
+  @ApiWrappedResponse(GroupStatsDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  stats(): Promise<GroupStatsDto> {
+    return this.groupsService.stats();
   }
 
   @Get('tree')
@@ -138,7 +196,7 @@ export class GroupsController {
     summary: 'Group hierarchy as a tree',
     description:
       'Needs GROUP_READ. Main groups with their sub-groups nested in `children` (sorted by name). Filters: ' +
-      '`category`, `rootId` (one sub-tree), `maxDepth`, `status`; `withCounts=true` adds memberCount / roleCount.',
+      '`category`, `rootId` (one sub-tree), `maxDepth`; `withCounts=true` adds memberCount / roleCount.',
   })
   @ApiWrappedResponse(GroupTreeNodeDto, { isArray: true })
   @ApiErrorResponses(...ERRORS_READ, HttpStatus.NOT_FOUND)

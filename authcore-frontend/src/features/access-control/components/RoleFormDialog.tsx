@@ -45,7 +45,7 @@ export function RoleFormDialog({
             ? 'Change the name, category or description.'
             : 'Name the role, then choose its permissions on the next page.'
         }
-        size="md"
+        size="lg"
       >
         {open && (
           <RoleForm
@@ -169,38 +169,41 @@ function RoleForm({
 
   return (
     <form noValidate onSubmit={(e) => void save(e)}>
-      <DialogBody className="space-y-4">
-        <Input
-          label="Role name"
-          required
-          maxLength={100}
-          value={roleName}
-          placeholder="Enter a role name, e.g. Support Manager"
-          error={shown.roleName}
-          onChange={(e) => {
-            setRoleName(e.target.value);
-            if (serverErrors.roleName) setServerErrors({});
-          }}
-        />
-        <Input
-          label="Role key"
-          required
-          disabled={isEditing}
-          maxLength={64}
-          value={roleKey}
-          placeholder="Enter a key, e.g. ROLE-01"
-          hint={
-            isEditing
-              ? 'Fixed after creation'
-              : 'Suggested: the next free ROLE number — change it if you like'
-          }
-          error={shown.roleKey}
-          className="font-mono"
-          onChange={(e) => {
-            setRoleKey(e.target.value.toUpperCase());
-            if (serverErrors.roleKey) setServerErrors({});
-          }}
-        />
+      {/* Roomy: two fields per row on wider screens, a tall description box. */}
+      <DialogBody className="space-y-5 py-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Role name"
+            required
+            maxLength={100}
+            value={roleName}
+            placeholder="Enter a role name, e.g. Support Manager"
+            error={shown.roleName}
+            onChange={(e) => {
+              setRoleName(e.target.value);
+              if (serverErrors.roleName) setServerErrors({});
+            }}
+          />
+          <Input
+            label="Role key"
+            required
+            disabled={isEditing}
+            maxLength={64}
+            value={roleKey}
+            placeholder="Enter a key, e.g. ROLE-01"
+            hint={
+              isEditing
+                ? 'Fixed after creation'
+                : 'Suggested: the next free ROLE number — change it if you like'
+            }
+            error={shown.roleKey}
+            className="font-mono"
+            onChange={(e) => {
+              setRoleKey(e.target.value.toUpperCase());
+              if (serverErrors.roleKey) setServerErrors({});
+            }}
+          />
+        </div>
         <Select
           label="Category"
           required
@@ -217,7 +220,7 @@ function RoleForm({
         />
         <Textarea
           label="Description"
-          rows={3}
+          rows={5}
           maxLength={250}
           value={description}
           placeholder="Describe what people with this role do (optional)"

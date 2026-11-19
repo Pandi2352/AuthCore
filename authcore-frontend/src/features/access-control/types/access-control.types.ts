@@ -1,7 +1,5 @@
 export type RecordStatus = 'ACTIVE' | 'INACTIVE';
 
-export type GroupCategory = 'DEPARTMENT' | 'TEAM' | 'PROJECT' | 'SECURITY' | 'CUSTOM';
-
 export type PermissionAction =
   'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'MANAGE' | 'EXECUTE' | 'ASSIGN' | 'REVOKE' | 'APPROVE';
 
@@ -94,23 +92,35 @@ export interface RoleSetupResult {
   permissionsRemoved: number;
 }
 
+export interface GroupRef {
+  id: string;
+  groupId: string;
+  groupName: string;
+}
+
+/** GET /groups (list item) and GET /groups/:id (details add parent, path, roles …). */
 export interface Group {
   id: string;
   groupId: string;
   groupName: string;
   category: string;
   description: string;
-  status: RecordStatus;
-  level: 'ROOT' | 'CHILD';
+  /** 0 = top-level group, 1 = inside a group, … */
+  level: number;
   parentGroupId: string | null;
-  parentGroup?: { id: string; groupId: string; groupName: string } | null;
+  parentGroupName: string | null;
   tags: string[];
+  /** New users join it automatically. */
+  isDefault: boolean;
   memberCount?: number;
   roleCount?: number;
+  // details only
   childCount?: number;
-  path?: Array<{ id: string; groupId: string; groupName: string }>;
-  version: number;
-  createdAt: string;
+  parent?: GroupRef | null;
+  path?: GroupRef[];
+  roles?: Array<{ id: string; roleKey: string; roleName: string }>;
+  version?: number;
+  createdAt?: string;
   updatedAt: string;
 }
 
@@ -124,16 +134,13 @@ export interface CreateGroupInput {
   groupId?: string;
   groupName: string;
   description?: string;
-  tags?: string[] | string;
-  status?: RecordStatus;
 }
 
 export interface UpdateGroupInput {
   parentGroupId?: string | null;
   groupName?: string;
+  category?: string;
   description?: string;
-  tags?: string[] | string;
-  status?: RecordStatus;
   version?: number;
 }
 
@@ -142,8 +149,7 @@ export interface GroupTreeNode {
   groupId: string;
   groupName: string;
   category: string;
-  status: RecordStatus;
-  level: 'ROOT' | 'CHILD';
+  level: number;
   memberCount?: number;
   roleCount?: number;
   children: GroupTreeNode[];
@@ -286,5 +292,21 @@ export interface RoleStats {
   totalPermissions: number;
   permissionsInUse: number;
   rolesWithoutPermissions: number;
+  categories: number;
+}
+
+/** GET /groups/categories item (same shape as role categories). */
+export type GroupCategory = RoleCategory;
+
+/** GET /groups/stats */
+export interface GroupStats {
+  totalGroups: number;
+  topLevelGroups: number;
+  subGroups: number;
+  /** Different users in at least one group. */
+  members: number;
+  groupsWithRoles: number;
+  groupsWithoutMembers: number;
+  defaultGroups: number;
   categories: number;
 }
