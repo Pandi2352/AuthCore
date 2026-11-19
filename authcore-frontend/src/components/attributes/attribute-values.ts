@@ -1,4 +1,4 @@
-import type { FormAttribute } from '../types/create-user.types';
+import type { FormAttribute } from './attribute.types';
 
 /** Form state of custom variables: text inputs keep strings, booleans, string[] for multi-select. */
 export type FieldValue = string | boolean | string[];

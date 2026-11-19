@@ -168,7 +168,12 @@ function RoleForm({
   };
 
   return (
-    <form noValidate onSubmit={(e) => void save(e)}>
+    <form
+      noValidate
+      onSubmit={(e) => void save(e)}
+      // A column, so the body scrolls inside the popup and the buttons stay visible.
+      className="flex min-h-0 flex-1 flex-col"
+    >
       {/* Roomy: two fields per row on wider screens, a tall description box. */}
       <DialogBody className="space-y-5 py-4">
         <div className="grid gap-4 sm:grid-cols-2">

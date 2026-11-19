@@ -2,6 +2,14 @@ import { ChevronDown } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
+import {
+  AttributeFields,
+  countFields,
+  fromApiValues,
+  toAttributesPatch,
+  validateAttributes,
+  type AttributeValues,
+} from '@/components/attributes';
 import { DateTime } from '@/components/common/DateTime';
 import { ErrorState, LoadingState, notifyError, notifySuccess } from '@/components/feedback';
 import {
@@ -31,14 +39,6 @@ import {
   type SettableStatus,
 } from '../types/admin-user.types';
 import type { CreateUserConfig } from '../types/create-user.types';
-import {
-  countFields,
-  fromApiValues,
-  toAttributesPatch,
-  validateAttributes,
-  type AttributeValues,
-} from './attribute-values';
-import { AttributeFields } from './AttributeFields';
 import { fullName, STATUS_LABEL, STATUS_TONE } from './user-labels';
 
 const EMAIL = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;

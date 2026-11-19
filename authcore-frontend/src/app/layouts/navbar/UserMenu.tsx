@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui';
 import { featuresConfig, paths } from '@/config';
+import { useMyAvatar } from '@/features/account';
 import { useAuth, usePermissions } from '@/features/auth';
 import type { ColorMode } from '@/types/theme.types';
 
@@ -28,6 +29,7 @@ export function UserMenu() {
   const { isSuperAdmin } = usePermissions();
   const { mode, setMode, userCustomizable } = useTheme();
   const navigate = useNavigate();
+  const avatar = useMyAvatar(user?.id);
   if (!user) return null;
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
 
@@ -42,7 +44,7 @@ export function UserMenu() {
         aria-label={`Account menu for ${fullName}`}
         className="inline-flex cursor-pointer items-center gap-2 rounded-md p-1 transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:pr-2"
       >
-        <Avatar name={fullName} size="sm" />
+        <Avatar src={avatar} name={fullName} size="sm" />
         <span className="hidden max-w-36 truncate text-sm font-medium sm:block">{fullName}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
@@ -59,7 +61,7 @@ export function UserMenu() {
         <DropdownMenuItem asChild>
           <Link to={paths.account.profile}>
             <UserRound aria-hidden="true" />
-            Profile
+            My profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

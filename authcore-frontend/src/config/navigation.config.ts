@@ -23,33 +23,6 @@ export const navigationConfig: NavGroup[] = [
     ],
   },
   {
-    id: 'account',
-    title: 'My account',
-    items: [
-      { id: 'account-profile', title: 'Profile', path: paths.account.profile, icon: 'UserRound' },
-      {
-        id: 'account-security',
-        title: 'Security',
-        path: paths.account.security,
-        icon: 'ShieldCheck',
-      },
-      {
-        id: 'account-sessions',
-        title: 'Sessions',
-        path: paths.account.sessions,
-        icon: 'MonitorSmartphone',
-        featureFlag: 'account.sessionsPage',
-      },
-      {
-        id: 'account-activity',
-        title: 'Activity',
-        path: paths.account.activity,
-        icon: 'History',
-        featureFlag: 'account.activityPage',
-      },
-    ],
-  },
-  {
     id: 'admin',
     title: 'Administration',
     featureFlag: 'admin.enabled',

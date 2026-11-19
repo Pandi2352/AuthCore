@@ -6,26 +6,17 @@ import {
   Fingerprint,
   KeyRound,
   Lock,
-  MoreHorizontal,
-  Pencil,
   Plus,
+  SquarePen,
   Trash2,
 } from 'lucide-react';
 import { createElement, useState, type ReactNode } from 'react';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { DateTime } from '@/components/common/DateTime';
 import { TableAction } from '@/components/data-table';
 import { notifyError, notifySuccess } from '@/components/feedback';
-import {
-  Badge,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  Switch,
-  Tooltip,
-} from '@/components/ui';
+import { Badge, Switch, Tooltip } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
 import { userSchemaApi } from '../api/user-schema.api';
@@ -42,7 +33,15 @@ export interface SchemaTableActions {
   onDeleted: (id: string) => void;
 }
 
-/** Variables as a tree table: groups expand to their child variables. */
+/** Same header / cell look as the shared data table (roles, groups, users …). */
+const HEAD =
+  'border-b border-border bg-muted px-3 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-muted-foreground uppercase';
+const CELL = 'border-b border-border px-3 py-2.5 align-middle';
+
+/**
+ * Variables as a tree table: groups open to show their variables. Same look as the other
+ * tables: S.No, grey stripes, colored action icons with one-word tooltips.
+ */
 export function SchemaTable({
   rows,
   forceExpanded,
@@ -63,38 +62,50 @@ export function SchemaTable({
     });
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm sm:min-w-[40rem]">
+    <div className="scrollbar-slim overflow-x-auto overflow-y-hidden rounded-md border border-border bg-surface">
+      <table className="w-full border-collapse text-sm">
+        <caption className="sr-only">User schema variables</caption>
         <thead>
-          <tr className="border-b border-border bg-muted/60 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            <th scope="col" className="py-2.5 pr-2 pl-3 font-medium sm:px-4">
+          <tr>
+            <th scope="col" className={cn(HEAD, 'hidden w-16 sm:table-cell')}>
+              S.No
+            </th>
+            <th scope="col" className={HEAD}>
               Variable
             </th>
-            <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">
+            <th scope="col" className={cn(HEAD, 'hidden sm:table-cell')}>
               Type
             </th>
-            <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">
+            <th scope="col" className={cn(HEAD, 'hidden md:table-cell')}>
+              Source
+            </th>
+            <th scope="col" className={cn(HEAD, 'hidden lg:table-cell')}>
               Scopes
             </th>
-            <th scope="col" className="hidden px-3 py-2.5 font-medium md:table-cell">
+            <th scope="col" className={cn(HEAD, 'hidden md:table-cell')}>
               Rules
             </th>
-            <th scope="col" className="px-2 py-2.5 font-medium sm:px-3">
-              <span className="sm:hidden">On</span>
-              <span className="hidden sm:inline">Enabled</span>
+            <th scope="col" className={HEAD}>
+              Enabled
             </th>
-            <th scope="col" className="w-10 py-2.5 pr-2 pl-1 sm:w-12 sm:px-3">
-              <span className="sr-only">Actions</span>
+            <th scope="col" className={cn(HEAD, 'hidden xl:table-cell')}>
+              Updated on
             </th>
+            {actions.canManage && (
+              <th scope="col" className={cn(HEAD, 'text-right')}>
+                Action
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
+          {rows.flatMap((row, index) => {
             const isGroup = row.attribute.kind === 'GROUP';
             const isOpen = forceExpanded || !collapsed.has(row.attribute.id);
             return [
               <AttributeRow
                 key={row.attribute.id}
+                number={`${index + 1}`}
                 attribute={row.attribute}
                 childCount={row.childCount}
                 expander={
@@ -103,9 +114,10 @@ export function SchemaTable({
                 actions={actions}
               />,
               ...(isGroup && isOpen
-                ? row.children.map((child) => (
+                ? row.children.map((child, childIndex) => (
                     <AttributeRow
                       key={child.id}
+                      number={`${index + 1}.${childIndex + 1}`}
                       attribute={child}
                       childCount={0}
                       depth={1}
@@ -125,7 +137,7 @@ export function SchemaTable({
 function Flag({ label, children }: { label: string; children: ReactNode }) {
   return (
     <Tooltip content={label}>
-      <span className="flex size-6 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-3.5">
+      <span className="flex size-6 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground [&_svg]:size-3.5">
         {children}
         <span className="sr-only">{label}</span>
       </span>
@@ -134,6 +146,7 @@ function Flag({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function AttributeRow({
+  number,
   attribute,
   childCount,
   depth = 0,
@@ -141,6 +154,8 @@ function AttributeRow({
   expander,
   actions,
 }: {
+  /** "3", or "3.2" inside a group. */
+  number: string;
   attribute: SchemaAttribute;
   childCount: number;
   depth?: 0 | 1;
@@ -187,22 +202,24 @@ function AttributeRow({
   const deleteBlocker = attribute.isSystem
     ? 'Standard OpenID Connect variables can’t be deleted'
     : isGroup && childCount > 0
-      ? 'Delete or move the variables inside it first'
-      : null;
+      ? 'Delete the variables inside it first'
+      : undefined;
 
   return (
     <tr
       className={cn(
-        'border-b border-border transition-colors hover:bg-accent/50',
-        isGroup ? 'bg-muted/30' : 'even:bg-muted/60',
+        'transition-colors even:bg-muted/60 hover:bg-accent/50',
         !attribute.isEnabled && 'text-muted-foreground',
       )}
     >
-      <td className="py-3 pr-2 pl-3 sm:px-4">
+      <td className={cn(CELL, 'hidden text-muted-foreground tabular-nums sm:table-cell')}>
+        {number}
+      </td>
+      <td className={CELL}>
         <div
           className={cn(
             'flex items-center gap-2 sm:gap-3',
-            depth === 1 && 'ml-2 border-l-2 border-border pl-3 sm:ml-3 sm:pl-6',
+            depth === 1 && 'ml-2 border-l-2 border-primary/30 pl-3 sm:ml-3 sm:pl-6',
           )}
         >
           {expander ? (
@@ -228,55 +245,55 @@ function AttributeRow({
             className={cn(
               'flex size-8 shrink-0 items-center justify-center rounded-md [&_svg]:size-4',
               isGroup
-                ? 'bg-primary text-primary-foreground'
+                ? 'bg-nav-violet text-primary-foreground'
                 : 'bg-primary-soft text-primary-soft-foreground',
             )}
           >
             {createElement(typeIcon(attribute), { 'aria-hidden': true })}
           </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="font-medium text-foreground">{attribute.label}</span>
+          {/* Label on the first line, the variable name under it (like role name / key). */}
+          <span className="block min-w-0">
+            <span className="block font-medium text-foreground">
+              {attribute.label}
               {isGroup && (
-                <span className="text-xs text-muted-foreground">
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
                   ({childCount} {childCount === 1 ? 'variable' : 'variables'})
                 </span>
               )}
-              {attribute.isSystem ? (
-                <Badge size="sm" tone="neutral">
-                  System
-                </Badge>
-              ) : (
-                <Badge size="sm" tone="primary">
-                  Custom
-                </Badge>
-              )}
-            </div>
+            </span>
+            <code className="block font-mono text-xs break-all text-primary">
+              {parentName ? `${parentName}.${attribute.name}` : attribute.name}
+            </code>
             <span className="block text-xs text-muted-foreground sm:hidden">
               {typeLabel(attribute)}
             </span>
-            <code className="block truncate font-mono text-xs text-muted-foreground">
-              {parentName ? `${parentName}.${attribute.name}` : attribute.name}
-            </code>
-          </div>
+          </span>
         </div>
       </td>
-      <td className="hidden px-3 py-3 whitespace-nowrap text-foreground sm:table-cell">
+      <td className={cn(CELL, 'hidden whitespace-nowrap text-foreground sm:table-cell')}>
         {typeLabel(attribute)}
       </td>
-      <td className="hidden px-3 py-3 lg:table-cell">
+      <td className={cn(CELL, 'hidden md:table-cell')}>
+        {attribute.isSystem ? (
+          <Badge size="sm" tone="neutral">
+            System
+          </Badge>
+        ) : (
+          <Badge size="sm" tone="primary">
+            Custom
+          </Badge>
+        )}
+      </td>
+      <td className={cn(CELL, 'hidden lg:table-cell')}>
         <div className="flex flex-wrap gap-1">
           {attribute.scopes.map((scope) => (
-            <span
-              key={scope}
-              className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
-            >
+            <Badge key={scope} size="sm" tone="info" variant="outline" className="font-mono">
               {scope}
-            </span>
+            </Badge>
           ))}
         </div>
       </td>
-      <td className="hidden px-3 py-3 md:table-cell">
+      <td className={cn(CELL, 'hidden md:table-cell')}>
         <div className="flex flex-wrap gap-1">
           {attribute.isRequired && (
             <Flag label="Required">
@@ -321,7 +338,7 @@ function AttributeRow({
           )}
         </div>
       </td>
-      <td className="px-2 py-3 sm:px-3">
+      <td className={CELL}>
         {canToggle ? (
           <Switch
             size="sm"
@@ -331,62 +348,54 @@ function AttributeRow({
             onCheckedChange={(checked) => void setEnabled(checked)}
           />
         ) : (
-          <span className="text-xs font-medium text-muted-foreground">
+          <Badge size="sm" tone={attribute.isEnabled ? 'success' : 'neutral'}>
             {attribute.isEnabled ? 'On' : 'Off'}
-          </span>
+          </Badge>
         )}
       </td>
-      <td className="py-3 pr-2 pl-1 text-right sm:px-3">
-        {actions.canManage && (
-          <>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <TableAction
-                  icon={<MoreHorizontal />}
-                  label={`Actions for ${attribute.label}`}
-                  showTooltip={false}
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-52">
-                <DropdownMenuItem icon={<Pencil />} onSelect={() => actions.onEdit(attribute)}>
-                  {attribute.isSystem ? 'Edit labels & scopes' : 'Edit'}
-                </DropdownMenuItem>
-                {isGroup && (
-                  <DropdownMenuItem icon={<Plus />} onSelect={() => actions.onAddChild(attribute)}>
-                    Add a variable inside
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  icon={<Trash2 />}
-                  destructive
-                  disabled={deleteBlocker !== null}
-                  onSelect={() => setConfirmDelete(true)}
-                >
-                  {deleteBlocker ? (
-                    <span className="flex flex-col">
-                      Delete
-                      <span className="text-[11px] font-normal">{deleteBlocker}</span>
-                    </span>
-                  ) : (
-                    'Delete'
-                  )}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <ConfirmDialog
-              open={confirmDelete}
-              onOpenChange={setConfirmDelete}
-              title={`Delete ${attribute.label}?`}
-              description={`The variable is removed and its value is deleted from every user. Type ${attribute.name} to confirm.`}
-              confirmPhrase={attribute.name}
-              confirmText="Delete"
-              destructive
-              onConfirm={remove}
+      <td className={cn(CELL, 'hidden whitespace-nowrap xl:table-cell')}>
+        <DateTime value={attribute.updatedAt} format="full" />
+      </td>
+      {actions.canManage && (
+        <td className={CELL}>
+          <span className="flex items-center justify-end gap-1.5">
+            {isGroup && (
+              <TableAction
+                tone="success"
+                icon={<Plus />}
+                tooltip="Add variable"
+                label={`Add a variable inside ${attribute.label}`}
+                onClick={() => actions.onAddChild(attribute)}
+              />
+            )}
+            <TableAction
+              tone="primary"
+              icon={<SquarePen />}
+              tooltip="Edit"
+              label={`${attribute.isSystem ? 'Edit labels and scopes of' : 'Edit'} ${attribute.label}`}
+              onClick={() => actions.onEdit(attribute)}
             />
-          </>
-        )}
-      </td>
+            <TableAction
+              tone="danger"
+              icon={<Trash2 />}
+              tooltip="Delete"
+              label={`Delete ${attribute.label}`}
+              disabledReason={deleteBlocker}
+              onClick={() => setConfirmDelete(true)}
+            />
+          </span>
+          <ConfirmDialog
+            open={confirmDelete}
+            onOpenChange={setConfirmDelete}
+            title={`Delete ${attribute.label}?`}
+            description={`The variable is removed and its value is deleted from every user. Type ${attribute.name} to confirm.`}
+            confirmPhrase={attribute.name}
+            confirmText="Delete"
+            destructive
+            onConfirm={remove}
+          />
+        </td>
+      )}
     </tr>
   );
 }

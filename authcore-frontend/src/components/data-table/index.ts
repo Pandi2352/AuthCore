@@ -14,3 +14,4 @@ export type {
 export { PAGE_SIZE_OPTIONS, useServerTable, type ServerTable } from './use-server-table';
 export { useTableLayout } from './use-table-layout';
 export { TableAction, type TableActionProps, type TableActionTone } from './TableAction';
+export { RefreshButton } from './DataTableToolbar';

@@ -3,7 +3,6 @@ import { Check, Plus, Trash2 } from 'lucide-react';
 import { Badge, Button, FieldMessage, Input, Select, Switch, Textarea } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
-import type { FormAttribute } from '../types/create-user.types';
 import {
   emptyGroupEntry,
   lowerFirst,
@@ -11,6 +10,7 @@ import {
   type FieldValue,
   type GroupValue,
 } from './attribute-values';
+import type { FormAttribute } from './attribute.types';
 
 const INPUT_TYPE: Partial<Record<NonNullable<FormAttribute['dataType']>, string>> = {
   EMAIL: 'email',

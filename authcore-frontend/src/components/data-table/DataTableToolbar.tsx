@@ -107,8 +107,8 @@ const DENSITY_ICON: Record<TableDensity, typeof Rows4> = {
   spacious: Rows2,
 };
 
-/** Reload the current page of rows (same search, filters, sort and page). */
-function RefreshButton({ isBusy, onClick }: { isBusy: boolean; onClick: () => void }) {
+/** Reload the current rows (same search, filters, sort and page). Shared by every table. */
+export function RefreshButton({ isBusy, onClick }: { isBusy: boolean; onClick: () => void }) {
   return (
     <Tooltip content={isBusy ? 'Refreshing…' : 'Refresh'}>
       <IconButton

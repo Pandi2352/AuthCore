@@ -1,10 +1,11 @@
 import type {
   KnownDevice,
+  ProfileFormAttribute,
   Session,
   UserActivityEntry,
 } from '@/features/account/types/account.types';
 import type { User, UserPreferences, UserProfileDetails } from '@/features/auth';
-import { apiClient, downloadFile, uploadFile, type UploadProgress } from '@/lib/api';
+import { apiClient, downloadFile, isApiError, uploadFile, type UploadProgress } from '@/lib/api';
 
 /** The signed-in user's own account ("me" endpoints). Every call accepts an AbortSignal where it reads. */
 export const accountApi = {
@@ -26,6 +27,20 @@ export const accountApi = {
   ) => uploadFile<{ picture: string }>('/users/me/avatar', file, options),
 
   deleteAvatar: () => apiClient.delete<null>('/users/me/avatar'),
+
+  /** Public link of my profile picture; null when there is none (404). */
+  getAvatarUrl: async (signal?: AbortSignal): Promise<string | null> => {
+    try {
+      return (await apiClient.get<{ url: string }>('/users/me/avatar', { signal })).url;
+    } catch (error) {
+      if (isApiError(error) && error.status === 404) return null;
+      throw error;
+    }
+  },
+
+  /** My editable profile fields (enabled, not internal), as a tree. */
+  getProfileForm: (signal?: AbortSignal) =>
+    apiClient.get<ProfileFormAttribute[]>('/user-schema/form', { signal }),
 
   getSessions: (signal?: AbortSignal) => apiClient.get<Session[]>('/auth/sessions', { signal }),
 

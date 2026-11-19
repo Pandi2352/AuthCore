@@ -17,6 +17,14 @@ import {
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useBlocker, useNavigate } from 'react-router-dom';
 
+import {
+  AttributeFields,
+  countFields,
+  emptyValues,
+  toAttributesPayload,
+  validateAttributes,
+  type AttributeValues,
+} from '@/components/attributes';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { CopyButton } from '@/components/common/CopyButton';
 import { ErrorState, LoadingState, notifyError, notifySuccess } from '@/components/feedback';
@@ -28,14 +36,6 @@ import { cn } from '@/lib/utils';
 import { PERSON_NAME_PATTERN, USERNAME_PATTERN } from '@/lib/validation';
 
 import { createUserApi } from '../api/create-user.api';
-import {
-  countFields,
-  emptyValues,
-  toAttributesPayload,
-  validateAttributes,
-  type AttributeValues,
-} from '../components/attribute-values';
-import { AttributeFields } from '../components/AttributeFields';
 import { passwordChecks } from '../components/password-rules';
 import type { CreateUserConfig, GroupOption } from '../types/create-user.types';
 

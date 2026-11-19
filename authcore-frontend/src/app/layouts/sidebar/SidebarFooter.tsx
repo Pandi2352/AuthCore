@@ -7,11 +7,15 @@ import { useSidebarMode } from './sidebar-mode';
 import { useSidebarPosition } from './sidebar-position';
 import { sidebarItemSize, sidebarRowClass } from './sidebar.variants';
 import { SidebarItem } from './SidebarItem';
+import { SidebarProfileCard } from './SidebarProfileCard';
 import { SidebarSubmenu } from './SidebarSubmenu';
 import { SidebarToggleIcon } from './SidebarToggleIcon';
 import { useSidebar } from './useSidebar';
 
-/** Footer items (the Settings menu, help) + the collapse toggle (desktop). Menus with children open like the main ones. */
+/**
+ * Footer: My profile, the footer items (Settings, help) and the collapse toggle (desktop).
+ * Menus with children open like the main ones.
+ */
 export function SidebarFooter() {
   const { footer } = useVisibleNavigation();
   const { collapsed, setCollapsed } = useSidebar();
@@ -21,13 +25,11 @@ export function SidebarFooter() {
   const navbarHasToggle = layoutConfig.navbar.enabled && layoutConfig.navbar.showSidebarToggle;
   const showToggle = layoutConfig.sidebar.collapsible && !inDrawer && !navbarHasToggle;
   const label = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
-  // Nothing to show (no footer items, toggle in the navbar): no empty bordered strip.
-  if (footer.items.length === 0 && !showToggle) return null;
-
   return (
     <div className="shrink-0 border-t border-sidebar-border px-2 py-2">
+      <SidebarProfileCard />
       {footer.items.length > 0 && (
-        <ul className="space-y-0.5">
+        <ul className="mt-0.5 space-y-0.5">
           {footer.items.map((item) =>
             item.children?.length ? (
               <SidebarSubmenu key={item.id} item={item} />

@@ -5,12 +5,12 @@ import { notifyError, notifySuccess } from '@/components/feedback';
 import {
   Alert,
   Button,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
   Input,
   Select,
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetFooter,
   Switch,
   Textarea,
 } from '@/components/ui';
@@ -42,7 +42,7 @@ import {
 } from './schema-meta';
 
 /** What the sheet is for: a new variable / group (optionally inside a group) or an edit. */
-export interface VariableSheetTarget {
+export interface VariableDialogTarget {
   kind: AttributeKind;
   editing: SchemaAttribute | null;
   parentId: string | null;
@@ -84,7 +84,7 @@ interface FormValues {
 const numberText = (value: number | null) => (value === null ? '' : String(value));
 let optionKey = 0;
 
-function initialValues(target: VariableSheetTarget): FormValues {
+function initialValues(target: VariableDialogTarget): FormValues {
   const a = target.editing;
   return {
     label: a?.label ?? '',
@@ -215,7 +215,7 @@ function ChipPicker({
   );
 }
 
-export function VariableFormSheet({
+export function VariableFormDialog({
   open,
   onOpenChange,
   target,
@@ -226,7 +226,7 @@ export function VariableFormSheet({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  target: VariableSheetTarget;
+  target: VariableDialogTarget;
   /** Top-level groups a new variable can go into. */
   groups: SchemaAttribute[];
   schemaOptions: SchemaOptions;
@@ -366,10 +366,10 @@ export function VariableFormSheet({
       : 'A custom field stored on every user profile.';
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent title={title} description={description} size="xl">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent title={title} description={description} size="xl">
         <form noValidate onSubmit={(e) => void save(e)} className="flex min-h-0 flex-1 flex-col">
-          <SheetBody className="space-y-5">
+          <DialogBody className="space-y-5">
             {isSystem && (
               <Alert
                 variant="info"
@@ -803,17 +803,17 @@ export function VariableFormSheet({
                 />
               </div>
             </Section>
-          </SheetBody>
-          <SheetFooter>
+          </DialogBody>
+          <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" isLoading={isSaving}>
               {isEdit ? 'Save changes' : `Create ${noun}`}
             </Button>
-          </SheetFooter>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
