@@ -78,9 +78,50 @@ export const adminUsersApi = {
     body: { status: SettableStatus; reason?: string; notifyUser?: boolean },
   ) => apiClient.patch<AdminUserDetails>(`/admin/users/${encodeURIComponent(id)}/status`, body),
 
+  /** Change user role: ADMIN (super admin) vs USER. */
+  setRole: (id: string, role: 'ADMIN' | 'USER') =>
+    apiClient.patch<AdminUserDetails>(`/admin/users/${encodeURIComponent(id)}/role`, { role }),
+
+  /** Effective access resolution for this user. */
+  effectiveAccess: (id: string, signal?: AbortSignal) =>
+    apiClient.get<{
+      userId: string;
+      isAdmin: boolean;
+      groups: Array<{ id: string; groupId: string; groupName: string }>;
+      roles: Array<{ id: string; roleKey: string; roleName: string }>;
+      permissions: string[];
+    }>(`/access-mappings/users/${encodeURIComponent(id)}/effective-access`, { signal }),
+
   /** Groups for the filter (needs GROUP_READ). */
   groups: (signal?: AbortSignal) =>
     apiClient.get<Array<{ id: string; label: string }>>('/groups/dropdown', { signal }),
+
+  /** Group mappings for a user (needs ACCESS_READ). */
+  userGroupMappings: (userId: string, signal?: AbortSignal) =>
+    apiClient.getPage<{
+      id: string;
+      isExpired: boolean;
+      group?: { id: string; groupName: string } | null;
+    }>('/access-mappings', {
+      signal,
+      query: {
+        page: 1,
+        limit: 50,
+        type: 'GROUP_USER',
+        userId,
+      },
+    }),
+
+  /** Assign a user to a group (needs ACCESS_MANAGE). */
+  assignUserToGroup: (userId: string, groupId: string) =>
+    apiClient.post<{ count: number }>('/access-mappings/group-users', {
+      groupId,
+      userIds: [userId],
+    }),
+
+  /** Remove an access mapping (needs ACCESS_MANAGE). */
+  removeGroupMapping: (mappingId: string) =>
+    apiClient.delete<{ count: number }>(`/access-mappings/${encodeURIComponent(mappingId)}`),
 
   reports: {
     /** The users matching these filters, as a CSV built in the background. */

@@ -38,6 +38,7 @@ export const paths = {
     roles: '/admin/access/roles',
     permissions: '/admin/access/permissions',
     groups: '/admin/access/groups',
+    assignments: '/admin/access/assignments',
     auditLog: '/admin/access/audit-log',
     passwordPolicy: '/admin/security/password-policy',
     passwordPolicyNew: '/admin/security/password-policy/new',

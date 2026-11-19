@@ -1,4 +1,4 @@
-import { Copy, MoreHorizontal, Pencil, RotateCcw, UserX } from 'lucide-react';
+import { Copy, MoreHorizontal, Pencil, RotateCcw, Shield, UserX } from 'lucide-react';
 import { useState } from 'react';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
@@ -15,6 +15,7 @@ import {
 import { adminUsersApi } from '../api/admin-users.api';
 import type { AdminUser } from '../types/admin-user.types';
 import { fullName } from './user-labels';
+import { UserAccessSheet } from './UserAccessSheet';
 
 /** Edit (always visible) + ⋯ menu; status changes are confirmed. */
 export function UserRowActions({
@@ -29,6 +30,7 @@ export function UserRowActions({
   onChanged: () => void;
 }) {
   const [confirm, setConfirm] = useState(false);
+  const [accessSheetOpen, setAccessSheetOpen] = useState(false);
   const name = fullName(user);
   const isBlocked =
     user.status === 'SUSPENDED' || user.status === 'INACTIVE' || user.status === 'BANNED';
@@ -87,6 +89,11 @@ export function UserRowActions({
               Edit user
             </DropdownMenuItem>
           )}
+          {canUpdate && (
+            <DropdownMenuItem icon={<Shield />} onSelect={() => setAccessSheetOpen(true)}>
+              Access & roles
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem icon={<Copy />} onSelect={() => void copyEmail()}>
             Copy email
           </DropdownMenuItem>
@@ -119,6 +126,12 @@ export function UserRowActions({
           onConfirm={changeStatus}
         />
       )}
+      <UserAccessSheet
+        user={user}
+        open={accessSheetOpen}
+        onOpenChange={setAccessSheetOpen}
+        onChanged={onChanged}
+      />
     </span>
   );
 }

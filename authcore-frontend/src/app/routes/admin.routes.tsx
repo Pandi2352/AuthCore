@@ -116,4 +116,78 @@ export const adminRoutes: RouteObject[] = [
     } satisfies RouteHandle,
     lazy: lazyPage(() => import('@/features/admin-users/pages/UsersListPage'), 'UsersListPage'),
   },
+  {
+    path: paths.admin.roles,
+    handle: {
+      title: 'Roles',
+      breadcrumb: [{ label: 'Administration' }, { label: 'Access control' }, { label: 'Roles' }],
+      featureFlag: 'admin.enabled',
+      permission: 'ROLE_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(() => import('@/features/access-control/pages/RolesListPage'), 'RolesListPage'),
+  },
+  {
+    path: paths.admin.permissions,
+    handle: {
+      title: 'Permissions',
+      breadcrumb: [
+        { label: 'Administration' },
+        { label: 'Access control' },
+        { label: 'Permissions' },
+      ],
+      featureFlag: 'admin.enabled',
+      permission: 'PERMISSION_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(
+      () => import('@/features/access-control/pages/PermissionsListPage'),
+      'PermissionsListPage',
+    ),
+  },
+  {
+    path: paths.admin.groups,
+    handle: {
+      title: 'Groups',
+      breadcrumb: [{ label: 'Administration' }, { label: 'Access control' }, { label: 'Groups' }],
+      featureFlag: 'admin.enabled',
+      permission: 'GROUP_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(
+      () => import('@/features/access-control/pages/GroupsListPage'),
+      'GroupsListPage',
+    ),
+  },
+  {
+    path: paths.admin.assignments,
+    handle: {
+      title: 'Assignments',
+      breadcrumb: [
+        { label: 'Administration' },
+        { label: 'Access control' },
+        { label: 'Assignments' },
+      ],
+      featureFlag: 'admin.enabled',
+      permission: 'ACCESS_MAPPING_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(
+      () => import('@/features/access-control/pages/AccessAssignmentsPage'),
+      'AccessAssignmentsPage',
+    ),
+  },
+  {
+    path: paths.admin.auditLog,
+    handle: {
+      title: 'Audit log',
+      breadcrumb: [
+        { label: 'Administration' },
+        { label: 'Access control' },
+        { label: 'Audit log' },
+      ],
+      featureFlag: 'admin.enabled',
+      permission: 'ACCESS_AUDIT_READ',
+    } satisfies RouteHandle,
+    lazy: lazyPage(
+      () => import('@/features/access-control/pages/AccessAuditLogPage'),
+      'AccessAuditLogPage',
+    ),
+  },
 ];
