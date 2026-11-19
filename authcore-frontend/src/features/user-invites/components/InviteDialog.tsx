@@ -6,11 +6,11 @@ import {
   Alert,
   Button,
   Checkbox,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
   Input,
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetFooter,
   Textarea,
 } from '@/components/ui';
 import { getFieldErrors, isAbortError } from '@/lib/api';
@@ -78,7 +78,7 @@ function GroupPicker({
 
 type Mode = 'one' | 'many';
 
-export function InviteSheet({
+export function InviteDialog({
   open,
   onOpenChange,
   onInvited,
@@ -185,14 +185,14 @@ export function InviteSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
         title="Invite people"
         description="They get an email with a link to create their account. Until they accept, the invite is pending."
-        size="lg"
+        size="xl"
       >
         <form noValidate onSubmit={(e) => void send(e)} className="flex min-h-0 flex-1 flex-col">
-          <SheetBody className="space-y-5">
+          <DialogBody className="space-y-5">
             <fieldset className="grid grid-cols-2 gap-2">
               <legend className="sr-only">How many people</legend>
               {(
@@ -347,8 +347,8 @@ export function InviteSheet({
               error={serverErrors.message}
               onChange={(e) => setMessage(e.target.value)}
             />
-          </SheetBody>
-          <SheetFooter>
+          </DialogBody>
+          <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               {result ? 'Close' : 'Cancel'}
             </Button>
@@ -359,9 +359,9 @@ export function InviteSheet({
                   ? `Send ${valid.length} invite${valid.length === 1 ? '' : 's'}`
                   : 'Send invites'}
             </Button>
-          </SheetFooter>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

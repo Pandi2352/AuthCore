@@ -416,6 +416,11 @@ export class UsersService {
     );
   }
 
+  /** Accounts matching a filter (stats cards). */
+  count(filter: Record<string, unknown>): Promise<number> {
+    return this.userModel.countDocuments(filter);
+  }
+
   /** Counts for the user search cards (one aggregation). */
   async countByActivity(
     base: Record<string, unknown>,

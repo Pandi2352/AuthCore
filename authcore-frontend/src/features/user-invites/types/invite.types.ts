@@ -66,3 +66,19 @@ export interface GroupOption {
 
 export const MAX_BULK_INVITES = 100;
 export const INVITE_MESSAGE_MAX = 500;
+
+/** GET /user-invites/stats */
+export interface InviteStats {
+  total: number;
+  /** Still waiting (link valid). */
+  pending: number;
+  accepted: number;
+  /** Link ran out before it was used. */
+  expired: number;
+  revoked: number;
+  sentLast7Days: number;
+  /** Accounts created on the sign-up page. */
+  registered: number;
+  /** Accepted of accepted + expired + revoked, in %; null before any. */
+  acceptanceRate: number | null;
+}

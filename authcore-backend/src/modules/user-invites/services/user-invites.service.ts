@@ -48,6 +48,7 @@ import {
   type InvitePersonDto,
   type InvitePublicInfoDto,
   type InviteResponseDto,
+  type InviteStatsDto,
 } from '../dto/user-invite.dto';
 import { InviteStatus } from '../enums/invite-status.enum';
 import { UserInvite } from '../schemas/user-invite.schema';
@@ -588,6 +589,55 @@ export class UserInvitesService {
       }
     }
     return joined;
+  }
+
+  /**
+   * Counts for the invites page cards. Pending = still valid; a pending invite past its
+   * expiry counts as expired (same as the list filter).
+   */
+  async stats(): Promise<InviteStatsDto> {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const [
+      total,
+      pending,
+      accepted,
+      expired,
+      revoked,
+      sentLast7Days,
+      registered,
+    ] = await Promise.all([
+      this.inviteModel.countDocuments(),
+      this.inviteModel.countDocuments({
+        status: InviteStatus.Pending,
+        expiresAt: { $gt: now },
+      }),
+      this.inviteModel.countDocuments({ status: InviteStatus.Accepted }),
+      this.inviteModel.countDocuments({
+        $or: [
+          { status: InviteStatus.Expired },
+          { status: InviteStatus.Pending, expiresAt: { $lte: now } },
+        ],
+      }),
+      this.inviteModel.countDocuments({ status: InviteStatus.Revoked }),
+      this.inviteModel.countDocuments({ createdAt: { $gte: weekAgo } }),
+      this.usersService.count({
+        deletedAt: null,
+        source: UserSource.Registration,
+      }),
+    ]);
+    const decided = accepted + expired + revoked;
+    return {
+      total,
+      pending,
+      accepted,
+      expired,
+      revoked,
+      sentLast7Days,
+      registered,
+      acceptanceRate:
+        decided > 0 ? Math.round((accepted / decided) * 100) : null,
+    };
   }
 
   /** Marks pending-but-expired invites of this email EXPIRED (frees the unique slot). */

@@ -1001,7 +1001,7 @@ Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWO
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /admin/users` | List: search (email, username, names **and custom variables marked "include in search filter"**, e.g. employee ID), `status` / `role` (one or more, comma-separated), `groupId` (members of these groups), `activity=ACTIVE\|DORMANT\|INACTIVE`, source, isEmailVerified, isPendingDeletion, `deleted=EXCLUDE\|ONLY\|INCLUDE`, dates, sort, `attr[name]=value` |
-| `GET /admin/users/stats` | Search page cards: total, active (signed in within 30 days), dormant (active account, no sign-in for 30 days or never), inactive (any other status), counts per status |
+| `GET /admin/users/stats` | Search page cards: total, active (signed in within 30 days), dormant (active account, no sign-in for 30 days or never), inactive (any other status), counts per status Also `admins`, `verified` (email confirmed), `neverSignedIn` and `newLast30Days`. |
 | `POST /admin/users/reports` | Generate report: CSV of the users matching the same query parameters as the list (background job, max 25 000 rows, private file kept 7 days; formula-looking cells are escaped) |
 | `GET /admin/users/reports` · `GET …/reports/:id/download` · `DELETE …/reports/:id` | My reports ("View downloads"), download a READY one (409 while preparing), delete |
 | `GET /admin/users/:id` | User info: profile, status history, active sessions, groups, effective permissions, sign-in lock, `lastActivityAt`, custom variable values |
@@ -1032,6 +1032,7 @@ Guard rails: admins can't act on their own account here (use `/users/me`); only 
 | --- | --- |
 | `POST /user-invites` | `{ email, firstName?, lastName?, groupIds?, message? }` → email with `INVITE_ACCEPT_URL?token=…`, valid `INVITE_TTL_DAYS` |
 | `POST /user-invites/bulk` | Up to 100 people; registered / already invited / repeated emails skipped with a reason |
+| `GET /user-invites/stats` | Invites page cards: total, pending (link still valid), accepted, expired (incl. pending past expiry), revoked, sent in the last 7 days, self-registered accounts, acceptance rate (% of answered invites, null before any). Needs USER_READ |
 | `GET /user-invites` · `GET /user-invites/:id` | List (status PENDING / ACCEPTED / REVOKED / EXPIRED, invitedBy, search, dates, sort) / details |
 | `POST /user-invites/:id/resend` | New link (old one stops working), new expiry; `INVITE_RESEND_COOLDOWN_SECONDS` |
 | `POST /user-invites/:id/revoke` · `DELETE /user-invites/:id` | Revoke a pending invite / delete (accepted invites are kept) |

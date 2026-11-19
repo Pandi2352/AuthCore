@@ -8,12 +8,12 @@ import {
   Alert,
   Badge,
   Button,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
   Input,
   Select,
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetFooter,
   Switch,
   Textarea,
 } from '@/components/ui';
@@ -63,7 +63,7 @@ const isSettable = (status: string): status is SettableStatus =>
   (SETTABLE_STATUSES as readonly string[]).includes(status);
 
 /** Edit a user: profile, email, status and custom fields (one save, several API calls). */
-export function EditUserSheet({
+export function EditUserDialog({
   userId,
   open,
   onOpenChange,
@@ -106,8 +106,8 @@ export function EditUserSheet({
   const failed = failure && failure.id === userId && failure.attempt === attempt ? failure : null;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
         title={ready ? `Edit ${fullName(ready.user)}` : 'Edit user'}
         description={ready?.user.email ?? 'Update the account and profile details.'}
         size="xl"
@@ -125,20 +125,20 @@ export function EditUserSheet({
             }}
           />
         ) : failed ? (
-          <SheetBody>
+          <DialogBody>
             <ErrorState
               error={failed.error}
               title="Could not load the user"
               onRetry={() => setAttempt((n) => n + 1)}
             />
-          </SheetBody>
+          </DialogBody>
         ) : (
-          <SheetBody>
+          <DialogBody>
             <LoadingState label="Loading the user" />
-          </SheetBody>
+          </DialogBody>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -270,7 +270,7 @@ function EditForm({
 
   return (
     <form noValidate onSubmit={(e) => void save(e)} className="flex min-h-0 flex-1 flex-col">
-      <SheetBody className="space-y-5">
+      <DialogBody className="space-y-5">
         {isSelf && (
           <Alert
             variant="info"
@@ -451,8 +451,8 @@ function EditForm({
             </section>
           )}
         </fieldset>
-      </SheetBody>
-      <SheetFooter>
+      </DialogBody>
+      <DialogFooter>
         <p className="mr-auto text-xs text-muted-foreground" aria-live="polite">
           {hasTried && problemCount > 0
             ? `${problemCount} ${problemCount === 1 ? 'field needs' : 'fields need'} attention`
@@ -466,7 +466,7 @@ function EditForm({
         <Button type="submit" isLoading={isSaving} disabled={!isDirty || isSelf}>
           Save changes
         </Button>
-      </SheetFooter>
+      </DialogFooter>
     </form>
   );
 }

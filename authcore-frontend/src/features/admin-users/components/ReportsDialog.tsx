@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import { DateTime } from '@/components/common/DateTime';
 import { EmptyState, notifyError, notifySuccess } from '@/components/feedback';
-import { Badge, Button, IconButton, Sheet, SheetBody, SheetContent } from '@/components/ui';
+import { Badge, Button, Dialog, DialogBody, DialogContent, IconButton } from '@/components/ui';
 import { formatNumber } from '@/lib/format';
 
 import { adminUsersApi } from '../api/admin-users.api';
@@ -141,7 +141,7 @@ function ReportRow({ report, onChanged }: { report: UserReport; onChanged: () =>
 }
 
 /** "View downloads": the reports this admin generated (kept 7 days). */
-export function ReportsSheet({
+export function ReportsDialog({
   open,
   onOpenChange,
   reports,
@@ -153,13 +153,13 @@ export function ReportsSheet({
   onChanged: () => void;
 }) {
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
         title="Downloads"
         description="Reports you generated. Each file is kept for 7 days and only you can download it."
         size="lg"
       >
-        <SheetBody>
+        <DialogBody>
           {reports === null ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Loading…
@@ -178,8 +178,8 @@ export function ReportsSheet({
               ))}
             </ul>
           )}
-        </SheetBody>
-      </SheetContent>
-    </Sheet>
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

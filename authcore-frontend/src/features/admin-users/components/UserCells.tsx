@@ -1,40 +1,7 @@
-import { BadgeCheck } from 'lucide-react';
-
-import { Avatar, Badge, Tooltip } from '@/components/ui';
-import { formatDateTime, formatRelative } from '@/lib/format';
+import { Badge, Tooltip } from '@/components/ui';
 
 import type { AdminUser } from '../types/admin-user.types';
-import { fullName, isDormant, ROLE_LABEL, STATUS_LABEL, STATUS_TONE } from './user-labels';
-
-export function UserNameCell({ user }: { user: AdminUser }) {
-  return (
-    <span className="flex min-w-0 items-center gap-2.5">
-      <Avatar name={fullName(user)} size="xs" />
-      <span className="min-w-0">
-        <span className="block truncate font-medium text-foreground">{fullName(user)}</span>
-        {user.username && (
-          <span className="block truncate text-xs text-muted-foreground">@{user.username}</span>
-        )}
-      </span>
-    </span>
-  );
-}
-
-export function EmailCell({ user }: { user: AdminUser }) {
-  return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      <span className="truncate">{user.email}</span>
-      {user.isEmailVerified && (
-        <Tooltip content="Email verified">
-          <span className="shrink-0 text-success">
-            <BadgeCheck className="size-3.5" aria-hidden="true" />
-            <span className="sr-only">(verified)</span>
-          </span>
-        </Tooltip>
-      )}
-    </span>
-  );
-}
+import { isDormant, ROLE_LABEL, STATUS_LABEL, STATUS_TONE } from './user-labels';
 
 export function RoleCell({ user }: { user: AdminUser }) {
   return (
@@ -74,17 +41,5 @@ export function StatusCell({
         </Tooltip>
       )}
     </span>
-  );
-}
-
-/** Relative time ("3 days ago") with the exact date on hover and for screen readers. */
-export function DateCell({ value, empty = 'Never' }: { value: string | null; empty?: string }) {
-  if (!value) return <span className="text-muted-foreground">{empty}</span>;
-  const exact = formatDateTime(value);
-  return (
-    <time dateTime={value} title={exact}>
-      {formatRelative(value)}
-      <span className="sr-only"> ({exact})</span>
-    </time>
   );
 }

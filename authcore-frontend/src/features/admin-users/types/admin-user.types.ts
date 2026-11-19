@@ -46,6 +46,13 @@ export interface UserStats {
   active: number;
   dormant: number;
   inactive: number;
+  /** ADMIN role. */
+  admins: number;
+  /** Email address confirmed. */
+  verified: number;
+  neverSignedIn: number;
+  /** Created in the last 30 days. */
+  newLast30Days: number;
   dormantAfterDays: number;
   byStatus: Partial<Record<AdminUserStatus, number>>;
 }

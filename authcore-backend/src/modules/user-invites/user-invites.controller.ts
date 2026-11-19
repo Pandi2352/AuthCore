@@ -40,6 +40,7 @@ import {
   InviteListQueryDto,
   InvitePublicInfoDto,
   InviteResponseDto,
+  InviteStatsDto,
   InviteTokenDto,
 } from './dto/user-invite.dto';
 import { UserInvitesService } from './services/user-invites.service';
@@ -94,6 +95,22 @@ export class UserInvitesController {
     @CurrentActor() actor: Actor,
   ): Promise<BulkInviteResultDto> {
     return this.invitesService.bulkCreate(dto, actor);
+  }
+
+  @Get('stats')
+  @ApiBearerAuth('access-token')
+  @RequirePermissions(U.Read)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Invite statistics')
+  @ApiOperation({
+    summary: 'Counts for the invites page',
+    description:
+      'Needs USER_READ. Invites by status (pending = link still valid), sent in the last 7 days, self-registered accounts and the acceptance rate.',
+  })
+  @ApiWrappedResponse(InviteStatsDto)
+  @ApiErrorResponses(...ERRORS)
+  stats(): Promise<InviteStatsDto> {
+    return this.invitesService.stats();
   }
 
   @Get()

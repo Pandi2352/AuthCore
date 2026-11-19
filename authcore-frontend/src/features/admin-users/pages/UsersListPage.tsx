@@ -1,7 +1,17 @@
-import { Download, FileDown, MailPlus, RotateCcw, UserPlus, Users, UserX } from 'lucide-react';
+import {
+  BadgeCheck,
+  Download,
+  FileDown,
+  MailPlus,
+  RotateCcw,
+  UserPlus,
+  Users,
+  UserX,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
+import { DateTime } from '@/components/common/DateTime';
 import {
   DataTable,
   useServerTable,
@@ -18,10 +28,10 @@ import { useAuth, usePermissions } from '@/features/auth';
 import { isAbortError } from '@/lib/api';
 
 import { adminUsersApi, toApiFilters } from '../api/admin-users.api';
-import { EditUserSheet } from '../components/EditUserSheet';
-import { ReportsSheet } from '../components/ReportsSheet';
+import { EditUserDialog } from '../components/EditUserDialog';
+import { ReportsDialog } from '../components/ReportsDialog';
 import { ACTIVITY_LABEL, fullName, ROLE_LABEL, STATUS_LABEL } from '../components/user-labels';
-import { DateCell, EmailCell, RoleCell, StatusCell, UserNameCell } from '../components/UserCells';
+import { RoleCell, StatusCell } from '../components/UserCells';
 import { UserRowActions } from '../components/UserRowActions';
 import { UserStatCards } from '../components/UserStatCards';
 import type {
@@ -37,61 +47,100 @@ const countOf = (n: number) => `${n} ${n === 1 ? 'user' : 'users'}`;
 const isActivity = (value: string | undefined): value is UserActivity =>
   value === 'ACTIVE' || value === 'DORMANT' || value === 'INACTIVE';
 
-/** Table columns (status shows "Dormant" after `dormantDays` without a sign-in). */
+const SOURCE_LABEL: Record<AdminUser['source'], string> = {
+  REGISTRATION: 'Sign-up page',
+  INVITE: 'Invite',
+  ADMIN: 'Created by admin',
+  SYSTEM: 'System',
+};
+
+/** Exact date and time, or "Never". */
+const FullDate = ({ value }: { value: string | null }) =>
+  value ? (
+    <DateTime value={value} format="full" />
+  ) : (
+    <span className="text-muted-foreground">Never</span>
+  );
+
+/** Columns, same style as roles and groups (status shows "Dormant" after `dormantDays`). */
 function buildColumns(dormantDays: number): DataTableColumn<AdminUser>[] {
   return [
     {
       id: 'rowNumber',
-      header: '#',
-      numeric: true,
+      header: 'S.No',
       width: 64,
+      fit: true,
       mobile: 'hidden',
       cell: (u) => <span className="text-muted-foreground tabular-nums">{u.rowNumber}</span>,
     },
     {
+      // Name on the first line, the email under it.
       id: 'name',
-      header: 'User name',
+      header: 'User',
       sortable: true,
-      width: 240,
+      width: 320,
+      fitText: (u) => [fullName(u), u.email],
+      wrap: true,
       mobile: 'title',
-      cell: (u) => <UserNameCell user={u} />,
+      cell: (u) => (
+        <span className="block min-w-0">
+          <span className="block font-medium text-foreground">{fullName(u)}</span>
+          <span className="flex items-center gap-1 text-xs break-all text-primary">
+            {u.email}
+            {u.isEmailVerified && (
+              <BadgeCheck className="size-3.5 shrink-0 text-success" aria-label="Email verified" />
+            )}
+          </span>
+        </span>
+      ),
     },
     {
-      id: 'email',
-      header: 'Email',
-      sortable: true,
-      width: 280,
-      mobile: 'subtitle',
-      cell: (u) => <EmailCell user={u} />,
+      id: 'role',
+      header: 'Role',
+      width: 90,
+      fit: true,
+      cell: (u) => <RoleCell user={u} />,
     },
     {
       id: 'status',
       header: 'Status',
       sortable: true,
-      width: 190,
+      width: 220,
       cell: (u) => <StatusCell user={u} dormantAfterDays={dormantDays} />,
     },
-    { id: 'role', header: 'Role', width: 100, cell: (u) => <RoleCell user={u} /> },
+    {
+      id: 'source',
+      header: 'Joined via',
+      width: 150,
+      fit: true,
+      cell: (u) => (
+        <Badge size="sm" tone="neutral">
+          {SOURCE_LABEL[u.source]}
+        </Badge>
+      ),
+    },
     {
       id: 'lastLoginAt',
       header: 'Last sign-in',
       sortable: true,
-      width: 150,
-      cell: (u) => <DateCell value={u.lastLoginAt} />,
+      width: 200,
+      fit: true,
+      cell: (u) => <FullDate value={u.lastLoginAt} />,
     },
     {
       id: 'createdAt',
-      header: 'Created',
+      header: 'Created on',
       sortable: true,
-      width: 150,
-      defaultHidden: true,
-      cell: (u) => <DateCell value={u.createdAt} />,
+      width: 200,
+      fit: true,
+      cell: (u) => <FullDate value={u.createdAt} />,
     },
   ];
 }
 
 /** Administration → Users → Search users. */
 export function UsersListPage() {
+  const navigate = useNavigate();
   const { user: me } = useAuth();
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission('USER_UPDATE');
@@ -236,6 +285,10 @@ export function UsersListPage() {
     }
   };
 
+  const selectActivity = useCallback(
+    (next: UserActivity | null) => setFilter('activity', next ? [next] : []),
+    [setFilter],
+  );
   const activity = table.query.filters.activity?.at(-1);
   const selectedActivity = isActivity(activity) ? activity : null;
 
@@ -293,9 +346,15 @@ export function UsersListPage() {
   const openEdit = useCallback((u: AdminUser) => setEditing({ id: u.id, open: true }), []);
   const renderRowActions = useCallback(
     (u: AdminUser) => (
-      <UserRowActions user={u} canUpdate={canUpdate} onEdit={openEdit} onChanged={refreshAll} />
+      <UserRowActions
+        user={u}
+        canUpdate={canUpdate}
+        isMe={u.id === me?.id}
+        onEdit={openEdit}
+        onChanged={refreshAll}
+      />
     ),
-    [canUpdate, openEdit, refreshAll],
+    [canUpdate, openEdit, refreshAll, me?.id],
   );
 
   const columns = useMemo(() => buildColumns(dormantDays), [dormantDays]);
@@ -305,12 +364,12 @@ export function UsersListPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="User search"
-        description="Search every onboarded user by name, email or employee ID, filter by status, role and group, and edit or update their details."
+        title="Search users"
+        description="Search every user by name, email or employee ID, filter by activity, status, role and group, then view, edit or change their access."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
-              size="sm"
+              size="toolbar"
               leftIcon={<FileDown />}
               isLoading={isGenerating}
               className="whitespace-nowrap"
@@ -320,7 +379,7 @@ export function UsersListPage() {
             </Button>
             <Button
               variant="outline"
-              size="sm"
+              size="toolbar"
               leftIcon={<Download />}
               className="whitespace-nowrap"
               onClick={() => {
@@ -343,21 +402,20 @@ export function UsersListPage() {
         }
       />
 
-      <div className="mb-6">
-        <UserStatCards
-          stats={stats}
-          selected={selectedActivity}
-          onSelect={(next) => setFilter('activity', next ? [next] : [])}
-        />
-      </div>
+      {/* Memoized: paging / sorting the table does not redraw the cards. */}
+      <UserStatCards stats={stats} selected={selectedActivity} onSelect={selectActivity} />
 
       <DataTable
         table={table}
         columns={columns}
-        layoutKey={`admin-users:v2:${me?.id ?? 'anonymous'}`}
+        layoutKey={`admin-users:v3:${me?.id ?? 'anonymous'}`}
+        viewOptions={false}
+        // Refresh also reloads the count cards.
+        onRefresh={() => setStatsKey((n) => n + 1)}
+        actionsWidth={170}
         itemName={{ singular: 'user', plural: 'users' }}
         rowLabel={fullName}
-        onRowOpen={canUpdate ? openEdit : undefined}
+        onRowOpen={(u) => void navigate(paths.admin.userDetail(u.id))}
         rowActions={renderRowActions}
         bulkActions={bulkActions}
         searchPlaceholder="Search by name, email or employee ID"
@@ -382,13 +440,13 @@ export function UsersListPage() {
         }}
       />
 
-      <EditUserSheet
+      <EditUserDialog
         userId={editing.id}
         open={editing.open}
         onOpenChange={(open) => setEditing((e) => ({ ...e, open }))}
         onSaved={refreshAll}
       />
-      <ReportsSheet
+      <ReportsDialog
         open={reportsOpen}
         onOpenChange={setReportsOpen}
         reports={reports?.items ?? null}

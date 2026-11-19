@@ -1,3 +1,4 @@
+import type { TablePage, TableQuery } from '@/components/data-table';
 import { apiClient } from '@/lib/api';
 
 import type {
@@ -6,6 +7,7 @@ import type {
   Invite,
   InviteOptions,
   InvitePerson,
+  InviteStats,
   InviteStatus,
   RegisteredUser,
 } from '../types/invite.types';
@@ -19,8 +21,54 @@ export interface PageQuery {
   search?: string;
 }
 
+/** A page with a 1-based row number (the S.No column). */
+const numbered = <T>(items: T[], query: TableQuery): Array<T & { rowNumber: number }> =>
+  items.map((item, i) => ({ ...item, rowNumber: (query.page - 1) * query.pageSize + i + 1 }));
+
 /** Invitations (USER_READ to list, USER_INVITE to send / resend / revoke / delete). */
 export const invitesApi = {
+  /** Counts for the page cards and tab badges. */
+  stats: (signal?: AbortSignal) => apiClient.get<InviteStats>(`${BASE}/stats`, { signal }),
+
+  /** Invites for one table (status comes from the table's status filter or `status`). */
+  page: async (
+    query: TableQuery,
+    status: InviteStatus,
+    signal: AbortSignal,
+  ): Promise<TablePage<Invite & { rowNumber: number }>> => {
+    const result = await apiClient.getPage<Invite>(BASE, {
+      signal,
+      query: {
+        page: query.page,
+        limit: query.pageSize,
+        search: query.search.trim() || undefined,
+        status,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      },
+    });
+    return { items: numbered(result.items, query), total: result.meta.totalItems };
+  },
+
+  /** Self-registered accounts for the table. */
+  registeredPage: async (
+    query: TableQuery,
+    signal: AbortSignal,
+  ): Promise<TablePage<RegisteredUser & { rowNumber: number }>> => {
+    const result = await apiClient.getPage<RegisteredUser>('/admin/users', {
+      signal,
+      query: {
+        page: query.page,
+        limit: query.pageSize,
+        search: query.search.trim() || undefined,
+        source: 'REGISTRATION',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      },
+    });
+    return { items: numbered(result.items, query), total: result.meta.totalItems };
+  },
+
   list: (query: PageQuery & { status?: InviteStatus }, signal?: AbortSignal) =>
     apiClient.getPage<Invite>(BASE, {
       signal,

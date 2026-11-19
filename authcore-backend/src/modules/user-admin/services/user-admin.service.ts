@@ -148,15 +148,25 @@ export class UserAdminService {
 
   /** The cards on the user search page: total / active / dormant / inactive. */
   async stats(): Promise<UserStatsDto> {
-    const counts = await this.usersService.countByActivity(
-      { deletedAt: null },
-      this.dormantBefore(),
-    );
+    const live = { deletedAt: null };
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [counts, admins, verified, neverSignedIn, newLast30Days] =
+      await Promise.all([
+        this.usersService.countByActivity(live, this.dormantBefore()),
+        this.usersService.count({ ...live, role: UserRole.Admin }),
+        this.usersService.count({ ...live, isEmailVerified: true }),
+        this.usersService.count({ ...live, lastLoginAt: null }),
+        this.usersService.count({ ...live, createdAt: { $gte: monthAgo } }),
+      ]);
     return {
       total: counts.total,
       active: counts.active,
       dormant: counts.dormant,
       inactive: counts.total - counts.active - counts.dormant,
+      admins,
+      verified,
+      neverSignedIn,
+      newLast30Days,
       dormantAfterDays: DORMANT_AFTER_DAYS,
       byStatus: counts.byStatus,
     };

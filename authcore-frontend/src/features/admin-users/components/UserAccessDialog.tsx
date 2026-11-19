@@ -2,19 +2,30 @@ import { Plus, Shield, ShieldCheck, Trash2, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { ErrorState, LoadingState, notifyError, notifySuccess } from '@/components/feedback';
-import { Badge, Button, IconButton, Select, Sheet, SheetBody, SheetContent } from '@/components/ui';
+import {
+  Badge,
+  Button,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  IconButton,
+  Select,
+} from '@/components/ui';
 
 import { adminUsersApi } from '../api/admin-users.api';
 import type { AdminUser } from '../types/admin-user.types';
 import { fullName } from './user-labels';
 
-export function UserAccessSheet({
+/** What the popup needs (a list row or the details both work). */
+type UserRef = Pick<AdminUser, 'id' | 'firstName' | 'lastName'>;
+
+export function UserAccessDialog({
   user,
   open,
   onOpenChange,
   onChanged,
 }: {
-  user: AdminUser | null;
+  user: UserRef | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onChanged: () => void;
@@ -25,31 +36,31 @@ export function UserAccessSheet({
   const name = fullName(user);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
         title={`Access & Roles · ${name}`}
         description="Inspect security authority, group memberships, and effective permissions."
-        size="md"
+        size="lg"
       >
         {open ? (
-          <UserAccessSheetContent
+          <UserAccessDialogContent
             key={`${user.id}:${reloadKey}`}
             user={user}
             onReload={() => setReloadKey((k) => k + 1)}
             onChanged={onChanged}
           />
         ) : null}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function UserAccessSheetContent({
+function UserAccessDialogContent({
   user,
   onReload,
   onChanged,
 }: {
-  user: AdminUser;
+  user: UserRef;
   onReload: () => void;
   onChanged: () => void;
 }) {
@@ -170,7 +181,7 @@ function UserAccessSheetContent({
   };
 
   return (
-    <SheetBody className="space-y-6">
+    <DialogBody className="space-y-6">
       {isLoading ? (
         <LoadingState label="Loading security profile..." />
       ) : error ? (
@@ -329,6 +340,6 @@ function UserAccessSheetContent({
           </section>
         </>
       )}
-    </SheetBody>
+    </DialogBody>
   );
 }

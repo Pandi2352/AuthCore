@@ -33,6 +33,8 @@ export interface UseServerTableOptions<T> {
   filters?: readonly DataTableFilter[];
   defaultSort?: SortRule[];
   defaultPageSize?: number;
+  /** Filter values to start with, e.g. { status: ['EXPIRED'] }. */
+  defaultFilters?: Record<string, string[]>;
   /** Plural noun for announcements ("users"). */
   itemsLabel?: string;
 }
@@ -50,6 +52,7 @@ export function useServerTable<T>({
   filters = [],
   defaultSort = [],
   defaultPageSize = 25,
+  defaultFilters,
   itemsLabel = 'rows',
 }: UseServerTableOptions<T>) {
   type Params = Record<string, string | number>;
@@ -58,7 +61,7 @@ export function useServerTable<T>({
     size: defaultPageSize,
     q: '',
     sort: encodeSort(defaultSort),
-    ...Object.fromEntries(filters.map((f) => [f.id, ''])),
+    ...Object.fromEntries(filters.map((f) => [f.id, defaultFilters?.[f.id]?.join(',') ?? ''])),
   }));
   const setParams = useCallback(
     (patch: Params) => setParamsState((current) => ({ ...current, ...patch })),

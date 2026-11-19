@@ -3,8 +3,11 @@ import {
   ChevronDown,
   Circle,
   CircleAlert,
+  ClipboardList,
   KeyRound,
   Loader2,
+  MailPlus,
+  Settings2,
   ShieldCheck,
   Sparkles,
   UserPlus,
@@ -57,21 +60,69 @@ interface AccountValues {
   groupIds: string[];
 }
 
+type SectionTone = 'primary' | 'warning' | 'violet' | 'success' | 'cyan' | 'info';
+
+/** Full class names per tone (Tailwind only generates classes it can find in the source). */
+const SECTION_TONE: Record<SectionTone, { box: string; head: string; icon: string }> = {
+  primary: {
+    box: 'border-primary/30 border-l-primary',
+    head: 'bg-primary-soft/60',
+    icon: 'bg-primary text-primary-foreground',
+  },
+  warning: {
+    box: 'border-warning/35 border-l-warning',
+    head: 'bg-warning-soft/60',
+    icon: 'bg-warning text-warning-foreground',
+  },
+  violet: {
+    box: 'border-nav-violet/30 border-l-nav-violet',
+    head: 'bg-nav-violet/10',
+    icon: 'bg-nav-violet text-primary-foreground',
+  },
+  success: {
+    box: 'border-success/30 border-l-success',
+    head: 'bg-success-soft/60',
+    icon: 'bg-success text-success-foreground',
+  },
+  cyan: {
+    box: 'border-nav-cyan/30 border-l-nav-cyan',
+    head: 'bg-nav-cyan/10',
+    icon: 'bg-nav-cyan text-primary-foreground',
+  },
+  info: {
+    box: 'border-info/30 border-l-info',
+    head: 'bg-info-soft/60',
+    icon: 'bg-info text-info-foreground',
+  },
+};
+
+/** A form card with its own light color: tinted header, colored left edge and icon tile. */
 function Section({
   title,
   description,
   icon,
+  tone,
   children,
 }: {
   title: string;
   description?: string;
   icon: ReactNode;
+  tone: SectionTone;
   children: ReactNode;
 }) {
+  const t = SECTION_TONE[tone];
   return (
-    <section aria-label={title} className="rounded-md border border-border bg-surface p-card">
-      <header className="mb-4 flex items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary-soft-foreground [&_svg]:size-4.5">
+    <section
+      aria-label={title}
+      className={cn('overflow-hidden rounded-md border border-l-4 bg-surface', t.box)}
+    >
+      <header className={cn('flex items-start gap-3 px-card py-3', t.head)}>
+        <span
+          className={cn(
+            'flex size-9 shrink-0 items-center justify-center rounded-md shadow-card [&_svg]:size-4.5',
+            t.icon,
+          )}
+        >
           {icon}
         </span>
         <div>
@@ -79,7 +130,7 @@ function Section({
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
       </header>
-      {children}
+      <div className="p-card">{children}</div>
     </section>
   );
 }
@@ -333,7 +384,7 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         leaving.current = true;
-        void navigate(paths.admin.users);
+        void navigate(paths.admin.userDetail(created.id));
       }
     } catch (err) {
       setServerErrors(getFieldErrors(err));
@@ -368,7 +419,7 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
         title="Create user"
         description="Add an account directly with an initial password. To let people set their own password, invite them instead."
         actions={
-          <Button variant="outline" size="sm" leftIcon={<UserPlus />} asChild>
+          <Button variant="outline" size="toolbar" leftIcon={<MailPlus />} asChild>
             <Link to={paths.admin.invites}>Invite instead</Link>
           </Button>
         }
@@ -377,7 +428,12 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
       <form noValidate onSubmit={(e) => void submit('open', e)} className="@container">
         <div className="grid items-start gap-6 @5xl:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
           <div className="min-w-0 space-y-6">
-            <Section title="Account" description="How the user signs in." icon={<UserRound />}>
+            <Section
+              title="Account"
+              description="How the user signs in."
+              icon={<UserRound />}
+              tone="primary"
+            >
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input
                   label="Email address"
@@ -444,6 +500,7 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
               title="Initial password"
               description="Share it with the user securely; it is never emailed."
               icon={<KeyRound />}
+              tone="warning"
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
                 <Input
@@ -511,6 +568,7 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
                     : 'Fields from Security settings → Schemas.'
                 }
                 icon={<ShieldCheck />}
+                tone="violet"
               >
                 {customAttributes.length > 0 && (
                   <AttributeFields
@@ -572,26 +630,37 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
                 title="Groups"
                 description="Groups decide what the user can do. You can only grant access you have yourself."
                 icon={<Users />}
+                tone="success"
               >
                 {groups.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No groups yet.</p>
                 ) : (
-                  <div className="grid max-h-64 gap-1 overflow-y-auto sm:grid-cols-2">
-                    {groups.map((group) => (
-                      <Checkbox
-                        key={group.id}
-                        label={group.label}
-                        checked={account.groupIds.includes(group.id)}
-                        onCheckedChange={(checked) =>
-                          set(
-                            'groupIds',
-                            checked
-                              ? [...account.groupIds, group.id]
-                              : account.groupIds.filter((id) => id !== group.id),
-                          )
-                        }
-                      />
-                    ))}
+                  <div className="grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                    {groups.map((group) => {
+                      const isOn = account.groupIds.includes(group.id);
+                      return (
+                        <div
+                          key={group.id}
+                          className={cn(
+                            'rounded-md border px-3 py-2.5 transition-colors',
+                            isOn ? 'border-success/50 bg-success-soft/40' : 'border-border',
+                          )}
+                        >
+                          <Checkbox
+                            label={group.label}
+                            checked={isOn}
+                            onCheckedChange={(checked) =>
+                              set(
+                                'groupIds',
+                                checked
+                                  ? [...account.groupIds, group.id]
+                                  : account.groupIds.filter((id) => id !== group.id),
+                              )
+                            }
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
                 {errors.groupIds && (
@@ -607,23 +676,23 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
             aria-label="Summary"
             className="min-w-0 space-y-6 @5xl:sticky @5xl:top-[calc(var(--navbar-height)+1.5rem)]"
           >
-            <section className="space-y-4 rounded-md border border-border bg-surface p-card">
-              <h2 className="text-sm font-semibold text-foreground">Options</h2>
-              <Switch
-                label="Email is verified"
-                hint="You vouch for the address; no verification email is sent"
-                checked={account.isEmailVerified}
-                onCheckedChange={(checked) => set('isEmailVerified', checked)}
-              />
-              <Switch
-                label="Send a welcome email"
-                hint="Tells them the account exists (never includes the password)"
-                checked={account.sendWelcomeEmail}
-                onCheckedChange={(checked) => set('sendWelcomeEmail', checked)}
-              />
-            </section>
-            <section className="rounded-md border border-border bg-surface p-card">
-              <h2 className="mb-3 text-sm font-semibold text-foreground">Summary</h2>
+            <Section title="Options" icon={<Settings2 />} tone="cyan">
+              <div className="space-y-4">
+                <Switch
+                  label="Email is verified"
+                  hint="You vouch for the address; no verification email is sent"
+                  checked={account.isEmailVerified}
+                  onCheckedChange={(checked) => set('isEmailVerified', checked)}
+                />
+                <Switch
+                  label="Send a welcome email"
+                  hint="Tells them the account exists (never includes the password)"
+                  checked={account.sendWelcomeEmail}
+                  onCheckedChange={(checked) => set('sendWelcomeEmail', checked)}
+                />
+              </div>
+            </Section>
+            <Section title="Summary" icon={<ClipboardList />} tone="info">
               <dl className="space-y-2 text-xs">
                 {[
                   ['Email', email || '—'],
@@ -647,18 +716,18 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
                   {problemCount} {problemCount === 1 ? 'field needs' : 'fields need'} attention
                 </p>
               )}
-            </section>
+            </Section>
           </aside>
         </div>
 
         <div className="sticky bottom-0 z-10 -mx-1 mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-background/95 px-1 py-3 backdrop-blur">
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="ghost" size="toolbar" asChild>
             <Link to={paths.admin.users}>Cancel</Link>
           </Button>
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="toolbar"
             isLoading={saving === 'another'}
             disabled={saving !== null}
             onClick={() => void submit('another')}
@@ -667,7 +736,7 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
           </Button>
           <Button
             type="submit"
-            size="sm"
+            size="toolbar"
             leftIcon={<UserPlus />}
             isLoading={saving === 'open'}
             disabled={saving !== null}

@@ -1,36 +1,38 @@
-import { Copy, MoreHorizontal, Pencil, RotateCcw, Shield, SquarePen, UserX } from 'lucide-react';
+import { RotateCcw, ScanEye, SquarePen, UserRoundCog, UserX } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { TableAction } from '@/components/data-table';
 import { notifyError, notifySuccess } from '@/components/feedback';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui';
+import { paths } from '@/config';
 
 import { adminUsersApi } from '../api/admin-users.api';
 import type { AdminUser } from '../types/admin-user.types';
 import { fullName } from './user-labels';
-import { UserAccessSheet } from './UserAccessSheet';
+import { UserAccessDialog } from './UserAccessDialog';
 
-/** Edit (always visible) + ⋯ menu; status changes are confirmed. */
+/**
+ * The row icons, same as roles and groups: Access (groups and roles), View (own page),
+ * Edit (popup), Suspend / Reactivate (confirmed). One-word tooltips.
+ */
 export function UserRowActions({
   user,
   canUpdate,
+  isMe,
   onEdit,
   onChanged,
 }: {
   user: AdminUser;
   canUpdate: boolean;
+  /** Your own row: you can't suspend yourself. */
+  isMe: boolean;
   onEdit: (user: AdminUser) => void;
   onChanged: () => void;
 }) {
+  const navigate = useNavigate();
   const [confirm, setConfirm] = useState(false);
-  const [accessSheetOpen, setAccessSheetOpen] = useState(false);
+  const [isAccessOpen, setIsAccessOpen] = useState(false);
   const name = fullName(user);
   const isBlocked =
     user.status === 'SUSPENDED' || user.status === 'INACTIVE' || user.status === 'BANNED';
@@ -50,80 +52,60 @@ export function UserRowActions({
     }
   };
 
-  const copyEmail = async () => {
-    try {
-      await navigator.clipboard.writeText(user.email);
-      notifySuccess('Email copied');
-    } catch (error) {
-      notifyError(error, 'Could not copy');
-    }
-  };
-
   return (
     <span className="flex items-center justify-end gap-1.5">
       {canUpdate && (
         <TableAction
+          tone="warning"
+          icon={<UserRoundCog />}
+          tooltip="Access"
+          label={`Groups and roles of ${name}`}
+          onClick={() => setIsAccessOpen(true)}
+        />
+      )}
+      <TableAction
+        tone="info"
+        icon={<ScanEye />}
+        tooltip="View"
+        label={`View ${name}`}
+        onClick={() => void navigate(paths.admin.userDetail(user.id))}
+      />
+      {canUpdate && (
+        <TableAction
           tone="primary"
           icon={<SquarePen />}
+          tooltip="Edit"
           label={`Edit ${name}`}
           onClick={() => onEdit(user)}
         />
       )}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <TableAction
-            icon={<MoreHorizontal />}
-            label={`More actions for ${name}`}
-            showTooltip={false}
-          />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-48">
-          {canUpdate && (
-            <DropdownMenuItem icon={<Pencil />} onSelect={() => onEdit(user)}>
-              Edit user
-            </DropdownMenuItem>
-          )}
-          {canUpdate && (
-            <DropdownMenuItem icon={<Shield />} onSelect={() => setAccessSheetOpen(true)}>
-              Access & roles
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem icon={<Copy />} onSelect={() => void copyEmail()}>
-            Copy email
-          </DropdownMenuItem>
-          {canUpdate && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                destructive={!isBlocked}
-                icon={isBlocked ? <RotateCcw /> : <UserX />}
-                onSelect={() => setConfirm(true)}
-              >
-                {isBlocked ? 'Reactivate' : 'Suspend'}
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      {confirm && (
-        <ConfirmDialog
-          open
-          onOpenChange={setConfirm}
-          title={isBlocked ? `Reactivate ${name}?` : `Suspend ${name}?`}
-          description={
-            isBlocked
-              ? 'They can sign in again right away.'
-              : 'They are signed out everywhere and cannot sign in until reactivated.'
-          }
-          confirmText={isBlocked ? 'Reactivate' : 'Suspend'}
-          destructive={!isBlocked}
-          onConfirm={changeStatus}
+      {canUpdate && (
+        <TableAction
+          tone={isBlocked ? 'success' : 'danger'}
+          icon={isBlocked ? <RotateCcw /> : <UserX />}
+          tooltip={isBlocked ? 'Reactivate' : 'Suspend'}
+          label={`${isBlocked ? 'Reactivate' : 'Suspend'} ${name}`}
+          disabledReason={isMe ? 'You cannot suspend yourself' : undefined}
+          onClick={() => setConfirm(true)}
         />
       )}
-      <UserAccessSheet
+      <ConfirmDialog
+        open={confirm}
+        onOpenChange={setConfirm}
+        title={isBlocked ? `Reactivate ${name}?` : `Suspend ${name}?`}
+        description={
+          isBlocked
+            ? 'They can sign in again right away.'
+            : 'They are signed out everywhere and cannot sign in until reactivated.'
+        }
+        confirmText={isBlocked ? 'Reactivate' : 'Suspend'}
+        destructive={!isBlocked}
+        onConfirm={changeStatus}
+      />
+      <UserAccessDialog
         user={user}
-        open={accessSheetOpen}
-        onOpenChange={setAccessSheetOpen}
+        open={isAccessOpen}
+        onOpenChange={setIsAccessOpen}
         onChanged={onChanged}
       />
     </span>

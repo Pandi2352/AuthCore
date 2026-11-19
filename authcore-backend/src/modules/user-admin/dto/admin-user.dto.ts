@@ -579,6 +579,18 @@ export class UserStatsDto {
   @ApiProperty({ example: 30 })
   dormantAfterDays!: number;
 
+  @ApiProperty({ example: 3, description: 'Accounts with the ADMIN role' })
+  admins!: number;
+
+  @ApiProperty({ example: 9800, description: 'Email address confirmed' })
+  verified!: number;
+
+  @ApiProperty({ example: 120, description: 'Has never signed in' })
+  neverSignedIn!: number;
+
+  @ApiProperty({ example: 45, description: 'Created in the last 30 days' })
+  newLast30Days!: number;
+
   @ApiProperty({
     type: Object,
     example: { ACTIVE: 9455, SUSPENDED: 12 },

@@ -154,6 +154,8 @@ export function StatCard({
   label,
   value,
   hint,
+  selected,
+  onClick,
 }: {
   tone: StatTone;
   pattern?: StatPattern;
@@ -162,15 +164,24 @@ export function StatCard({
   /** A count, or text (e.g. a category name); null shows a skeleton. */
   value: number | ReactNode | null;
   hint?: ReactNode;
+  /** Clickable card (e.g. filters a table); shown as pressed while selected. */
+  selected?: boolean;
+  onClick?: () => void;
 }) {
   const t = TONE[tone];
   // useId has characters (: « ») that break url(#…) references.
-  const patternId = `stat-${useId().replace(/[^w-]/g, '')}`;
+  const patternId = `stat-${useId().replace(/[^\w-]/g, '')}`;
+  const Root = onClick ? 'button' : 'div';
   return (
-    <div
+    <Root
+      {...(onClick ? { type: 'button' as const, onClick, 'aria-pressed': selected ?? false } : {})}
       className={cn(
-        'group relative flex items-center gap-3.5 overflow-hidden rounded-md border bg-linear-to-br to-surface p-4 transition-transform hover:-translate-y-0.5 motion-reduce:hover:translate-y-0',
+        'group relative flex w-full items-center gap-3.5 overflow-hidden rounded-md border bg-linear-to-br to-surface p-4 text-left transition-transform hover:-translate-y-0.5 motion-reduce:hover:translate-y-0',
         t.card,
+        onClick &&
+          'cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        // Selected: a ring in the card's own color.
+        selected && cn('ring-2 ring-current ring-offset-2 ring-offset-background', t.art),
       )}
     >
       <svg
@@ -207,6 +218,6 @@ export function StatCard({
         )}
         {hint && <p className="truncate text-xs text-muted-foreground">{hint}</p>}
       </div>
-    </div>
+    </Root>
   );
 }

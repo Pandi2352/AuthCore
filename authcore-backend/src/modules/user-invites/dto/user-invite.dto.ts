@@ -305,3 +305,29 @@ export class AcceptInviteResponseDto {
   @ApiProperty({ example: 1, description: 'Groups joined' })
   groupsJoined!: number;
 }
+
+/** GET /user-invites/stats */
+export class InviteStatsDto {
+  @ApiProperty({ example: 120, description: 'Every invite ever sent' })
+  total!: number;
+  @ApiProperty({ example: 14, description: 'Still waiting (link valid)' })
+  pending!: number;
+  @ApiProperty({ example: 90 }) accepted!: number;
+  @ApiProperty({ example: 10, description: 'Link ran out before it was used' })
+  expired!: number;
+  @ApiProperty({ example: 6 }) revoked!: number;
+  @ApiProperty({ example: 8 }) sentLast7Days!: number;
+  @ApiProperty({
+    example: 40,
+    description: 'Accounts created on the sign-up page',
+  })
+  registered!: number;
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 85,
+    description:
+      'Accepted out of accepted + expired + revoked, in % (null before any)',
+  })
+  acceptanceRate!: number | null;
+}

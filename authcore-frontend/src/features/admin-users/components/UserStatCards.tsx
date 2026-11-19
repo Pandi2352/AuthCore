@@ -1,59 +1,28 @@
-import { UserCheck, UserMinus, Users, UserX, type LucideIcon } from 'lucide-react';
+import {
+  BadgeCheck,
+  Clock3,
+  ShieldCheck,
+  Sparkles,
+  UserCheck,
+  UserMinus,
+  Users,
+  UserX,
+} from 'lucide-react';
+import { memo } from 'react';
 
-import { Skeleton } from '@/components/ui';
-import { formatNumber } from '@/lib/format';
-import { cn } from '@/lib/utils';
+import { StatCard } from '@/components/common/StatCard';
 
 import type { UserActivity, UserStats } from '../types/admin-user.types';
 
-interface CardSpec {
-  key: 'total' | 'active' | 'dormant' | 'inactive';
-  activity: UserActivity | null;
-  label: string;
-  hint: (days: number) => string;
-  icon: LucideIcon;
-  /** Solid theme color (token) — readable foreground included. */
-  tone: string;
-}
+const share = (part: number, total: number) =>
+  total > 0 ? ` · ${Math.round((part / total) * 100)}%` : '';
 
-const CARDS: CardSpec[] = [
-  {
-    key: 'total',
-    activity: null,
-    label: 'Total users',
-    hint: () => 'Every account',
-    icon: Users,
-    tone: 'bg-primary text-primary-foreground',
-  },
-  {
-    key: 'active',
-    activity: 'ACTIVE',
-    label: 'Active users',
-    hint: (days) => `Signed in within ${days} days`,
-    icon: UserCheck,
-    tone: 'bg-success text-success-foreground',
-  },
-  {
-    key: 'dormant',
-    activity: 'DORMANT',
-    label: 'Dormant users',
-    hint: (days) => `No sign-in for ${days}+ days`,
-    icon: UserMinus,
-    tone: 'bg-warning text-warning-foreground',
-  },
-  {
-    key: 'inactive',
-    activity: 'INACTIVE',
-    label: 'Inactive users',
-    hint: () => 'Pending, deactivated or suspended',
-    icon: UserX,
-    tone: 'bg-danger text-danger-foreground',
-  },
-];
-
-/** The four counts; clicking one filters the table (again = show everyone). */
-export function UserStatCards({
-  stats,
+/**
+ * The eight counts (same light cards as roles and groups). The first four filter the table
+ * by activity; clicking the selected one again shows everyone.
+ */
+export const UserStatCards = memo(function UserStatCards({
+  stats: s,
   selected,
   onSelect,
 }: {
@@ -61,64 +30,83 @@ export function UserStatCards({
   selected: UserActivity | null;
   onSelect: (activity: UserActivity | null) => void;
 }) {
+  const days = s?.dormantAfterDays ?? 30;
+  const total = s?.total ?? 0;
+  const pick = (activity: UserActivity) => () => onSelect(selected === activity ? null : activity);
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-      {CARDS.map(({ key, activity, label, hint, icon: Icon, tone }) => {
-        const value = stats?.[key] ?? null;
-        const isSelected = activity === null ? selected === null : selected === activity;
-        const share =
-          stats && stats.total > 0 && activity !== null
-            ? Math.round(((value ?? 0) / stats.total) * 100)
-            : null;
-        return (
-          <button
-            key={key}
-            type="button"
-            aria-pressed={isSelected}
-            aria-label={`${label}: ${value === null ? 'loading' : formatNumber(value)}. ${
-              activity === null ? 'Show everyone' : 'Show only these'
-            }`}
-            onClick={() => onSelect(activity === null || isSelected ? null : activity)}
-            className={cn(
-              'group relative flex cursor-pointer items-center gap-3 overflow-hidden rounded-md p-4 text-left transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:gap-4 sm:p-5',
-              'hover:-translate-y-0.5 motion-reduce:hover:translate-y-0',
-              tone,
-              isSelected
-                ? 'ring-2 ring-foreground/70 ring-offset-2 ring-offset-background'
-                : 'opacity-95',
-            )}
-          >
-            {/* Soft sheen in the card's own foreground color (no hard-coded white). */}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-transparent via-transparent to-current opacity-15"
-            />
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-6 -bottom-8 size-24 rounded-full bg-current opacity-10"
-            />
-            <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-current/15 sm:size-12">
-              <Icon className="size-5 sm:size-6" aria-hidden="true" />
-            </span>
-            <span className="relative min-w-0 flex-1">
-              <span className="block truncate text-xs font-medium opacity-90 sm:text-sm">
-                {label}
-              </span>
-              {value === null ? (
-                <Skeleton className="mt-1 h-7 w-16 bg-current/20" />
-              ) : (
-                <span className="block text-2xl leading-tight font-bold tabular-nums sm:text-3xl">
-                  {formatNumber(value)}
-                </span>
-              )}
-              <span className="block truncate text-[11px] opacity-85 sm:text-xs">
-                {stats ? hint(stats.dormantAfterDays) : ' '}
-                {share !== null && ` · ${share}%`}
-              </span>
-            </span>
-          </button>
-        );
-      })}
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        tone="primary"
+        pattern="rings"
+        icon={Users}
+        label="Total users"
+        value={s?.total ?? null}
+        hint="Every account · click to show all"
+        selected={selected === null}
+        onClick={() => onSelect(null)}
+      />
+      <StatCard
+        tone="success"
+        pattern="waves"
+        icon={UserCheck}
+        label="Active users"
+        value={s?.active ?? null}
+        hint={`Signed in within ${days} days${s ? share(s.active, total) : ''}`}
+        selected={selected === 'ACTIVE'}
+        onClick={pick('ACTIVE')}
+      />
+      <StatCard
+        tone="warning"
+        pattern="dots"
+        icon={UserMinus}
+        label="Dormant users"
+        value={s?.dormant ?? null}
+        hint={`No sign-in for ${days}+ days${s ? share(s.dormant, total) : ''}`}
+        selected={selected === 'DORMANT'}
+        onClick={pick('DORMANT')}
+      />
+      <StatCard
+        tone="danger"
+        pattern="stripes"
+        icon={UserX}
+        label="Inactive users"
+        value={s?.inactive ?? null}
+        hint={`Pending, deactivated or suspended${s ? share(s.inactive, total) : ''}`}
+        selected={selected === 'INACTIVE'}
+        onClick={pick('INACTIVE')}
+      />
+      <StatCard
+        tone="violet"
+        pattern="sparkles"
+        icon={ShieldCheck}
+        label="Admins"
+        value={s?.admins ?? null}
+        hint="Full access to everything"
+      />
+      <StatCard
+        tone="cyan"
+        pattern="grid"
+        icon={BadgeCheck}
+        label="Verified emails"
+        value={s?.verified ?? null}
+        hint={`Email address confirmed${s ? share(s.verified, total) : ''}`}
+      />
+      <StatCard
+        tone="info"
+        pattern="bars"
+        icon={Clock3}
+        label="Never signed in"
+        value={s?.neverSignedIn ?? null}
+        hint="No sign-in yet"
+      />
+      <StatCard
+        tone="success"
+        pattern="bubbles"
+        icon={Sparkles}
+        label="New users"
+        value={s?.newLast30Days ?? null}
+        hint="Created in the last 30 days"
+      />
     </div>
   );
-}
+});
