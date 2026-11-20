@@ -1,0 +1,2 @@
+404 GET http://localhost:5173/api/v1/admin/activity/stats
+404 GET http://localhost:5173/api/v1/users/me/avatar

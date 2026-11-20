@@ -1,0 +1,1 @@
+import{h as e}from"./chunk-6KYCQHYJ-BsiR3Hno.js";function t(t){let n=e()[t];if(!n)throw Error(`Route parameter ":${t}" is missing`);return n}export{t};

@@ -1,0 +1,1 @@
+import{c as e}from"./api-D-IJhCPr.js";var t={config:t=>e.get(`/admin/users/create-config`,{signal:t}),availability:(t,n)=>e.get(`/admin/users/availability`,{signal:n,query:t}),create:t=>e.post(`/admin/users`,t),generatePassword:(t=16)=>e.post(`/password-policies/generate-password`,{length:t}),groups:t=>e.get(`/groups/dropdown`,{signal:t})};export{t};

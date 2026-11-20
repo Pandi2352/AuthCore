@@ -1,0 +1,1 @@
+import{At as e,Dt as t}from"./ui-BELeBfSM.js";var n=t();function r({icon:t,size:r=18,className:i}){return(0,n.jsx)(`svg`,{viewBox:`0 0 ${t.size} ${t.size}`,width:r,height:r,"aria-hidden":`true`,focusable:`false`,className:e(`shrink-0`,i),dangerouslySetInnerHTML:{__html:t.body}})}export{r as t};
