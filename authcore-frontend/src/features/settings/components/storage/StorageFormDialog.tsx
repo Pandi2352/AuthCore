@@ -4,12 +4,12 @@ import { useState, type FormEvent } from 'react';
 import { notifyError, notifySuccess } from '@/components/feedback';
 import {
   Button,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
   Input,
   PasswordInput,
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetFooter,
   Switch,
 } from '@/components/ui';
 import { useApiError } from '@/hooks';
@@ -25,7 +25,7 @@ import type {
 } from '../../types/storage.types';
 import { ProviderLogo } from './StorageVisuals';
 
-interface StorageFormSheetProps {
+interface StorageFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   providers: StorageProvider[];
@@ -74,13 +74,13 @@ function validate(
 }
 
 /** Add or edit a storage: pick a provider, fill its fields, test, save. */
-export function StorageFormSheet({
+export function StorageFormDialog({
   open,
   onOpenChange,
   providers,
   editing,
   onSaved,
-}: StorageFormSheetProps) {
+}: StorageFormDialogProps) {
   const cloud = providers.filter((p) => !p.isBuiltIn);
   const [providerId, setProviderId] = useState<string | null>(editing?.provider ?? null);
   const provider = cloud.find((p) => p.id === providerId) ?? null;
@@ -239,10 +239,10 @@ export function StorageFormSheet({
     : 'Choose where uploaded files should be stored.';
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent title={title} description={description} size="xl">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent title={title} description={description} size="xl">
         {!provider || !values ? (
-          <SheetBody>
+          <DialogBody>
             <fieldset>
               <legend className="sr-only">Storage provider</legend>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -266,10 +266,10 @@ export function StorageFormSheet({
                 })}
               </div>
             </fieldset>
-          </SheetBody>
+          </DialogBody>
         ) : (
           <form noValidate onSubmit={save} className="flex min-h-0 flex-1 flex-col">
-            <SheetBody className="space-y-5">
+            <DialogBody className="space-y-5">
               {!editing && (
                 <button
                   type="button"
@@ -341,8 +341,8 @@ export function StorageFormSheet({
                   Check the highlighted fields.
                 </p>
               )}
-            </SheetBody>
-            <SheetFooter>
+            </DialogBody>
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -356,10 +356,10 @@ export function StorageFormSheet({
               <Button type="submit" isLoading={isSaving} disabled={isTesting}>
                 {editing ? 'Save changes' : 'Add storage'}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

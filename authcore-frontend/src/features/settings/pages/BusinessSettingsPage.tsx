@@ -252,7 +252,7 @@ function BusinessSettingsForm({
               <>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="toolbar"
                   className="shrink-0 whitespace-nowrap"
                   leftIcon={<RotateCcw />}
                   disabled={!isDirty || isSaving}
@@ -263,7 +263,7 @@ function BusinessSettingsForm({
                 <Button
                   type="submit"
                   form={FORM_ID}
-                  size="sm"
+                  size="toolbar"
                   className="shrink-0 whitespace-nowrap"
                   leftIcon={<Save />}
                   isLoading={isSaving}

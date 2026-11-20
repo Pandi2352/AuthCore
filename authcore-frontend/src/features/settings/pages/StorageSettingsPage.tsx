@@ -11,7 +11,7 @@ import { storageApi } from '../api/storage.api';
 import { SettingCard } from '../components/appearance/AppearanceParts';
 import { storageSummary } from '../components/storage/provider-meta';
 import { StorageCard } from '../components/storage/StorageCard';
-import { StorageFormSheet } from '../components/storage/StorageFormSheet';
+import { StorageFormDialog } from '../components/storage/StorageFormDialog';
 import { ProviderLogo, UsageBar } from '../components/storage/StorageVisuals';
 import { UploadTester } from '../components/storage/UploadTester';
 import type { StorageConfig, StorageProvider } from '../types/storage.types';
@@ -88,7 +88,7 @@ export function StorageSettingsPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              size="sm"
+              size="toolbar"
               className="shrink-0 whitespace-nowrap"
               leftIcon={<RefreshCw />}
               onClick={reload}
@@ -97,7 +97,7 @@ export function StorageSettingsPage() {
             </Button>
             {canManage && loaded && (
               <Button
-                size="sm"
+                size="toolbar"
                 className="shrink-0 whitespace-nowrap"
                 leftIcon={<Plus />}
                 onClick={() => openSheet(null)}
@@ -127,7 +127,7 @@ export function StorageSettingsPage() {
           {active && (
             <section
               aria-label="Active storage"
-              className="flex flex-col gap-4 rounded-md border border-primary/40 bg-primary-soft p-card sm:flex-row sm:items-center"
+              className="flex flex-col gap-4 overflow-hidden rounded-md border border-l-4 border-primary/30 border-l-primary bg-linear-to-br from-primary-soft to-surface p-card sm:flex-row sm:items-center"
             >
               <ProviderLogo provider={active.provider} size="lg" />
               <div className="min-w-0 flex-1">
@@ -202,7 +202,7 @@ export function StorageSettingsPage() {
             </div>
           </div>
 
-          <StorageFormSheet
+          <StorageFormDialog
             key={sheet.key}
             open={sheet.open}
             onOpenChange={(open) => setSheet((s) => ({ ...s, open }))}

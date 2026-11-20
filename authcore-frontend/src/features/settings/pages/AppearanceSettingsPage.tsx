@@ -61,7 +61,7 @@ export function AppearanceSettingsPage() {
             </output>
             <Button
               variant="outline"
-              size="sm"
+              size="toolbar"
               className="shrink-0 whitespace-nowrap"
               leftIcon={copied ? <Check /> : <Copy />}
               onClick={() =>
@@ -74,7 +74,7 @@ export function AppearanceSettingsPage() {
               trigger={
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="toolbar"
                   className="shrink-0 whitespace-nowrap"
                   leftIcon={<RotateCcw />}
                   disabled={!isCustomized}

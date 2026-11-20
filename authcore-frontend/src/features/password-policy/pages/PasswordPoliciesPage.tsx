@@ -1,8 +1,20 @@
-import { Plus, RefreshCw, ShieldCheck } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import {
+  BellRing,
+  CalendarClock,
+  Gauge,
+  History,
+  Layers,
+  Plus,
+  Ruler,
+  ShieldBan,
+  ShieldCheck,
+  Type,
+} from 'lucide-react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
+import { StatCard } from '@/components/common/StatCard';
+import { ErrorState, LoadingState } from '@/components/feedback';
 import { PageContainer, PageHeader } from '@/components/page';
 import { Alert, Button } from '@/components/ui';
 import { paths } from '@/config';
@@ -10,8 +22,8 @@ import { usePermissions } from '@/features/auth';
 import { isAbortError } from '@/lib/api';
 
 import { passwordPolicyApi } from '../api/password-policy.api';
-import { policyStrength, ruleSentences } from '../components/policy-rules';
-import { PolicyCard } from '../components/PolicyCard';
+import { PoliciesTable } from '../components/PoliciesTable';
+import { caseCount, policyStrength, ruleSentences } from '../components/policy-rules';
 import { StrengthGauge } from '../components/PolicyControls';
 import type { PasswordPolicy } from '../types/password-policy.types';
 
@@ -23,6 +35,119 @@ interface Loaded {
 
 const hasId = (policy: PasswordPolicy): policy is PasswordPolicy & { id: string } =>
   policy.id !== null;
+
+/** The active policy at a glance (same light cards as the other pages). */
+const PolicyStatCards = memo(function PolicyStatCards({
+  active,
+  saved,
+}: {
+  active: PasswordPolicy;
+  saved: number;
+}) {
+  const strength = policyStrength(active);
+  const c = active.complexity;
+  const characterRules = [
+    caseCount(active, 'upper') > 0,
+    caseCount(active, 'lower') > 0,
+    c.minimumDigitCount > 0,
+    c.minimumSpecialCharacterCount > 0,
+  ].filter(Boolean).length;
+  const blocked = [
+    active.additionalRules.blockCommonPasswords,
+    active.additionalRules.blockCompromisedPasswords,
+  ].filter(Boolean).length;
+  const v = active.passwordValidity;
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        tone="primary"
+        pattern="rings"
+        icon={Layers}
+        label="Saved policies"
+        value={saved}
+        hint="Exactly one is active"
+      />
+      <StatCard
+        tone={
+          strength.level === 'strong' ? 'success' : strength.level === 'weak' ? 'danger' : 'warning'
+        }
+        pattern="waves"
+        icon={Gauge}
+        label="Active policy strength"
+        value={`${strength.score} / 100`}
+        hint={strength.label}
+      />
+      <StatCard
+        tone="info"
+        pattern="grid"
+        icon={Ruler}
+        label="Minimum length"
+        value={`${active.characterLength.minimum} characters`}
+        hint={`At most ${active.characterLength.maximum}`}
+      />
+      <StatCard
+        tone="violet"
+        pattern="sparkles"
+        icon={Type}
+        label="Character rules"
+        value={characterRules === 0 ? 'None' : `${characterRules} of 4`}
+        hint="Upper, lower, digit, symbol"
+      />
+      <StatCard
+        tone="cyan"
+        pattern="dots"
+        icon={History}
+        label="Password reuse"
+        value={
+          active.passwordHistory.preventReuse
+            ? `Last ${active.passwordHistory.historyCount + 1} blocked`
+            : 'Allowed'
+        }
+        hint="Earlier passwords"
+      />
+      <StatCard
+        tone="danger"
+        pattern="stripes"
+        icon={ShieldBan}
+        label="Blocked lists"
+        value={
+          blocked === 2
+            ? 'Common + breached'
+            : blocked === 1
+              ? active.additionalRules.blockCommonPasswords
+                ? 'Common'
+                : 'Breached'
+              : 'Off'
+        }
+        hint="Known-bad passwords refused"
+      />
+      <StatCard
+        tone="warning"
+        pattern="bars"
+        icon={CalendarClock}
+        label="Password expiry"
+        value={v.enabled ? `${v.validityDays} days` : 'Never'}
+        hint={v.enabled ? `${v.gracePeriodDays} days grace` : 'Passwords don’t expire'}
+      />
+      <StatCard
+        tone="success"
+        pattern="bubbles"
+        icon={BellRing}
+        label="Expiry reminders"
+        value={
+          v.enabled && v.notificationDaysBeforeExpiry.length > 0
+            ? `${v.notificationDaysBeforeExpiry.length} emails`
+            : 'None'
+        }
+        hint={
+          v.enabled && v.notificationDaysBeforeExpiry.length > 0
+            ? `${v.notificationDaysBeforeExpiry.toSorted((a, b) => b - a).join(', ')} days before`
+            : 'No reminder emails'
+        }
+      />
+    </div>
+  );
+});
 
 /** Every password policy; exactly one is active (Administration → Security settings). */
 export function PasswordPoliciesPage() {
@@ -60,22 +185,11 @@ export function PasswordPoliciesPage() {
         title="Password policy"
         description="The rules every new password must follow. Keep several policies; exactly one is active."
         actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 whitespace-nowrap"
-              leftIcon={<RefreshCw />}
-              onClick={reload}
-            >
-              Refresh
+          canManage && (
+            <Button size="toolbar" leftIcon={<Plus />} asChild>
+              <Link to={paths.admin.passwordPolicyNew}>New policy</Link>
             </Button>
-            {canManage && (
-              <Button size="sm" className="shrink-0 whitespace-nowrap" leftIcon={<Plus />} asChild>
-                <Link to={paths.admin.passwordPolicyNew}>New policy</Link>
-              </Button>
-            )}
-          </div>
+          )
         }
       />
 
@@ -89,7 +203,7 @@ export function PasswordPoliciesPage() {
       )}
 
       {loaded && active && strength && (
-        <div className="space-y-6">
+        <>
           {!canManage && (
             <Alert
               variant="info"
@@ -98,9 +212,11 @@ export function PasswordPoliciesPage() {
             />
           )}
 
+          <PolicyStatCards active={active} saved={loaded.policies.length} />
+
           <section
             aria-label="Active policy"
-            className="flex flex-col gap-6 rounded-md border border-primary/40 bg-primary-soft p-card md:flex-row md:items-center"
+            className="flex flex-col gap-6 overflow-hidden rounded-md border border-l-4 border-primary/30 border-l-primary bg-linear-to-br from-primary-soft to-surface p-card md:flex-row md:items-center"
           >
             <div className="flex justify-center">
               <StrengthGauge strength={strength} />
@@ -130,7 +246,12 @@ export function PasswordPoliciesPage() {
               </ul>
             </div>
             {active.id && (
-              <Button variant="outline" size="sm" className="self-start md:self-center" asChild>
+              <Button
+                variant="outline"
+                size="toolbar"
+                className="self-start bg-surface md:self-center"
+                asChild
+              >
                 <Link to={paths.admin.passwordPolicyEdit(active.id)}>
                   {canManage ? 'Edit active policy' : 'View'}
                 </Link>
@@ -138,53 +259,8 @@ export function PasswordPoliciesPage() {
             )}
           </section>
 
-          <section aria-label="All policies">
-            <h2 className="mb-3 text-base font-semibold text-foreground">
-              All policies <span className="text-muted-foreground">({loaded.policies.length})</span>
-            </h2>
-            {loaded.policies.length === 0 ? (
-              <div className="rounded-md border border-dashed border-field bg-surface p-card">
-                <EmptyState
-                  icon={<ShieldCheck />}
-                  title="No saved policies yet"
-                  description="Create a policy to choose your own rules. The first one you activate replaces the built-in default."
-                  action={
-                    canManage ? (
-                      <Button size="sm" leftIcon={<Plus />} asChild>
-                        <Link to={paths.admin.passwordPolicyNew}>Create a policy</Link>
-                      </Button>
-                    ) : undefined
-                  }
-                />
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {loaded.policies.map((policy) => (
-                  <PolicyCard
-                    key={policy.id}
-                    policy={policy}
-                    canManage={canManage}
-                    onChanged={reload}
-                  />
-                ))}
-                {canManage && (
-                  <Link
-                    to={paths.admin.passwordPolicyNew}
-                    className="flex min-h-52 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-field bg-surface p-card text-center transition-colors hover:border-primary hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    <span className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
-                      <Plus className="size-5" aria-hidden="true" />
-                    </span>
-                    <span className="text-sm font-semibold text-foreground">New policy</span>
-                    <span className="max-w-60 text-xs text-muted-foreground">
-                      Start from the recommended rules, then adjust them
-                    </span>
-                  </Link>
-                )}
-              </div>
-            )}
-          </section>
-        </div>
+          <PoliciesTable policies={loaded.policies} canManage={canManage} onChanged={reload} />
+        </>
       )}
     </PageContainer>
   );

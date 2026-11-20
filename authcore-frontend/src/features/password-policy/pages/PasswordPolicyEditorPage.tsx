@@ -214,6 +214,7 @@ function PolicyEditor({ loaded }: { loaded: Loaded }) {
 
             <PolicySection
               title="Policy details"
+              tone="primary"
               description="A name your admins will recognise in the list."
               icon={<FileText />}
             >
@@ -235,6 +236,7 @@ function PolicyEditor({ loaded }: { loaded: Loaded }) {
 
             <PolicySection
               title="Length"
+              tone="info"
               description="Longer passwords are the best protection against guessing."
               icon={<Ruler />}
             >
@@ -272,6 +274,7 @@ function PolicyEditor({ loaded }: { loaded: Loaded }) {
 
             <PolicySection
               title="Character mix"
+              tone="violet"
               description="Which kinds of characters every password needs."
               icon={<Type />}
             >
@@ -322,6 +325,7 @@ function PolicyEditor({ loaded }: { loaded: Loaded }) {
 
             <PolicySection
               title="Password reuse"
+              tone="cyan"
               description="Stop people from going back to an old password."
               icon={<History />}
             >
@@ -362,6 +366,7 @@ function PolicyEditor({ loaded }: { loaded: Loaded }) {
 
             <PolicySection
               title="Extra protection"
+              tone="danger"
               description="Checks that catch weak passwords the rules above let through."
               icon={<ShieldAlert />}
             >
@@ -419,6 +424,7 @@ function PolicyEditor({ loaded }: { loaded: Loaded }) {
 
             <PolicySection
               title="Password expiry"
+              tone="warning"
               description="Ask people to choose a new password after a while."
               icon={<CalendarClock />}
             >
@@ -496,14 +502,14 @@ function PolicyEditor({ loaded }: { loaded: Loaded }) {
                     ? 'No changes'
                     : 'New policy — not saved yet'}
             </p>
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" size="toolbar" asChild>
               <Link to={paths.admin.passwordPolicy}>Cancel</Link>
             </Button>
             {!isActive && (
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                size="toolbar"
                 leftIcon={<Power />}
                 isLoading={saving === 'activate'}
                 disabled={saving !== null}
@@ -514,7 +520,7 @@ function PolicyEditor({ loaded }: { loaded: Loaded }) {
             )}
             <Button
               type="submit"
-              size="sm"
+              size="toolbar"
               leftIcon={<Save />}
               isLoading={saving === 'save'}
               disabled={saving !== null || (!!editing && !isDirty)}

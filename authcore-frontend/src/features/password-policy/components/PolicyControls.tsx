@@ -1,6 +1,7 @@
 import { Info } from 'lucide-react';
 import { useId, type CSSProperties, type ReactNode } from 'react';
 
+import { SectionCard, type SectionTone } from '@/components/common/SectionCard';
 import { FieldMessage, Input, Switch, Tooltip } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
@@ -76,36 +77,34 @@ export function StrengthGauge({
 }
 
 /** A titled card holding a group of rule rows. */
+/** One group of rules: a colored section card (same as the other form pages) with rule rows. */
 export function PolicySection({
   title,
   description,
   icon,
+  tone,
   aside,
   children,
 }: {
   title: string;
   description?: string;
   icon: ReactNode;
+  tone: SectionTone;
   aside?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <section
-      aria-label={title}
-      className="@container rounded-md border border-border bg-surface p-card"
+    <SectionCard
+      title={title}
+      description={description}
+      icon={icon}
+      tone={tone}
+      aside={aside}
+      className="@container"
+      bodyClassName="py-1"
     >
-      <header className="mb-2 flex items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary-soft-foreground [&_svg]:size-4.5">
-          {icon}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
-        </div>
-        {aside}
-      </header>
       <div className="divide-y divide-border">{children}</div>
-    </section>
+    </SectionCard>
   );
 }
 

@@ -14,7 +14,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useBlocker, useNavigate } from 'react-router-dom';
 
 import {
@@ -27,6 +27,7 @@ import {
 } from '@/components/attributes';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { CopyButton } from '@/components/common/CopyButton';
+import { SectionCard } from '@/components/common/SectionCard';
 import { ErrorState, LoadingState, notifyError, notifySuccess } from '@/components/feedback';
 import { PageContainer, PageHeader } from '@/components/page';
 import { Button, Checkbox, Input, Switch } from '@/components/ui';
@@ -58,81 +59,6 @@ interface AccountValues {
   isEmailVerified: boolean;
   sendWelcomeEmail: boolean;
   groupIds: string[];
-}
-
-type SectionTone = 'primary' | 'warning' | 'violet' | 'success' | 'cyan' | 'info';
-
-/** Full class names per tone (Tailwind only generates classes it can find in the source). */
-const SECTION_TONE: Record<SectionTone, { box: string; head: string; icon: string }> = {
-  primary: {
-    box: 'border-primary/30 border-l-primary',
-    head: 'bg-primary-soft/60',
-    icon: 'bg-primary text-primary-foreground',
-  },
-  warning: {
-    box: 'border-warning/35 border-l-warning',
-    head: 'bg-warning-soft/60',
-    icon: 'bg-warning text-warning-foreground',
-  },
-  violet: {
-    box: 'border-nav-violet/30 border-l-nav-violet',
-    head: 'bg-nav-violet/10',
-    icon: 'bg-nav-violet text-primary-foreground',
-  },
-  success: {
-    box: 'border-success/30 border-l-success',
-    head: 'bg-success-soft/60',
-    icon: 'bg-success text-success-foreground',
-  },
-  cyan: {
-    box: 'border-nav-cyan/30 border-l-nav-cyan',
-    head: 'bg-nav-cyan/10',
-    icon: 'bg-nav-cyan text-primary-foreground',
-  },
-  info: {
-    box: 'border-info/30 border-l-info',
-    head: 'bg-info-soft/60',
-    icon: 'bg-info text-info-foreground',
-  },
-};
-
-/** A form card with its own light color: tinted header, colored left edge and icon tile. */
-function Section({
-  title,
-  description,
-  icon,
-  tone,
-  children,
-}: {
-  title: string;
-  description?: string;
-  icon: ReactNode;
-  tone: SectionTone;
-  children: ReactNode;
-}) {
-  const t = SECTION_TONE[tone];
-  return (
-    <section
-      aria-label={title}
-      className={cn('overflow-hidden rounded-md border border-l-4 bg-surface', t.box)}
-    >
-      <header className={cn('flex items-start gap-3 px-card py-3', t.head)}>
-        <span
-          className={cn(
-            'flex size-9 shrink-0 items-center justify-center rounded-md shadow-card [&_svg]:size-4.5',
-            t.icon,
-          )}
-        >
-          {icon}
-        </span>
-        <div>
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
-        </div>
-      </header>
-      <div className="p-card">{children}</div>
-    </section>
-  );
 }
 
 type Check = 'idle' | 'checking' | 'free' | 'taken';
@@ -428,7 +354,7 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
       <form noValidate onSubmit={(e) => void submit('open', e)} className="@container">
         <div className="grid items-start gap-6 @5xl:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
           <div className="min-w-0 space-y-6">
-            <Section
+            <SectionCard
               title="Account"
               description="How the user signs in."
               icon={<UserRound />}
@@ -494,9 +420,9 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
                   />
                 )}
               </div>
-            </Section>
+            </SectionCard>
 
-            <Section
+            <SectionCard
               title="Initial password"
               description="Share it with the user securely; it is never emailed."
               icon={<KeyRound />}
@@ -557,10 +483,10 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
                   onCheckedChange={(checked) => set('mustChangePassword', checked)}
                 />
               </div>
-            </Section>
+            </SectionCard>
 
             {config.attributes.length > 0 && (
-              <Section
+              <SectionCard
                 title="Profile details"
                 description={
                   customAttributes.length > 0
@@ -622,11 +548,11 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
                     )}
                   </div>
                 )}
-              </Section>
+              </SectionCard>
             )}
 
             {config.canAssignGroups && groups !== null && (
-              <Section
+              <SectionCard
                 title="Groups"
                 description="Groups decide what the user can do. You can only grant access you have yourself."
                 icon={<Users />}
@@ -668,7 +594,7 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
                     {errors.groupIds}
                   </p>
                 )}
-              </Section>
+              </SectionCard>
             )}
           </div>
 
@@ -676,7 +602,7 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
             aria-label="Summary"
             className="min-w-0 space-y-6 @5xl:sticky @5xl:top-[calc(var(--navbar-height)+1.5rem)]"
           >
-            <Section title="Options" icon={<Settings2 />} tone="cyan">
+            <SectionCard title="Options" icon={<Settings2 />} tone="cyan">
               <div className="space-y-4">
                 <Switch
                   label="Email is verified"
@@ -691,8 +617,8 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
                   onCheckedChange={(checked) => set('sendWelcomeEmail', checked)}
                 />
               </div>
-            </Section>
-            <Section title="Summary" icon={<ClipboardList />} tone="info">
+            </SectionCard>
+            <SectionCard title="Summary" icon={<ClipboardList />} tone="info">
               <dl className="space-y-2 text-xs">
                 {[
                   ['Email', email || '—'],
@@ -716,7 +642,7 @@ function CreateUserForm({ config }: { config: CreateUserConfig }) {
                   {problemCount} {problemCount === 1 ? 'field needs' : 'fields need'} attention
                 </p>
               )}
-            </Section>
+            </SectionCard>
           </aside>
         </div>
 
