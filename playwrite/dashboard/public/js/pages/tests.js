@@ -1,5 +1,5 @@
 // Tests: every test Playwright knows about, with its record across the kept runs.
-import { ago, api, debounce, dur, html, icon, num, render, STATE, when } from '../lib.js';
+import { ago, api, debounce, dur, getNotes, html, icon, num, render, STATE, when } from '../lib.js';
 import {
   badge,
   dataTable,
@@ -26,8 +26,10 @@ export async function page(main) {
   let catalog;
   const filters = { q: '', project: 'all', file: 'all', tag: 'all', last: 'all' };
 
+  let notes = {};
   const load = async (refresh = false) => {
-    const [cat, hist] = await Promise.all([api.catalog(refresh), api.history()]);
+    const [cat, hist, n] = await Promise.all([api.catalog(refresh), api.history(), getNotes(true)]);
+    notes = n;
     catalog = cat;
     const known = new Set();
     rows = cat.tests.map((t) => {
@@ -123,7 +125,7 @@ export async function page(main) {
         key: 'name',
         label: 'Test',
         className: 'wide',
-        render: (r) => html`<div class="two-line"><strong>${r.fullTitle}${r.removed ? html` ${badge('No longer in the code', 'neutral', null, true)}` : ''}</strong><span class="mono">${r.file}${r.line ? `:${r.line}` : ''}</span></div>`,
+        render: (r) => html`<div class="two-line"><strong>${r.fullTitle}${r.removed ? html` ${badge('No longer in the code', 'neutral', null, true)}` : ''}${notes[r.key] ? html` <span data-tip="${notes[r.key].note || 'Known issue'}">${badge(notes[r.key].muted ? 'Known issue' : 'Has a note', notes[r.key].muted ? 'neutral' : 'violet', notes[r.key].muted ? 'bellOff' : 'note', true)}</span>` : ''}</strong><span class="mono">${r.file}${r.line ? `:${r.line}` : ''}</span></div>`,
         sort: (r) => r.fullTitle.toLowerCase(),
       },
       { key: 'project', label: 'Project', className: 'fit', render: (r) => badge(r.project, 'cyan', r.project === 'mobile' ? 'phone' : 'monitor', true), sort: (r) => r.project },

@@ -9,6 +9,7 @@ import {
 
 import { AdminApi } from './api';
 import { adminCredentials, ROUTES } from './constants';
+import { CoverageRecorder } from './coverage';
 
 /** The app's current access token per signed-in tab (captured from its own auth calls). */
 const tokens = new WeakMap<Page, { value: string | null }>();
@@ -45,7 +46,25 @@ export async function signIn(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 }
 
-export const test = base.extend<{ app: AdminApp; api: AdminApi }, { adminPage: Page }>({
+export const test = base.extend<
+  { app: AdminApp; api: AdminApi; coverage: CoverageRecorder },
+  { adminPage: Page }
+>({
+  // Pages and API calls each test touched (dashboard coverage pages).
+  coverage: async ({}, use, testInfo) => {
+    const recorder = new CoverageRecorder();
+    await use(recorder);
+    await recorder.attach(testInfo);
+  },
+
+  // Tests without sign-in use the plain page: record it too.
+  page: async ({ page, coverage }, use) => {
+    const stop = coverage.watch(page);
+    await use(page);
+    coverage.visit(page.url());
+    stop();
+  },
+
   // One signed-in tab per worker, with the project's device settings (desktop / phone).
   adminPage: [
     async ({ browser }, use, workerInfo) => {
@@ -82,7 +101,8 @@ export const test = base.extend<{ app: AdminApp; api: AdminApi }, { adminPage: P
     { scope: 'worker' },
   ],
 
-  app: async ({ adminPage }, use, testInfo) => {
+  app: async ({ adminPage, coverage }, use, testInfo) => {
+    const stopRecording = coverage.watch(adminPage);
     // Evidence for the report: browser console problems and failed API calls.
     const consoleLines: string[] = [];
     const apiFailures: string[] = [];
@@ -150,6 +170,9 @@ export const test = base.extend<{ app: AdminApp; api: AdminApi }, { adminPage: P
     const open = (path: string) => base.step(`Open ${path}`, () => go(path), { box: true });
     await use({ page: adminPage, open });
 
+    // The page a test ends on counts as visited even when it was already open.
+    coverage.visit(adminPage.url());
+    stopRecording();
     adminPage.off('console', onConsole);
     adminPage.off('response', onResponse);
     adminPage.off('requestfailed', onRequestFailed);
@@ -167,14 +190,14 @@ export const test = base.extend<{ app: AdminApp; api: AdminApi }, { adminPage: P
     }
   },
 
-  api: async ({ adminPage }, use) => {
+  api: async ({ adminPage, coverage }, use) => {
     const token = tokens.get(adminPage) ?? { value: null };
     // Token expired (or not seen yet): a reload makes the app refresh it with its cookie
     // (one tab per worker, so the single-use refresh token is never shared). Captured above.
     const reauth = async () => {
       await adminPage.reload({ waitUntil: 'networkidle' });
     };
-    await use(new AdminApi(adminPage, token, reauth));
+    await use(new AdminApi(adminPage, token, reauth, (method, url, status) => coverage.call(method, url, status)));
   },
 });
 

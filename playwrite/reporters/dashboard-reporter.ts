@@ -38,7 +38,16 @@ import { resolveTarget } from '../target.mjs';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const REPORTS = path.join(ROOT, 'reports');
 const RUNS = path.join(REPORTS, 'runs');
-const KEEP = Math.max(1, Number(process.env.PW_DASHBOARD_KEEP ?? 50));
+// Dashboard settings (Setup page) decide how many runs to keep and for how long;
+// PW_DASHBOARD_KEEP still wins when set.
+const SETTINGS = readJsonFile<{ keep?: number; maxAgeDays?: number | null }>(
+  path.join(REPORTS, 'dashboard-data', 'settings.json'),
+  {},
+);
+const KEEP = Math.max(1, Number(process.env.PW_DASHBOARD_KEEP ?? SETTINGS.keep ?? 50));
+const MAX_AGE_DAYS = SETTINGS.maxAgeDays && SETTINGS.maxAgeDays > 0 ? SETTINGS.maxAgeDays : null;
+/** Recorded by the tests for the dashboard; folded into run.json instead of kept as files. */
+const FOLDED = new Set(['coverage', 'a11y', 'metric']);
 const MAX_STEPS = 800;
 const MAX_OUTPUT = 200_000;
 
@@ -85,6 +94,14 @@ function writeJson(file: string, value: unknown): void {
   renameSync(tmp, file);
 }
 
+function readJsonFile<T>(file: string, fallback: T): T {
+  try {
+    return JSON.parse(readFileSync(file, 'utf8')) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 function readJson<T>(file: string, fallback: T): T {
   try {
     return JSON.parse(readFileSync(file, 'utf8')) as T;
@@ -121,6 +138,9 @@ export default class DashboardReporter implements Reporter {
   private globalOutput: string[] = [];
   private outputSize = 0;
   private testIndex = new Map<string, number>();
+  private coverage = { pages: {} as Record<string, number[]>, api: {} as Record<string, { method: string; path: string; count: number; statuses: Record<string, number>; tests: number[] }> };
+  private metrics: Array<{ test: number; project: string; kind: string; name: string; ms: number }> = [];
+  private a11y: Array<{ test: number; project: string; page: string; [key: string]: unknown }> = [];
 
   printsToStdio(): boolean {
     return false;
@@ -188,7 +208,12 @@ export default class DashboardReporter implements Reporter {
     const summary = {
       id: this.runId,
       label: process.env.PW_RUN_LABEL || null,
-      trigger: process.env.PW_RUN_TRIGGER === 'ui' ? 'dashboard' : 'command line',
+      trigger:
+        process.env.PW_RUN_TRIGGER === 'ui'
+          ? 'dashboard'
+          : process.env.PW_RUN_TRIGGER === 'schedule'
+            ? 'schedule'
+            : 'command line',
       status: result.status,
       startedAt: this.startedAt.toISOString(),
       duration: Math.round(result.duration),
@@ -207,6 +232,9 @@ export default class DashboardReporter implements Reporter {
       globalErrors: this.globalErrors,
       globalOutput: this.globalOutput.join(''),
       tests,
+      coverage: this.coverage,
+      metrics: this.metrics,
+      a11y: this.a11y,
     };
     writeJson(path.join(this.runDir, 'run.json'), run);
 
@@ -214,7 +242,13 @@ export default class DashboardReporter implements Reporter {
       (r) => r.id !== this.runId && existsSync(path.join(RUNS, r.id, 'run.json')),
     );
     index.unshift(summary);
-    for (const old of index.splice(KEEP)) rmSync(path.join(RUNS, old.id), { recursive: true, force: true });
+    const tooOld = (r: typeof summary) =>
+      MAX_AGE_DAYS !== null && r.id !== this.runId && Date.now() - new Date(r.startedAt).getTime() > MAX_AGE_DAYS * 864e5;
+    const drop = [...index.splice(KEEP), ...index.filter(tooOld)];
+    for (const old of drop) rmSync(path.join(RUNS, old.id), { recursive: true, force: true });
+    const kept = index.filter((r) => !tooOld(r));
+    index.length = 0;
+    index.push(...kept);
     writeJson(path.join(REPORTS, 'index.json'), index);
     this.running.clear();
     this.writeLive('finished');
@@ -291,9 +325,42 @@ export default class DashboardReporter implements Reporter {
     return out;
   }
 
+  /** Coverage, accessibility and timing recorded by the tests: kept in run.json. */
+  private fold(index: number, project: string, name: string, body: Buffer): void {
+    let data: unknown;
+    try {
+      data = JSON.parse(body.toString('utf8'));
+    } catch {
+      return;
+    }
+    if (name === 'metric') {
+      const m = data as { kind: string; name: string; ms: number };
+      this.metrics.push({ test: index, project, kind: m.kind, name: m.name, ms: m.ms });
+    } else if (name === 'a11y') {
+      this.a11y.push({ ...(data as { page: string }), test: index, project });
+    } else if (name === 'coverage') {
+      const c = data as { pages: string[]; api: Array<{ method: string; path: string; status: number; count: number }> };
+      for (const p of c.pages ?? []) {
+        const list = (this.coverage.pages[p] ??= []);
+        if (!list.includes(index)) list.push(index);
+      }
+      for (const call of c.api ?? []) {
+        const key = `${call.method} ${call.path}`;
+        const entry = (this.coverage.api[key] ??= { method: call.method, path: call.path, count: 0, statuses: {}, tests: [] });
+        entry.count += call.count;
+        entry.statuses[call.status] = (entry.statuses[call.status] ?? 0) + call.count;
+        if (!entry.tests.includes(index)) entry.tests.push(index);
+      }
+    }
+  }
+
   private attachments(test: TestCase, result: TestResult) {
     const index = this.testIndex.get(test.id) ?? 0;
-    return result.attachments.map((a, i) => {
+    const project = test.parent.project()?.name ?? '';
+    for (const a of result.attachments) {
+      if (FOLDED.has(a.name) && a.body) this.fold(index, project, a.name, a.body);
+    }
+    return result.attachments.filter((a) => !(FOLDED.has(a.name) && a.body)).map((a, i) => {
       const safe = (name: string) => name.replace(/[^\w.-]+/g, '_').slice(0, 80);
       const base = `${index}-r${result.retry}-${i}-`;
       let file: string | undefined;

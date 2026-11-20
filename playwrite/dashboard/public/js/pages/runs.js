@@ -32,6 +32,7 @@ export async function page(main) {
         <div><h1>Runs</h1><p>Every Playwright run kept on this machine, newest first. Open one for every test, error, screenshot and trace.</p></div>
         <div class="actions">
           <button type="button" class="btn btn-outline" data-action="clear">${icon('trash')}Clear history</button>
+          <a class="btn btn-outline" href="#/compare">${icon('compare')}Compare runs</a>
           <a class="btn btn-primary" href="#/launch">${icon('play')}Run tests</a>
         </div>
       </div>
@@ -118,6 +119,7 @@ export async function page(main) {
         className: 'fit',
         render: (r) => html`<div class="row-actions">
           ${iconAction(`view:${r.id}`, 'eye', 'View')}
+          ${iconAction(`compare:${r.id}`, 'compare', 'Compare with the run before', 'violet')}
           <a class="icon-btn tone-success" href="/api/runs/${encodeURIComponent(r.id)}/download" data-tip="Download" aria-label="Download run as JSON">${icon('download')}</a>
           ${iconAction(`delete:${r.id}`, 'trash', 'Delete', 'danger')}
         </div>`,
@@ -145,6 +147,7 @@ export async function page(main) {
       { value: 'all', label: 'Started from anywhere' },
       { value: 'dashboard', label: 'Dashboard' },
       { value: 'command line', label: 'Command line' },
+      { value: 'schedule', label: 'Scheduled' },
     ],
     value: 'all',
     label: 'Started from',
@@ -162,6 +165,12 @@ export async function page(main) {
     if (!b) return;
     const [act, id] = b.dataset.action.split(/:(.*)/s);
     if (act === 'view') location.hash = `#/runs/${encodeURIComponent(id)}`;
+    if (act === 'compare') {
+      const at = runs.findIndex((r) => r.id === id);
+      const before = runs[at + 1];
+      if (!before) return toast('There is no older run to compare with', 'warning');
+      location.hash = `#/compare?a=${encodeURIComponent(before.id)}&b=${encodeURIComponent(id)}`;
+    }
     if (act === 'delete') {
       const run = runs.find((r) => r.id === id);
       if (!(await confirmDialog({ title: 'Delete this run?', text: `"${runTitle(run)}" and its screenshots, videos and traces will be removed from this machine.`, confirmLabel: 'Delete run' }))) return;

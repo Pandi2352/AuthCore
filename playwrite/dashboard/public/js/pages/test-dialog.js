@@ -1,8 +1,9 @@
 // Everything about one test in one run: overview, errors, steps, evidence, attempts,
 // output and its history across runs.
-import { api, bytes, dur, html, icon, num, raw, render, STATE, testKey, when } from '../lib.js';
+import { api, bytes, debounce, dur, getNotes, html, icon, num, raw, regexEscape, render, STATE, testKey, when } from '../lib.js';
 import { badge, copyText, emptyState, loading, openDialog, stateBadge, tabs, tagBadge, toast } from '../ui.js';
 import { goLaunch } from './common.js';
+import { logLinesHtml, matchesLog } from './logview.js';
 
 const FRIENDLY = {
   'error-context': 'Page snapshot at the failure',
@@ -20,7 +21,6 @@ const kindOf = (a) => {
   if (a.contentType.startsWith('text/') || a.contentType === 'application/json' || a.contentType === 'text/markdown') return 'text';
   return 'other';
 };
-const regexEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Markdown summary of a failing test (for tickets / chat). */
 export function failureMarkdown(run, t) {
@@ -53,18 +53,19 @@ export function openTestDialog(run, index, { onClose, startTab = 'overview' } = 
     width: 1040,
     body: html`<div class="actions" style="margin-bottom:12px">${stateBadge(t.state, t.attempts)}${badge(dur(t.duration), 'cyan', 'timer')}${t.tags.map(tagBadge)}</div>
       <div id="tdt"></div><div id="tdb"></div>`,
-    footer: html`<button type="button" class="btn btn-outline" data-act="copy-title">${icon('copy')}Copy name</button>
+    footer: html`<button type="button" class="btn btn-outline" data-act="copy-link">${icon('link')}Copy link</button>
+      <button type="button" class="btn btn-outline" data-act="copy-title">${icon('copy')}Copy name</button>
       ${errorCount ? html`<button type="button" class="btn btn-outline" data-act="copy-md">${icon('copy')}Copy failure details</button>` : ''}
       <button type="button" class="btn btn-primary" data-act="rerun">${icon('play')}Run this test</button>`,
     onClose,
   });
 
+  el.querySelector('[data-act="copy-link"]').addEventListener('click', () =>
+    copyText(`${location.origin}/#/runs/${encodeURIComponent(run.id)}?test=${index}`, 'Link to this test copied'),
+  );
   el.querySelector('[data-act="copy-title"]').addEventListener('click', () => copyText(t.fullTitle, 'Test name copied'));
   el.querySelector('[data-act="copy-md"]')?.addEventListener('click', () => copyText(failureMarkdown(run, t), 'Failure details copied'));
-  el.querySelector('[data-act="rerun"]').addEventListener('click', () => {
-    close();
-    goLaunch({ projects: [t.project], files: [t.file], grep: regexEscape(t.title), label: `Re-run: ${t.title}`.slice(0, 80) });
-  });
+  el.querySelector('[data-act="rerun"]').addEventListener('click', () => runOptions(run, t));
 
   const body = el.querySelector('#tdb');
   const items = [
@@ -72,12 +73,14 @@ export function openTestDialog(run, index, { onClose, startTab = 'overview' } = 
     { id: 'errors', label: 'Errors', icon: 'bug', count: errorCount, countTone: errorCount ? 'danger' : undefined },
     { id: 'steps', label: 'Steps', icon: 'layers' },
     { id: 'evidence', label: 'Evidence', icon: 'image', count: allAttachments.length },
-    { id: 'attempts', label: 'Attempts', icon: 'repeat', count: t.attempts },
+    { id: 'attempts', label: 'Tries', icon: 'repeat', count: t.attempts },
     { id: 'output', label: 'Output', icon: 'terminal' },
+    { id: 'backend', label: 'Backend', icon: 'logs' },
     { id: 'history', label: 'History', icon: 'history' },
+    { id: 'notes', label: 'Notes', icon: 'note' },
   ];
   const show = (id) => {
-    const views = { overview, errors, steps, evidence, attempts, output, history };
+    const views = { overview, errors, steps, evidence, attempts, output, backend, history, notes };
     views[id](body, run, t, { allAttachments, hasOutput });
   };
   tabs(el.querySelector('#tdt'), items, items.some((i) => i.id === startTab) ? startTab : 'overview', show);
@@ -297,6 +300,144 @@ function output(body, run, t, { hasOutput }) {
         ${r.stderr ? html`<div><h3 style="font-size:14px;margin-bottom:8px">Try ${r.retry + 1}: errors</h3><pre class="code error">${r.stderr}</pre></div>` : ''}`,
     )}</div>`,
   );
+}
+
+// --------------------------------------------------------------- backend log
+async function backend(body, run, t) {
+  const tries = t.results.filter((r) => r.startTime);
+  if (!tries.length) return render(body, emptyState({ icon: 'logs', title: 'The test did not run' }));
+  if (run.target && run.target !== 'test') {
+    return render(body, emptyState({ icon: 'logs', title: 'Only for the test environment', text: 'This run used the dev servers; their log is in your backend terminal.' }));
+  }
+  let attempt = tries.length - 1;
+  const f = { q: '', level: 'all', apiOnly: false };
+  let data = null;
+  const draw = () => {
+    const r = tries[attempt];
+    const shown = (data?.lines ?? []).filter((l) => matchesLog(l, f));
+    render(
+      body,
+      html`<div class="actions" style="margin-bottom:10px">
+          ${tries.length > 1 ? html`<div class="chips">${tries.map((x, i) => html`<button type="button" class="chip" aria-pressed="${i === attempt}" data-try="${i}">Try ${x.retry + 1}</button>`)}</div>` : ''}
+          <label class="field grow" style="min-width:200px">${icon('search')}<span class="sr-only">Filter</span><input type="search" placeholder="Filter the lines" value="${f.q}" data-q/></label>
+          <div class="chips">${[['all', 'All'], ['problems', 'Warnings & errors']].map(([v, l]) => html`<button type="button" class="chip" aria-pressed="${f.level === v}" data-level="${v}">${l}</button>`)}</div>
+          <label class="switch" style="padding:6px 10px"><input type="checkbox" data-api ${f.apiOnly ? raw('checked') : ''}/><strong>Only API requests</strong></label>
+        </div>
+        <p class="small muted" style="margin-bottom:8px">What the test backend logged from ${when(r.startTime)} for ${dur(r.duration)} (plus a moment after). Other tests running at the same time show up too.</p>
+        ${!data
+          ? loading('Reading the backend log…')
+          : data.missing
+            ? emptyState({ icon: 'logs', title: 'No backend log', text: 'Start the test environment from the dashboard or with npm run env:test.' })
+            : !data.lines.length && data.logStartedAt && new Date(data.logStartedAt) > new Date(r.startTime)
+              ? emptyState({ icon: 'logs', title: 'The log was started over', text: 'The test environment restarted after this run, so its log from then is gone.' })
+              : html`<div class="logview short" role="log" aria-label="Backend log for this test">${raw(shown.length ? logLinesHtml(shown, f.q) : '<div class="plain">No lines match.</div>')}</div>
+                  <div class="small muted" style="margin-top:6px">${num(shown.length)} of ${num(data.lines.length)} lines</div>`}`,
+    );
+    body.querySelectorAll('[data-try]').forEach((b) => b.addEventListener('click', () => ((attempt = Number(b.dataset.try)), load())));
+    body.querySelectorAll('[data-level]').forEach((b) => b.addEventListener('click', () => ((f.level = b.dataset.level), draw())));
+    body.querySelector('[data-api]')?.addEventListener('change', (e) => ((f.apiOnly = e.target.checked), draw()));
+    const q = body.querySelector('[data-q]');
+    q?.addEventListener(
+      'input',
+      debounce((e) => {
+        f.q = e.target.value;
+        draw();
+        const again = body.querySelector('[data-q]');
+        again.focus();
+        again.setSelectionRange(again.value.length, again.value.length);
+      }, 250),
+    );
+  };
+  const load = async () => {
+    data = null;
+    draw();
+    const r = tries[attempt];
+    const end = new Date(new Date(r.startTime).getTime() + r.duration).toISOString();
+    data = await api.envLogWindow(r.startTime, end).catch((e) => ({ lines: [], missing: true, error: e.message }));
+    draw();
+  };
+  load();
+}
+
+// ---------------------------------------------------------------------- notes
+async function notes(body, run, t) {
+  render(body, loading());
+  const key = testKey(t);
+  const all = await getNotes(true);
+  const current = all[key] ?? { note: '', muted: false };
+  render(
+    body,
+    html`<div class="stack" style="gap:14px;max-width:720px">
+      <p class="muted">A note for everyone who looks at this test (kept on this computer, across runs): a ticket number, a known cause, what to try.</p>
+      <div class="form-row"><label for="note-text">Note</label><textarea class="input" id="note-text" maxlength="4000" placeholder="Enter a note, e.g. Known backend bug, ticket AUTH-123">${current.note}</textarea></div>
+      <label class="switch"><input type="checkbox" data-muted ${current.muted ? raw('checked') : ''}/><div><strong>Known issue: don't count it as a new problem</strong><span>Marked "Known issue" wherever it fails, and listed after the other problems, until you turn this off.</span></div></label>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" data-save>${icon('check')}Save note</button>
+        ${current.note || current.muted ? html`<button type="button" class="btn btn-outline" data-clear>${icon('trash')}Remove note</button>` : ''}
+        ${current.updatedAt ? html`<span class="muted small">Saved ${when(current.updatedAt)}</span>` : ''}
+      </div>
+    </div>`,
+  );
+  const save = async (note, isMuted) => {
+    try {
+      await api.saveNote(key, note, isMuted);
+      await getNotes(true);
+      toast(note || isMuted ? 'Note saved (shows after the page reloads)' : 'Note removed');
+      notes(body, run, t);
+    } catch (e) {
+      toast(e.message, 'danger');
+    }
+  };
+  body.querySelector('[data-save]').addEventListener('click', () => save(body.querySelector('#note-text').value, body.querySelector('[data-muted]').checked));
+  body.querySelector('[data-clear]')?.addEventListener('click', () => save('', false));
+}
+
+// ---------------------------------------------------------- run this test
+/** Run one test now, with a few common options. */
+export function runOptions(run, t) {
+  const opts = { headed: false, repeatEach: 1, trace: false };
+  const { el, close } = openDialog({
+    title: 'Run this test',
+    description: html`${t.fullTitle} · ${t.project}`,
+    width: 520,
+    body: html`<div class="stack" style="gap:12px">
+      <label class="switch"><input type="checkbox" data-o="headed"/><div><strong>Show the browser</strong><span>Watch it click through the app.</span></div></label>
+      <label class="switch"><input type="checkbox" data-o="trace"/><div><strong>Record a trace</strong><span>Every step can be replayed afterwards, even when it passes.</span></div></label>
+      <div class="form-row"><label for="rep">Run it this many times</label><input class="input" id="rep" type="number" min="1" max="20" value="1" placeholder="Enter 1–20"/><span class="help">More than once shows whether it is flaky.</span></div>
+    </div>`,
+    footer: html`<button type="button" class="btn btn-outline" data-more>More options…</button><button type="button" class="btn btn-primary" data-go data-autofocus>${icon('play')}Start</button>`,
+  });
+  const options = () => ({
+    projects: [t.project],
+    files: [t.file],
+    grep: regexEscape(t.title),
+    headed: el.querySelector('[data-o="headed"]').checked,
+    trace: el.querySelector('[data-o="trace"]').checked,
+    repeatEach: Math.min(20, Math.max(1, Number.parseInt(el.querySelector('#rep').value, 10) || 1)),
+    retries: 0,
+    target: run.target ?? null,
+    label: `Run: ${t.title}`.slice(0, 80),
+  });
+  el.querySelector('[data-more]').addEventListener('click', () => {
+    const o = options();
+    close();
+    document.getElementById('dialogs').replaceChildren();
+    goLaunch(o);
+  });
+  el.querySelector('[data-go]').addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    try {
+      await api.start(options());
+      document.getElementById('dialogs').replaceChildren();
+      document.body.style.overflow = '';
+      toast('Run started');
+      location.hash = '#/launch';
+    } catch (err) {
+      toast(err.message, 'danger');
+      e.currentTarget.disabled = false;
+    }
+  });
+  return opts;
 }
 
 // -------------------------------------------------------------------- history

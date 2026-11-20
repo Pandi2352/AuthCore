@@ -175,6 +175,19 @@ function wireHits(mount, items) {
   });
 }
 
+/** Tiny trend line (oldest → newest) for table cells. Values may contain nulls. */
+export function sparkline(values, { width = 120, height = 28, label = 'Trend' } = {}) {
+  const pts = values.map((v, i) => ({ v, i })).filter((p) => p.v !== null && p.v !== undefined);
+  if (pts.length < 2) return html`<span class="muted small">—</span>`;
+  const max = Math.max(...pts.map((p) => p.v));
+  const min = Math.min(...pts.map((p) => p.v));
+  const x = (i) => 3 + ((width - 6) * i) / Math.max(1, values.length - 1);
+  const y = (v) => height - 3 - ((height - 6) * (v - min)) / Math.max(1e-9, max - min);
+  const d = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
+  const last = pts.at(-1);
+  return html`<svg class="spark" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${label}"><path d="${d}"/><circle cx="${x(last.i)}" cy="${y(last.v)}" r="2.5"/></svg>`;
+}
+
 /** Tooltip body: a title and rows of label/value. */
 export const tipRows = (title, rows) =>
   html`<b>${title}</b>${rows.map(([k, v]) => html`<div class="row"><span>${k}</span><b>${v}</b></div>`)}`;

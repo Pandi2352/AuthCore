@@ -4,8 +4,15 @@ import { runBadge } from '../ui.js';
 
 export const runTitle = (run) => run.label || `Run of ${when(run.startedAt)}`;
 
+const TRIGGER = {
+  dashboard: { label: 'Dashboard', long: 'Started from the dashboard', icon: 'monitor', tone: 'primary' },
+  schedule: { label: 'Scheduled', long: 'Started by a schedule', icon: 'calendar', tone: 'violet' },
+  'command line': { label: 'Command line', long: 'Started from the command line', icon: 'terminal', tone: 'cyan' },
+};
+export const triggerInfo = (run) => TRIGGER[run.trigger] ?? TRIGGER['command line'];
+
 export const triggerBadge = (run) =>
-  html`<span class="badge badge-sm ${run.trigger === 'dashboard' ? 'tone-primary' : 'tone-cyan'}">${icon(run.trigger === 'dashboard' ? 'monitor' : 'terminal')}${run.trigger === 'dashboard' ? 'Dashboard' : 'Command line'}</span>`;
+  html`<span class="badge badge-sm tone-${triggerInfo(run).tone}">${icon(triggerInfo(run).icon)}${triggerInfo(run).label}</span>`;
 
 const dotsSvg = raw(
   '<svg class="dots" aria-hidden="true"><defs><pattern id="banner-dots" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="#fff"/></pattern></defs><rect width="100%" height="100%" fill="url(#banner-dots)"/></svg>',
@@ -34,7 +41,7 @@ export function runBanner(run, actions) {
           <span>${icon('clock')}${when(run.startedAt)} (${ago(run.startedAt)})</span>
           <span>${icon('timer')}${dur(run.duration)}</span>
           <span>${icon('flask')}${num(c.total)} tests · ${pct(run.passRate)} pass rate</span>
-          <span>${icon(run.trigger === 'dashboard' ? 'monitor' : 'terminal')}${run.trigger === 'dashboard' ? 'Started from the dashboard' : 'Started from the command line'}</span>
+          <span>${icon(triggerInfo(run).icon)}${triggerInfo(run).long}</span>
           ${run.branch ? html`<span>${icon('branch')}${run.branch}${run.commit ? ` @ ${run.commit}` : ''}</span>` : ''}
           ${run.target ? html`<span>${icon(run.target === 'dev' ? 'monitor' : 'flask')}${run.target === 'dev' ? 'Dev servers' : 'Test environment'}</span>` : ''}
           ${run.label ? html`<span>${icon('tag')}${run.label}</span>` : ''}

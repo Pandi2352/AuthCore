@@ -26,6 +26,17 @@ const PORT = Number(process.env.PW_DASHBOARD_PORT ?? 9400);
 const HOST = '127.0.0.1';
 
 import { resolveTarget, TARGETS, TEST_ENV } from '../target.mjs';
+import { coverage } from './lib/coverage.mjs';
+import { exportRun } from './lib/export.mjs';
+import { approveBaseline, baselinePath, catalogHealth, errorGroups, qualityTrend, removeBaseline, search, visual } from './lib/insights.mjs';
+import { clearMail, listMail, mailFile, readMail } from './lib/mail.mjs';
+import { deleteSchedule, listSchedules, markRun, saveSchedule, startScheduler } from './lib/scheduler.mjs';
+import { cleanLeftovers, envStatus, leftovers, logChunk, logWindow, onEnvChange, startEnv, stopEnv } from './lib/testenv.mjs';
+import { newId, readRun, store } from './lib/util.mjs';
+
+const notes = store('notes', {});
+const presets = store('presets', []);
+const settings = store('settings', { keep: 50, maxAgeDays: null });
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -275,21 +286,26 @@ async function buildArgs(options) {
   if (options.headed === true) args.push('--headed');
   if (options.lastFailed === true) args.push('--last-failed');
   if (options.trace === true) args.push('--trace=on');
-  args.push(...files);
+  // Exact tests (re-run the failed ones of any run): file:line, checked against the test list.
+  const exact = (Array.isArray(options.tests) ? options.tests : [])
+    .filter((t) => t && cat.files.includes(t.file) && Number.isInteger(t.line) && t.line > 0)
+    .slice(0, 300)
+    .map((t) => `${t.file}:${t.line}`);
+  args.push(...(exact.length ? [...new Set(exact)] : files));
   return args;
 }
 
-async function startRun(options) {
+async function startRun(options, trigger = 'ui') {
   if (child) throw new Error('A run is already going');
   const args = await buildArgs(options);
   const label = typeof options.label === 'string' ? options.label.trim().slice(0, 80) : '';
   const target = TARGETS.includes(options.target) ? options.target : resolveTarget().name;
-  current = { startedAt: new Date().toISOString(), options, args, log: [], exitCode: null };
+  current = { startedAt: new Date().toISOString(), options, args, log: [], exitCode: null, trigger, target };
   child = spawn(process.execPath, [CLI, ...args], {
     cwd: ROOT,
     env: {
       ...process.env,
-      PW_RUN_TRIGGER: 'ui',
+      PW_RUN_TRIGGER: trigger,
       PW_RUN_LABEL: label,
       PW_ENV: target,
       FORCE_COLOR: '0',
@@ -316,7 +332,8 @@ async function startRun(options) {
     if (current.stopped) recordStoppedRun(live);
     child = null;
     catalog = null;
-    broadcast('finished', { exitCode: code, runId: current.runId, state: liveState() });
+    if (current.scheduleId) markRun(current.scheduleId, { lastRunId: current.runId, lastExitCode: code });
+    broadcast('finished', { exitCode: code, runId: current.runId, label: current.options?.label ?? '', trigger: current.trigger, state: liveState() });
   });
   broadcast('started', liveState());
   return liveState();
@@ -343,7 +360,7 @@ function recordStoppedRun(live) {
   const summary = {
     id: live.runId,
     label: current.options?.label ? `${current.options.label} (stopped)` : 'Stopped run',
-    trigger: 'dashboard',
+    trigger: current.trigger === 'schedule' ? 'schedule' : 'dashboard',
     status: 'interrupted',
     startedAt: live.startedAt,
     duration: Date.now() - new Date(live.startedAt).getTime(),
@@ -406,6 +423,19 @@ async function handleApi(req, res, url) {
       const run = readJson(path.join(dir, 'run.json'), null);
       return run ? send(res, 200, run) : fail(res, 404, 'Run not found');
     }
+    if (method === 'GET' && (parts[2] === 'export.html' || parts[2] === 'print')) {
+      const run = readRun(id);
+      if (!run) return fail(res, 404, 'Run not found');
+      const page = exportRun(run, { print: parts[2] === 'print' });
+      const headers = { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' };
+      if (parts[2] === 'export.html') headers['content-disposition'] = `attachment; filename="playwright-run-${id}.html"`;
+      res.writeHead(200, headers);
+      return res.end(page);
+    }
+    if (method === 'GET' && parts[2] === 'groups') {
+      const run = readRun(id);
+      return run ? send(res, 200, errorGroups(run)) : fail(res, 404, 'Run not found');
+    }
     if (method === 'GET' && parts[2] === 'download') {
       return serveFile(req, res, path.join(dir, 'run.json'), `playwright-run-${id}.json`);
     }
@@ -466,7 +496,9 @@ async function handleApi(req, res, url) {
       memoryGb: Math.round(os.totalmem() / 1024 ** 3),
       reportsBytes: dirSize(REPORTS),
       runsKept: runIndex().length,
-      keep: Number(process.env.PW_DASHBOARD_KEEP ?? 50),
+      keep: Number(process.env.PW_DASHBOARD_KEEP ?? settings.get().keep ?? 50),
+      maxAgeDays: settings.get().maxAgeDays ?? null,
+      keepFromEnv: Boolean(process.env.PW_DASHBOARD_KEEP),
       htmlReport: existsSync(path.join(HTML_REPORT, 'index.html')),
       root: ROOT,
       dashboard: `http://${HOST}:${PORT}`,
@@ -499,6 +531,147 @@ async function handleApi(req, res, url) {
 
   if (method === 'POST' && parts[0] === 'stop') return send(res, 200, { stopping: stopRun() });
 
+  // ------------------------------------------------------------ test environment
+  if (parts[0] === 'testenv') {
+    if (method === 'GET' && parts[1] === 'status') return send(res, 200, await envStatus());
+    if (method === 'POST' && parts[1] === 'start') {
+      const body = await readBody(req);
+      try {
+        startEnv({ reset: body.reset === true, rebuild: body.rebuild === true });
+        return send(res, 200, await envStatus());
+      } catch (e) {
+        return fail(res, 409, e.message);
+      }
+    }
+    if (method === 'POST' && parts[1] === 'stop') {
+      if (child && current?.target === 'test') return fail(res, 409, 'Tests are running against it: stop the run first');
+      await stopEnv();
+      return send(res, 200, await envStatus());
+    }
+    if (method === 'GET' && parts[1] === 'logs') {
+      const from = url.searchParams.get('from');
+      const to = url.searchParams.get('to');
+      if (from && to) return send(res, 200, logWindow(from, to));
+      const offset = url.searchParams.has('offset') ? Number(url.searchParams.get('offset')) : undefined;
+      return send(res, 200, logChunk(offset));
+    }
+    if (method === 'GET' && parts[1] === 'leftovers') {
+      try {
+        return send(res, 200, await leftovers());
+      } catch (e) {
+        return fail(res, 503, `Could not read the test database: ${e.message}`);
+      }
+    }
+    if (method === 'POST' && parts[1] === 'cleanup') {
+      const body = await readBody(req);
+      try {
+        return send(res, 200, await cleanLeftovers(Array.isArray(body.kinds) ? body.kinds : []));
+      } catch (e) {
+        return fail(res, 503, e.message);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------- emails
+  if (parts[0] === 'mail') {
+    if (method === 'GET' && parts.length === 1) return send(res, 200, listMail());
+    if (method === 'DELETE' && parts.length === 1) return send(res, 200, { removed: clearMail() });
+    if (method === 'GET' && parts[1] && parts[2] === 'raw') {
+      const name = decodeURIComponent(parts[1]);
+      return serveFile(req, res, mailFile(name), name);
+    }
+    if (method === 'GET' && parts[1]) {
+      const mail = readMail(decodeURIComponent(parts[1]));
+      return mail ? send(res, 200, mail) : fail(res, 404, 'Email not found');
+    }
+  }
+
+  // ------------------------------------------------------------- insights & quality
+  if (method === 'GET' && parts[0] === 'coverage') return send(res, 200, await coverage(url.searchParams.get('run') || undefined));
+  if (method === 'GET' && parts[0] === 'quality') return send(res, 200, qualityTrend());
+  if (method === 'GET' && parts[0] === 'health') return send(res, 200, catalogHealth(await loadCatalog()));
+  if (method === 'GET' && parts[0] === 'search') {
+    return send(res, 200, search(url.searchParams.get('q') ?? '', { state: url.searchParams.get('state') ?? 'all' }));
+  }
+  if (parts[0] === 'visual') {
+    if (method === 'GET' && parts.length === 1) return send(res, 200, visual(url.searchParams.get('run') || undefined));
+    if (method === 'GET' && parts[1] === 'baseline' && parts[2]) return serveFile(req, res, baselinePath(parts[2]));
+    if (method === 'POST' && parts[1] === 'approve') {
+      const body = await readBody(req);
+      try {
+        const keys = Array.isArray(body.keys) ? body.keys : [body.key];
+        return send(res, 200, keys.filter(Boolean).map((k) => approveBaseline(String(body.runId), String(k))));
+      } catch (e) {
+        return fail(res, 400, e.message);
+      }
+    }
+    if (method === 'POST' && parts[1] === 'remove') {
+      const body = await readBody(req);
+      return send(res, 200, { removed: removeBaseline(String(body.key)) });
+    }
+  }
+
+  // ------------------------------------------------------------ notes & mutes
+  if (parts[0] === 'notes') {
+    if (method === 'GET') return send(res, 200, notes.get());
+    if (method === 'PUT') {
+      const body = await readBody(req);
+      const key = String(body.key ?? '');
+      if (!key || key.length > 600) return fail(res, 400, 'Missing test');
+      const all = notes.get();
+      const note = String(body.note ?? '').trim().slice(0, 4000);
+      if (!note && !body.muted) delete all[key];
+      else all[key] = { note, muted: Boolean(body.muted), updatedAt: new Date().toISOString() };
+      notes.set(all);
+      return send(res, 200, all[key] ?? null);
+    }
+  }
+
+  // ------------------------------------------------------------- saved setups
+  if (parts[0] === 'presets') {
+    if (method === 'GET') return send(res, 200, presets.get());
+    if (method === 'POST') {
+      const body = await readBody(req);
+      const name = String(body.name ?? '').trim().slice(0, 60);
+      if (!name) return fail(res, 400, 'Enter a name');
+      const list = presets.get().filter((p) => p.name.toLowerCase() !== name.toLowerCase());
+      const item = { id: newId(), name, options: body.options ?? {}, createdAt: new Date().toISOString() };
+      presets.set([item, ...list].slice(0, 50));
+      return send(res, 200, item);
+    }
+    if (method === 'DELETE' && parts[1]) {
+      presets.set(presets.get().filter((p) => p.id !== parts[1]));
+      return send(res, 200, { deleted: parts[1] });
+    }
+  }
+
+  // ---------------------------------------------------------------- schedules
+  if (parts[0] === 'schedules') {
+    if (method === 'GET') return send(res, 200, listSchedules());
+    if (method === 'POST' || method === 'PUT') {
+      try {
+        return send(res, 200, saveSchedule(await readBody(req)));
+      } catch (e) {
+        return fail(res, 400, e.message);
+      }
+    }
+    if (method === 'DELETE' && parts[1]) return send(res, 200, { deleted: deleteSchedule(parts[1]) });
+  }
+
+  // ----------------------------------------------------------------- settings
+  if (parts[0] === 'settings') {
+    if (method === 'GET') return send(res, 200, settings.get());
+    if (method === 'PUT') {
+      const body = await readBody(req);
+      const keep = Number.parseInt(body.keep, 10);
+      const maxAgeDays = body.maxAgeDays === null || body.maxAgeDays === '' || body.maxAgeDays === undefined ? null : Number.parseInt(body.maxAgeDays, 10);
+      if (!(keep >= 1 && keep <= 500)) return fail(res, 400, 'Keep 1 to 500 runs');
+      if (maxAgeDays !== null && !(maxAgeDays >= 1 && maxAgeDays <= 3650)) return fail(res, 400, 'Days must be 1 to 3650, or empty for no limit');
+      settings.set({ ...settings.get(), keep, maxAgeDays });
+      return send(res, 200, { ...settings.get(), removed: prune() });
+    }
+  }
+
   if (method === 'POST' && parts[0] === 'open-report') {
     if (!existsSync(path.join(HTML_REPORT, 'index.html'))) return fail(res, 404, 'No HTML report yet');
     return send(res, 200, { url: '/html-report/index.html' });
@@ -511,6 +684,58 @@ function writeIndex(index) {
   mkdirSync(REPORTS, { recursive: true });
   writeFileSync(path.join(REPORTS, 'index.json'), JSON.stringify(index));
 }
+
+/** Drops runs beyond the number to keep or older than the age limit (Setup page). */
+function prune() {
+  if (child) return 0;
+  const { keep = 50, maxAgeDays = null } = settings.get();
+  const limit = Number(process.env.PW_DASHBOARD_KEEP ?? keep);
+  const index = runIndex();
+  const old = (r) => maxAgeDays && Date.now() - new Date(r.startedAt).getTime() > maxAgeDays * 864e5;
+  const stay = index.filter((r, i) => i < limit && !old(r));
+  const drop = index.filter((r) => !stay.includes(r));
+  for (const r of drop) rmSync(path.join(RUNS, r.id), { recursive: true, force: true });
+  if (drop.length) writeIndex(stay);
+  return drop.length;
+}
+setInterval(prune, 3_600_000);
+
+// Test environment changes go to every open page.
+let envTimer = null;
+onEnvChange((type, data) => {
+  if (type === 'line') broadcast('env-line', { line: data });
+  clearTimeout(envTimer);
+  envTimer = setTimeout(async () => broadcast('env', await envStatus()), 150);
+});
+
+/** Waits until the test environment answers (scheduled runs that start it first). */
+async function envReady(ms = 6 * 60_000) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    const st = await envStatus();
+    if (st.phase === 'ready') return;
+    if (st.phase === 'failed') throw new Error('The test environment did not start');
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  throw new Error('The test environment did not start in time');
+}
+
+startScheduler({
+  busy: () => Boolean(child),
+  log: (line) => console.log(line),
+  run: async (schedule) => {
+    const target = TARGETS.includes(schedule.options?.target) ? schedule.options.target : resolveTarget().name;
+    if (target === 'test' && schedule.startEnv) {
+      const st = await envStatus();
+      if (st.phase !== 'ready') {
+        if (st.phase !== 'starting') startEnv({});
+        await envReady();
+      }
+    }
+    await startRun({ ...schedule.options, label: `Scheduled: ${schedule.name}`.slice(0, 80) }, 'schedule');
+    current.scheduleId = schedule.id;
+  },
+});
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -538,4 +763,5 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`AuthCore test dashboard: http://${HOST}:${PORT}`);
   loadCatalog();
+  prune();
 });

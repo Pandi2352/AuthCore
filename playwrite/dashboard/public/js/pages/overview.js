@@ -1,6 +1,6 @@
 // Overview: the latest run at a glance, trends across runs, and what needs a look.
 import { barChart, lineChart, stackedBars, tipRows } from '../charts.js';
-import { api, dur, getRun, groups, html, icon, num, pct, render, when } from '../lib.js';
+import { api, dur, getNotes, getRun, groups, html, icon, num, pct, render, testKey, when } from '../lib.js';
 import {
   emptyState,
   loading,
@@ -18,7 +18,7 @@ import { openTestDialog } from './test-dialog.js';
 export async function page(main) {
   render(main, loading());
   const draw = async () => {
-    const [runs, hist] = await Promise.all([api.runs(), api.history()]);
+    const [runs, hist, notes] = await Promise.all([api.runs(), api.history(), getNotes(true)]);
     if (!runs.length) {
       render(
         main,
@@ -52,7 +52,13 @@ export async function page(main) {
     }));
     const flakiest = tally.filter((t) => t.flaky).sort((a, b) => b.flaky - a.flaky).slice(0, 8);
     const failing = tally.filter((t) => t.failed).sort((a, b) => b.failed - a.failed).slice(0, 8);
-    const failures = latest.tests.map((t, i) => ({ t, i })).filter(({ t }) => ['failed', 'timedOut', 'flaky'].includes(t.state));
+    // Known issues (muted on the test's Notes tab) go last.
+    const isKnown = (t) => Boolean(notes[testKey(t)]?.muted);
+    const failures = latest.tests
+      .map((t, i) => ({ t, i }))
+      .filter(({ t }) => ['failed', 'timedOut', 'flaky'].includes(t.state))
+      .sort((a, b) => Number(isKnown(a.t)) - Number(isKnown(b.t)));
+    const knownFailing = failures.filter(({ t }) => isKnown(t) && t.state !== 'flaky').length;
     const slowest = latest.tests.map((t, i) => ({ t, i })).sort((a, b) => b.t.duration - a.t.duration).slice(0, 8);
     const avgTest = executed ? latest.tests.reduce((s, t) => s + t.duration, 0) / Math.max(1, latest.tests.length) : 0;
 
@@ -77,7 +83,7 @@ export async function page(main) {
         <div class="grid grid-stats">
           ${statCard({ tone: 'primary', pattern: 'rings', icon: 'flask', label: 'Tests', value: num(c.total), hint: `${latest.projects.length} project${latest.projects.length === 1 ? '' : 's'}`, action: 'go:' })}
           ${statCard({ tone: 'success', pattern: 'waves', icon: 'checkCircle', label: 'Passed', value: num(c.passed), hint: 'First try', action: 'go:passed' })}
-          ${statCard({ tone: 'danger', pattern: 'stripes', icon: 'xCircle', label: 'Failed', value: num(c.failed + c.timedOut), hint: c.timedOut ? `${num(c.timedOut)} timed out` : 'Need a look', action: 'go:failed' })}
+          ${statCard({ tone: 'danger', pattern: 'stripes', icon: 'xCircle', label: 'Failed', value: num(c.failed + c.timedOut), hint: knownFailing ? `${num(knownFailing)} known issue${knownFailing === 1 ? '' : 's'}` : c.timedOut ? `${num(c.timedOut)} timed out` : 'Need a look', action: 'go:failed' })}
           ${statCard({ tone: 'warning', pattern: 'dots', icon: 'alert', label: 'Flaky', value: num(c.flaky), hint: 'Passed after a retry', action: 'go:flaky' })}
           ${statCard({ tone: 'neutral', pattern: 'grid', icon: 'skip', label: 'Skipped', value: num(c.skipped + c.interrupted), hint: c.interrupted ? `${num(c.interrupted)} interrupted` : 'Not run', action: 'go:skipped' })}
           ${statCard({ tone: 'violet', pattern: 'sparkles', icon: 'gauge', label: 'Pass rate', value: pct(latest.passRate), hint: prev?.passRate !== undefined && prev?.passRate !== null && latest.passRate !== null ? `${latest.passRate - prev.passRate >= 0 ? '+' : ''}${Math.round((latest.passRate - prev.passRate) * 10) / 10} pts vs previous` : 'Of tests that ran' })}
@@ -117,7 +123,7 @@ export async function page(main) {
               ? html`<ul class="list">${failures.map(
                   ({ t, i }) => html`<li><button type="button" class="list-row" data-test="${i}">
                     <span class="grow"><strong class="truncate" style="display:block">${t.fullTitle}</strong><span class="muted small truncate" style="display:block">${t.project} · ${firstLine(t)}</span></span>
-                    ${stateBadge(t.state, t.attempts, true)}${icon('chevronRight')}
+                    ${isKnown(t) ? html`<span class="badge badge-sm">${icon('bellOff')}Known issue</span>` : ''}${stateBadge(t.state, t.attempts, true)}${icon('chevronRight')}
                   </button></li>`,
                 )}</ul>`
               : emptyState({ icon: 'checkCircle', title: 'Nothing failed', text: 'Every test passed on the first try.' }),

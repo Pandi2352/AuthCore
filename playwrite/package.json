@@ -19,6 +19,7 @@
     "env:test:reset": "node test-env/start.mjs --reset"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@playwright/test": "1.65.1",
     "@types/node": "20.19.43",
     "typescript": "5.9.3"

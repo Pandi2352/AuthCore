@@ -118,9 +118,16 @@ function run(cmd, cmdArgs, cwd, label) {
   log(`${label}: done in ${Math.round((Date.now() - started) / 1000)} s`);
 }
 
-async function waitFor(url, label, ms = 90_000) {
-  const until = Date.now() + ms;
+// Right after a rebuild the first start can be slow (new files get scanned), so allow 3 min.
+async function waitFor(url, label, ms = 180_000) {
+  const started = Date.now();
+  const until = started + ms;
+  let said = started;
   while (Date.now() < until) {
+    if (Date.now() - said >= 15_000) {
+      said = Date.now();
+      log(`${label}: still starting (${Math.round((said - started) / 1000)} s)…`);
+    }
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (res.status < 500) return;

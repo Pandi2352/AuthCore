@@ -1,5 +1,6 @@
 // Setup: what the tests run against, the account, tools, storage, and handy commands.
-import { api, bytes, html, icon, num, render } from '../lib.js';
+import { notifyOn, notifySupported } from '../app.js';
+import { api, bytes, html, icon, num, pref, raw, render } from '../lib.js';
 import { confirmDialog, copyText, emptyState, loading, refreshButton, sectionCard, spinWhile, statCard, toast } from '../ui.js';
 import { forgetRun } from '../lib.js';
 
@@ -54,7 +55,7 @@ export async function page(main) {
                   <div>Its emails (never sent)</div><div class="mono small">${e.testEnv.outbox}</div>
                   <div>Its logs</div><div class="mono small">${e.testEnv.logs}</div>
                 </div>
-                <div class="callout t-info" style="margin-top:14px">${icon('terminal')}<div>Start the test environment in a terminal in the playwrite folder with <code>npm run env:test</code> (<code>npm run env:test:reset</code> starts from an empty database). The dev servers use your dev database and may send real email.</div></div>`,
+                <div class="callout t-info" style="margin-top:14px">${icon('server')}<div style="flex:1">Start, stop or reset the test environment on the <a href="#/testenv">Test environment</a> page (or <code>npm run env:test</code> in a terminal). The dev servers use your dev database and may send real email.</div></div>`,
             })}
             ${sectionCard({
               tone: 'cyan',
@@ -76,11 +77,24 @@ export async function page(main) {
               title: 'Report storage',
               description: 'Kept in playwrite/reports (not committed).',
               body: html`<div class="kv">
-                  <div>Runs kept</div><div>${num(e.runsKept)} (the newest ${num(e.keep)}; set PW_DASHBOARD_KEEP to change)</div>
+                  <div>Runs kept</div><div>${num(e.runsKept)}</div>
                   <div>Space used</div><div>${bytes(e.reportsBytes)}</div>
                   <div>Playwright HTML report</div><div>${e.htmlReport ? html`<a href="/html-report/index.html" target="_blank" rel="noopener">Open (latest run only) ${icon('external')}</a>` : 'Not made yet'}</div>
                 </div>
+                <div class="inline-form" style="margin-top:16px">
+                  <div class="form-row"><label for="keep">Keep the newest runs</label><input class="input" id="keep" type="number" min="1" max="500" value="${e.keep}" placeholder="Enter 1–500" ${e.keepFromEnv ? 'disabled' : ''}/>${e.keepFromEnv ? html`<span class="help">Set by PW_DASHBOARD_KEEP</span>` : ''}</div>
+                  <div class="form-row"><label for="maxAge">Delete runs older than (days)</label><input class="input" id="maxAge" type="number" min="1" max="3650" value="${e.maxAgeDays ?? ''}" placeholder="Enter days, or leave empty"/></div>
+                  <button type="button" class="btn btn-primary" data-save-keep>${icon('check')}Save</button>
+                </div>
+                <div class="small" style="color:var(--danger);margin-top:6px" role="alert" data-keep-err></div>
                 <div class="actions" style="margin-top:14px"><button type="button" class="btn btn-danger" data-clear>${icon('trash')}Clear all history</button></div>`,
+            })}
+            ${sectionCard({
+              tone: 'warning',
+              icon: 'bell',
+              title: 'Notifications',
+              description: 'A desktop notification when a run finishes, so you can work elsewhere meanwhile.',
+              body: html`<div id="notify"></div>`,
             })}
             ${sectionCard({
               tone: 'success',
@@ -99,6 +113,44 @@ export async function page(main) {
     const btn = main.querySelector('[data-action="refresh"]');
     btn.addEventListener('click', () => spinWhile(btn, () => draw().catch((err) => toast(err.message, 'danger'))));
     main.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => copyText(b.dataset.copy, 'Command copied')));
+    main.querySelector('[data-save-keep]').addEventListener('click', async () => {
+      const err = main.querySelector('[data-keep-err]');
+      err.textContent = '';
+      try {
+        const r = await api.saveSettings({ keep: main.querySelector('#keep').value || e.keep, maxAgeDays: main.querySelector('#maxAge').value });
+        toast(r.removed ? `Saved. ${num(r.removed)} old run${r.removed === 1 ? '' : 's'} removed` : 'Saved');
+        forgetRun();
+        draw();
+      } catch (ex) {
+        err.textContent = ex.message;
+      }
+    });
+    const drawNotify = () => {
+      const box = main.querySelector('#notify');
+      if (!notifySupported()) return render(box, html`<p class="muted">This browser can't show notifications.</p>`);
+      const perm = Notification.permission;
+      const on = notifyOn();
+      render(
+        box,
+        perm === 'denied'
+          ? html`<div class="callout t-warning">${icon('bellOff')}<div>Notifications are blocked for this page. Allow them in the browser's site settings (the icon left of the address), then come back.</div></div>`
+          : html`<label class="switch"><input type="checkbox" data-notify ${on ? raw('checked') : ''}/><div><strong>Tell me when a run finishes</strong><span>Also scheduled runs. Click the notification to open the run.</span></div></label>
+              ${on ? html`<button type="button" class="btn btn-outline btn-sm" style="margin-top:10px" data-test-notify>${icon('bell')}Send a test notification</button>` : ''}`,
+      );
+      box.querySelector('[data-notify]')?.addEventListener('change', async (ev) => {
+        if (ev.target.checked && Notification.permission !== 'granted') {
+          const answer = await Notification.requestPermission();
+          if (answer !== 'granted') {
+            pref.set('notify', false);
+            return drawNotify();
+          }
+        }
+        pref.set('notify', ev.target.checked);
+        drawNotify();
+      });
+      box.querySelector('[data-test-notify]')?.addEventListener('click', () => new Notification('AuthCore tests', { body: 'Notifications work. You will get one when a run finishes.' }));
+    };
+    drawNotify();
     main.querySelector('[data-clear]').addEventListener('click', async () => {
       if (!(await confirmDialog({ title: 'Clear all history?', text: "Every kept run and its screenshots, videos and traces will be removed from this machine. This can't be undone.", confirmLabel: 'Clear history' }))) return;
       try {

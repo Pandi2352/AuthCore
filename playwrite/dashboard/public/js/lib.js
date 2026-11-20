@@ -143,6 +143,26 @@ const P = {
   message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   sparkles: '<path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
   code: '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
+  shield: '<path d="M12 3 4 6v6c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  access: '<circle cx="12" cy="4.5" r="1.8"/><path d="M5 8.5c2.3.7 4.6 1 7 1s4.7-.3 7-1"/><path d="M12 9.5v4.5l-3 7M12 14l3 7"/>',
+  compare: '<rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/><path d="M10 12h4"/>',
+  server: '<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/>',
+  eraser: '<path d="m7 21-4-4 10-10 8 8-6 6z"/><path d="M7 21h14M9 11l6 6"/>',
+  keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+  bellOff: '<path d="M8.7 3A6 6 0 0 1 18 8c0 3.3.8 5.5 1.6 7M17 17H3s3-2 3-9c0-.6.1-1.1.2-1.6"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="m2 2 20 20"/>',
+  note: '<path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9z"/><path d="M15 3v6h6"/><path d="M7 13h10M7 17h6"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+  bookmark: '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
+  power: '<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21.2l8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/>',
+  pause: '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  printer: '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
 };
 export const icon = (name, extra = '') =>
   raw(`<svg class="i ${extra}" viewBox="0 0 24 24" aria-hidden="true">${P[name] ?? P.file}</svg>`);
@@ -169,6 +189,34 @@ export const api = {
   liveState: () => request('GET', '/api/live/state'),
   start: (options) => request('POST', '/api/run', options),
   stop: () => request('POST', '/api/stop'),
+  groups: (id) => request('GET', `/api/runs/${encodeURIComponent(id)}/groups`),
+  envStatus: () => request('GET', '/api/testenv/status'),
+  envStart: (options) => request('POST', '/api/testenv/start', options),
+  envStop: () => request('POST', '/api/testenv/stop'),
+  envLogs: (offset) => request('GET', `/api/testenv/logs${offset === undefined ? '' : `?offset=${offset}`}`),
+  envLogWindow: (from, to) => request('GET', `/api/testenv/logs?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+  leftovers: () => request('GET', '/api/testenv/leftovers'),
+  cleanup: (kinds) => request('POST', '/api/testenv/cleanup', { kinds }),
+  mail: () => request('GET', '/api/mail'),
+  mailOne: (file) => request('GET', `/api/mail/${encodeURIComponent(file)}`),
+  clearMail: () => request('DELETE', '/api/mail'),
+  coverage: (run) => request('GET', `/api/coverage${run ? `?run=${encodeURIComponent(run)}` : ''}`),
+  quality: () => request('GET', '/api/quality'),
+  health: () => request('GET', '/api/health'),
+  search: (q, state) => request('GET', `/api/search?q=${encodeURIComponent(q)}&state=${encodeURIComponent(state ?? 'all')}`),
+  visual: (run) => request('GET', `/api/visual${run ? `?run=${encodeURIComponent(run)}` : ''}`),
+  approve: (runId, keys) => request('POST', '/api/visual/approve', { runId, keys }),
+  removeBaseline: (key) => request('POST', '/api/visual/remove', { key }),
+  notes: () => request('GET', '/api/notes'),
+  saveNote: (key, note, muted) => request('PUT', '/api/notes', { key, note, muted }),
+  presets: () => request('GET', '/api/presets'),
+  savePreset: (name, options) => request('POST', '/api/presets', { name, options }),
+  deletePreset: (id) => request('DELETE', `/api/presets/${encodeURIComponent(id)}`),
+  schedules: () => request('GET', '/api/schedules'),
+  saveSchedule: (s) => request('POST', '/api/schedules', s),
+  deleteSchedule: (id) => request('DELETE', `/api/schedules/${encodeURIComponent(id)}`),
+  settings: () => request('GET', '/api/settings'),
+  saveSettings: (s) => request('PUT', '/api/settings', s),
   openTrace: (id, file) => request('POST', `/api/runs/${encodeURIComponent(id)}/trace/${encodeURIComponent(file)}`),
   fileUrl: (id, file) => `/api/runs/${encodeURIComponent(id)}/files/${encodeURIComponent(file)}`,
   text: async (url) => {
@@ -201,6 +249,56 @@ export const csvCell = (v) => {
   const s = String(v ?? '');
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
+
+/** Notes and mutes per test key, fetched once per page view. */
+let notesMemo = null;
+export const getNotes = (fresh = false) => {
+  if (fresh || !notesMemo) notesMemo = api.notes().catch(() => ({}));
+  return notesMemo;
+};
+
+/** Same grouping as the server: ids, numbers and generated names don't split a group. */
+export function errorSignature(message) {
+  const first = String(message ?? '')
+    .split('\n')
+    .map((l) => l.trim())
+    .find(Boolean);
+  if (!first) return '';
+  return first
+    .replace(/\b[0-9a-f]{24}\b/gi, '<id>')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f-]{27}\b/gi, '<id>')
+    .replace(/PW[- ][\w-]+/g, 'PW-…')
+    .replace(/\d+(\.\d+)?/g, 'N')
+    .replace(/\s+/g, ' ')
+    .slice(0, 240);
+}
+
+export const regexEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Per-viewer conveniences (like the theme). Pages work without them. */
+export const pref = {
+  get: (k, fallback = null) => {
+    try {
+      const v = localStorage.getItem(`pw-dashboard-${k}`);
+      return v === null ? fallback : JSON.parse(v);
+    } catch {
+      return fallback;
+    }
+  },
+  set: (k, v) => {
+    try {
+      localStorage.setItem(`pw-dashboard-${k}`, JSON.stringify(v));
+    } catch {
+      /* private mode */
+    }
+  },
+};
+
+/** Options of a run that re-runs exactly these tests (by file and line). */
+export const exactTests = (tests) => ({
+  projects: [...new Set(tests.map((t) => t.project))],
+  tests: tests.map((t) => ({ file: t.file, line: t.line })),
+});
 
 export function debounce(fn, ms = 200) {
   let t;

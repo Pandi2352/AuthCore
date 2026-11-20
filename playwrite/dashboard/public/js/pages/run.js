@@ -7,10 +7,14 @@ import {
   csvCell,
   debounce,
   download,
+  errorSignature,
   dur,
+  exactTests,
   forgetRun,
+  getNotes,
   getRun,
   html,
+  testKey,
   icon,
   num,
   pct,
@@ -52,11 +56,15 @@ export async function page(main, { id }, query) {
     render(main, emptyState({ icon: 'alert', title: 'Run not found', text: e.message, action: html`<a class="btn btn-primary" href="#/runs">Back to runs</a>` }));
     return null;
   }
-  const index = await api.runs().catch(() => []);
+  const [index, notes] = await Promise.all([api.runs().catch(() => []), getNotes(true)]);
   const isLatest = index[0]?.id === run.id;
+  const previous = index[index.findIndex((r) => r.id === run.id) + 1];
+  const muted = (t) => notes[testKey(t)]?.muted;
+  const knownBadge = (t) => (notes[testKey(t)] ? badge(muted(t) ? 'Known issue' : 'Has a note', muted(t) ? 'neutral' : 'violet', muted(t) ? 'bellOff' : 'note', true) : '');
   const c = run.counts;
   const tests = run.tests.map((t, i) => ({ ...t, i }));
   const problems = tests.filter((t) => PROBLEM.includes(t.state));
+  const failedTests = tests.filter((t) => t.state === 'failed' || t.state === 'timedOut');
   const evidenceCount = (t) => t.results.reduce((s, r) => s + r.attachments.filter((a) => a.file).length, 0);
   const workers = new Set(tests.flatMap((t) => t.results.map((r) => r.parallelIndex))).size;
 
@@ -69,9 +77,12 @@ export async function page(main, { id }, query) {
           <button type="button" class="btn btn-outline" data-act="csv">${icon('download')}Tests as CSV</button>
           <a class="btn btn-outline" href="/api/runs/${encodeURIComponent(run.id)}/download">${icon('download')}Full report (JSON)</a>
           ${problems.length ? html`<button type="button" class="btn btn-outline" data-act="copy">${icon('copy')}Copy problems</button>` : ''}
+          <a class="btn btn-outline" href="/api/runs/${encodeURIComponent(run.id)}/export.html">${icon('download')}Single HTML file</a>
+          <a class="btn btn-outline" href="/api/runs/${encodeURIComponent(run.id)}/print" target="_blank" rel="noopener">${icon('printer')}Print / PDF</a>
           ${isLatest ? html`<a class="btn btn-outline" href="/html-report/index.html" target="_blank" rel="noopener">${icon('external')}Playwright report</a>` : ''}
+          ${previous ? html`<a class="btn btn-outline" href="#/compare?a=${encodeURIComponent(previous.id)}&b=${encodeURIComponent(run.id)}">${icon('compare')}Compare with previous</a>` : ''}
           <button type="button" class="btn btn-outline" data-act="delete">${icon('trash')}Delete</button>
-          ${problems.length && isLatest ? html`<button type="button" class="btn btn-primary" data-act="rerun-failed">${icon('repeat')}Re-run failed</button>` : ''}
+          ${failedTests.length ? html`<button type="button" class="btn btn-primary" data-act="rerun-failed">${icon('repeat')}Re-run ${failedTests.length === 1 ? 'the failed test' : `${failedTests.length} failed`}</button>` : ''}
           <button type="button" class="btn btn-primary" data-act="rerun">${icon('play')}Run again</button>
         </div>
       </div>
@@ -161,7 +172,7 @@ export async function page(main, { id }, query) {
           key: 'name',
           label: 'Test',
           className: 'wide',
-          render: (t) => html`<div class="two-line"><strong>${t.fullTitle}</strong><span class="mono">${t.file}:${t.line}</span></div>`,
+          render: (t) => html`<div class="two-line"><strong>${t.fullTitle} ${knownBadge(t)}</strong><span class="mono">${t.file}:${t.line}</span></div>`,
           sort: (t) => t.fullTitle.toLowerCase(),
         },
         { key: 'project', label: 'Project', className: 'fit', render: (t) => badge(t.project, 'cyan', t.project === 'mobile' ? 'phone' : 'monitor', true), sort: (t) => t.project },
@@ -217,9 +228,34 @@ export async function page(main, { id }, query) {
     if (!problems.length) {
       return render(body, html`<div class="section t-success"><div class="body">${emptyState({ icon: 'checkCircle', title: 'No problems in this run', text: 'Nothing failed, timed out or needed a retry.' })}</div></div>`);
     }
+    // Failures with the same error (ids and numbers ignored) are listed together first.
+    const groups = new Map();
+    for (const t of problems) {
+      const msg = t.results.flatMap((r) => r.errors).find((e) => e.message)?.message;
+      if (!msg) continue;
+      const sig = errorSignature(msg);
+      groups.set(sig, [...(groups.get(sig) ?? []), t]);
+    }
+    const shared = [...groups.values()].filter((g) => g.length > 1).sort((a, b) => b.length - a.length);
+    const ordered = [...problems].sort((a, b) => Number(Boolean(muted(a))) - Number(Boolean(muted(b))));
     render(
       body,
-      html`<div class="stack">${problems.map((t) => {
+      html`<div class="stack">
+      ${shared.length
+        ? sectionCard({
+            tone: 'violet',
+            icon: 'layers',
+            title: 'Same error in several tests',
+            description: 'Likely one cause: fix it once.',
+            flush: true,
+            body: html`<ul class="list">${shared.map(
+              (g) => html`<li style="padding:12px 16px"><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><span class="badge tone-danger">${num(g.length)} tests</span>
+                <pre class="code error" style="flex:1;min-width:220px;margin:0;max-height:90px">${(g[0].results.flatMap((r) => r.errors).find((e) => e.message)?.message ?? '').split('\n').find((l) => l.trim())}</pre></div>
+                <div class="chips" style="margin-top:8px">${g.map((t) => html`<button type="button" class="chip" data-open="${t.i}">${t.title} · ${t.project}</button>`)}</div></li>`,
+            )}</ul>`,
+          })
+        : ''}
+      ${ordered.map((t) => {
         const last = t.results.at(-1);
         const err = t.results.flatMap((r) => r.errors)[0];
         const shot = t.results.flatMap((r) => r.attachments).find((a) => a.file && a.contentType.startsWith('image/'));
@@ -229,8 +265,8 @@ export async function page(main, { id }, query) {
           icon: t.state === 'flaky' ? 'alert' : 'xCircle',
           title: t.fullTitle,
           description: html`${t.project} · <span class="mono">${t.file}:${t.line}</span> · ${dur(t.duration)}`,
-          aside: stateBadge(t.state, t.attempts, true),
-          body: html`<div style="display:grid;gap:16px;grid-template-columns:${shot ? 'minmax(0,1fr) 260px' : '1fr'}" class="problem-grid">
+          aside: html`${knownBadge(t)}${stateBadge(t.state, t.attempts, true)}`,
+          body: html`${notes[testKey(t)]?.note ? html`<div class="callout t-info" style="margin-bottom:12px">${icon('note')}<div style="white-space:pre-wrap">${notes[testKey(t)].note}</div></div>` : ''}<div style="display:grid;gap:16px;grid-template-columns:${shot ? 'minmax(0,1fr) 260px' : '1fr'}" class="problem-grid">
             <div class="stack" style="gap:10px;min-width:0">
               ${err ? html`<pre class="code error" style="max-height:220px">${(err.message ?? '').trim()}</pre>` : html`<p class="muted">Passed on try ${t.attempts}; earlier tries failed.</p>`}
               ${err?.snippet ? html`<details class="more"><summary>Code where it failed</summary><pre class="code">${err.snippet}</pre></details>` : ''}
@@ -483,7 +519,9 @@ export async function page(main, { id }, query) {
     copyText([`## Playwright run ${when(run.startedAt)}: ${num(problems.length)} problem(s)`, '', ...problems.map((t) => failureMarkdown(run, t))].join('\n\n'), 'Problems copied'),
   );
   main.querySelector('[data-act="rerun"]').addEventListener('click', () => goLaunch(rerunOptions(run)));
-  main.querySelector('[data-act="rerun-failed"]')?.addEventListener('click', () => goLaunch({ ...rerunOptions(run), lastFailed: true, label: 'Re-run failed tests' }));
+  main.querySelector('[data-act="rerun-failed"]')?.addEventListener('click', () =>
+    goLaunch({ ...exactTests(failedTests), target: run.target ?? null, label: `Re-run failed of ${runTitle(run)}`.slice(0, 80) }),
+  );
   main.querySelector('[data-act="delete"]').addEventListener('click', async () => {
     if (!(await confirmDialog({ title: 'Delete this run?', text: 'The run and its screenshots, videos and traces will be removed from this machine.', confirmLabel: 'Delete run' }))) return;
     try {

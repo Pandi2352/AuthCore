@@ -13,6 +13,8 @@ export class AdminApi {
     private readonly page: Page,
     private readonly token: { value: string | null },
     private readonly reauth: () => Promise<void>,
+    /** Told about every call (for the dashboard's API coverage). */
+    private readonly onCall?: (method: string, url: string, status: number) => void,
   ) {}
 
   private url(path: string): string {
@@ -27,6 +29,7 @@ export class AdminApi {
       headers: { authorization: `Bearer ${this.token.value}` },
       failOnStatusCode: false,
     });
+    this.onCall?.(method, this.url(path), res.status());
     // Access tokens last 15 minutes: let the app refresh it, then try once more.
     if (res.status() === 401 && retry) {
       this.token.value = null;

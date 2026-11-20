@@ -1,7 +1,7 @@
 // Run tests: choose what and how, start, watch progress and output live, stop.
 import { live, onLive } from '../app.js';
 import { api, dur, html, icon, num, raw, render } from '../lib.js';
-import { dropdown, emptyState, loading, sectionCard, toast } from '../ui.js';
+import { dropdown, emptyState, loading, openDialog, sectionCard, toast } from '../ui.js';
 
 const PRESETS = [
   { id: 'smoke', label: 'Smoke tests', icon: 'zap', options: { tags: ['@smoke'] } },
@@ -11,11 +11,12 @@ const PRESETS = [
   { id: 'failed', label: 'Failed last time', icon: 'repeat', options: { lastFailed: true } },
 ];
 
-const blank = () => ({ target: null, projects: [], files: [], tags: [], grep: '', grepInvert: '', workers: null, retries: null, repeatEach: null, maxFailures: null, headed: false, lastFailed: false, trace: false, label: '' });
+const blank = () => ({ target: null, projects: [], files: [], tags: [], tests: [], grep: '', grepInvert: '', workers: null, retries: null, repeatEach: null, maxFailures: null, headed: false, lastFailed: false, trace: false, label: '' });
 
 export async function page(main) {
   render(main, loading());
-  const [catalog, env] = await Promise.all([api.catalog().catch(() => null), api.environment().catch(() => null)]);
+  const [catalog, envAtStart] = await Promise.all([api.catalog().catch(() => null), api.environment().catch(() => null)]);
+  let env = envAtStart;
   if (!catalog) {
     render(main, emptyState({ icon: 'alert', title: 'Could not read the tests', text: 'Is Playwright installed in the playwrite folder?' }));
     return null;
@@ -51,7 +52,7 @@ export async function page(main) {
                 (t) => html`<button type="button" class="switch" style="width:100%;text-align:left;background:none" data-target="${t.name}" aria-pressed="false">
                   ${icon(t.name === 'test' ? 'flask' : 'monitor')}
                   <div style="flex:1;min-width:0"><strong>${t.label}</strong><span style="display:block">${t.baseURL}${t.account ? ` · ${t.account}` : ''}</span></div>
-                  ${t.status.reachable ? html`<span class="badge badge-sm tone-success">${icon('check')}Answering</span>` : html`<span class="badge badge-sm tone-danger">${icon('x')}Not running</span>`}
+                  <span data-reach="${t.name}">${reachBadge(t)}</span>
                 </button>`,
               )}</div>`,
             })}
@@ -59,9 +60,12 @@ export async function page(main) {
               tone: 'primary',
               icon: 'zap',
               title: 'Quick picks',
-              description: 'Fill the form with a common choice.',
-              body: html`<div class="chips">${PRESETS.map((p) => html`<button type="button" class="chip" data-preset="${p.id}">${icon(p.icon)}${p.label}</button>`)}</div>`,
+              description: 'Fill the form with a common choice, or one you saved.',
+              aside: html`<button type="button" class="btn btn-outline btn-sm" data-save-preset>${icon('bookmark')}Save this setup</button>`,
+              body: html`<div class="chips">${PRESETS.map((p) => html`<button type="button" class="chip" data-preset="${p.id}">${icon(p.icon)}${p.label}</button>`)}</div>
+                <div id="saved" style="margin-top:12px"></div>`,
             })}
+            <div id="exact"></div>
             ${sectionCard({
               tone: 'violet',
               icon: 'flask',
@@ -136,7 +140,8 @@ export async function page(main) {
       !t
         ? ''
         : !t.status.reachable
-          ? html`<div class="callout t-danger">${icon('alert')}<div><strong>${t.label} isn't running (${t.baseURL})</strong><div>${t.name === 'test' ? 'Start it in a terminal in the playwrite folder: npm run env:test' : 'Start your dev frontend and backend first.'}</div></div></div>`
+          ? html`<div class="callout t-danger">${icon('alert')}<div style="flex:1"><strong>${t.label} isn't running (${t.baseURL})</strong><div>${t.name === 'test' ? (live.env?.phase === 'starting' ? 'Starting… this page updates when it is ready.' : 'Start it here, or on the Test environment page.') : 'Start your dev frontend and backend first.'}</div></div>
+              ${t.name === 'test' && live.env?.phase !== 'starting' ? html`<button type="button" class="btn btn-primary btn-sm" data-start-env>${icon('power')}Start it</button>` : ''}</div>`
           : !(t.account && t.passwordSet)
             ? html`<div class="callout t-warning">${icon('user')}<div><strong>No account for ${t.label}</strong><div>${t.name === 'test' ? 'Start the test environment once; it saves the password in playwrite/.env.' : 'Add E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to playwrite/.env.'}</div></div></div>`
             : t.name === 'dev'
@@ -154,7 +159,80 @@ export async function page(main) {
     });
     main.querySelectorAll('[data-bool]').forEach((i) => (i.checked = Boolean(opts[i.dataset.bool])));
     main.querySelector('#cmd').textContent = command(opts);
+    main.querySelector('[data-start-env]')?.addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try {
+        live.env = await api.envStart({});
+        toast('Starting the test environment…');
+        syncForm();
+      } catch (err) {
+        toast(err.message, 'danger');
+        e.currentTarget.disabled = false;
+      }
+    });
+    render(
+      main.querySelector('#exact'),
+      opts.tests?.length
+        ? html`<div class="callout t-info">${icon('target')}<div style="flex:1"><strong>Exactly ${num(opts.tests.length)} test${opts.tests.length === 1 ? '' : 's'} chosen from a run</strong>
+            <div class="small mono">${opts.tests.slice(0, 6).map((x) => `${x.file}:${x.line}`).join(', ')}${opts.tests.length > 6 ? ', …' : ''}</div><div class="small">Files and the name filter are ignored while these are chosen.</div></div>
+            <button type="button" class="btn btn-outline btn-sm" data-clear-exact>${icon('x')}Clear</button></div>`
+        : '',
+    );
+    main.querySelector('[data-clear-exact]')?.addEventListener('click', () => ((opts.tests = []), syncForm()));
   };
+
+  // ------------------------------------------------------------ saved setups
+  const drawSaved = async () => {
+    const list = await api.presets().catch(() => []);
+    render(
+      main.querySelector('#saved'),
+      list.length
+        ? html`<div class="small" style="font-weight:600;margin-bottom:6px">Saved</div><div class="chips">${list.map(
+            (p) => html`<span class="chip" style="padding-right:4px">${icon('bookmark')}<button type="button" class="link-btn" data-load="${p.id}" style="background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer">${p.name}</button>
+              <button type="button" class="icon-btn" style="width:24px;height:24px" data-del-preset="${p.id}" aria-label="Delete ${p.name}" data-tip="Delete">${icon('x')}</button></span>`,
+          )}</div>`
+        : '',
+    );
+    main.querySelectorAll('[data-load]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const p = list.find((x) => x.id === b.dataset.load);
+        opts = { ...blank(), ...structuredClone(p.options), label: p.options.label || p.name };
+        filesDd.set(opts.files);
+        syncForm();
+        toast(`Loaded "${p.name}"`);
+      }),
+    );
+    main.querySelectorAll('[data-del-preset]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        await api.deletePreset(b.dataset.delPreset).catch((e) => toast(e.message, 'danger'));
+        drawSaved();
+      }),
+    );
+  };
+  main.querySelector('[data-save-preset]').addEventListener('click', () => {
+    const { el, close } = openDialog({
+      title: 'Save this setup',
+      description: 'Keeps what to run and how, to load it here with one click or use it in a schedule.',
+      width: 480,
+      body: html`<div class="form-row"><label for="preset-name">Name</label><input class="input" id="preset-name" maxlength="60" placeholder="Enter a name, e.g. Roles on phone" value="${opts.label}" data-autofocus/></div>
+        <div class="small" style="color:var(--danger);margin-top:6px" role="alert" data-err></div>`,
+      footer: html`<button type="button" class="btn btn-outline" data-cancel>Cancel</button><button type="button" class="btn btn-primary" data-ok>${icon('bookmark')}Save</button>`,
+    });
+    const save = async () => {
+      try {
+        await api.savePreset(el.querySelector('#preset-name').value, { ...opts });
+        close();
+        toast('Setup saved');
+        drawSaved();
+      } catch (err) {
+        el.querySelector('[data-err]').textContent = err.message;
+      }
+    };
+    el.querySelector('[data-cancel]').addEventListener('click', close);
+    el.querySelector('[data-ok]').addEventListener('click', save);
+    el.querySelector('#preset-name').addEventListener('keydown', (e) => e.key === 'Enter' && save());
+  });
+  drawSaved();
 
   main.querySelectorAll('[data-target]').forEach((b) => b.addEventListener('click', () => ((opts.target = b.dataset.target), syncForm())));
   main.querySelectorAll('[data-chips]').forEach((box) =>
@@ -293,6 +371,22 @@ export async function page(main) {
   drawLive();
   const off = onLive((type, data) => {
     if (type === 'log') return appendLine(data);
+    if (type === 'env') {
+      // The test environment started or stopped: refresh what the targets say.
+      api
+        .environment()
+        .then((e) => {
+          env = e;
+          for (const t of env.targets) {
+            const el = main.querySelector(`[data-reach="${t.name}"]`);
+            if (el) render(el, reachBadge(t));
+          }
+          syncForm();
+        })
+        .catch(() => undefined);
+      return;
+    }
+    if (type === 'env-line') return;
     if (type === 'finished') lastResult = data;
     if (type === 'started') lastResult = null;
     drawLive();
@@ -303,6 +397,11 @@ export async function page(main) {
     clearInterval(tick);
   };
 }
+
+const reachBadge = (t) =>
+  t.status.reachable
+    ? html`<span class="badge badge-sm tone-success">${icon('check')}Answering</span>`
+    : html`<span class="badge badge-sm tone-danger">${icon('x')}Not running</span>`;
 
 const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
 function lineHtml(line) {
@@ -327,7 +426,8 @@ function command(o) {
   if (o.headed) a.push('--headed');
   if (o.lastFailed) a.push('--last-failed');
   if (o.trace) a.push('--trace=on');
-  a.push(...o.files);
+  if (o.tests?.length) a.push(...new Set(o.tests.map((t) => `${t.file}:${t.line}`)));
+  else a.push(...o.files);
   return a.join(' ');
 }
 
