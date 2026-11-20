@@ -398,6 +398,17 @@ export class EffectiveAccessDto {
 }
 
 export class AuditQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({
+    description:
+      'Who (name / email) or what (role, group, permission name or key, email, id) changed',
+    maxLength: 100,
+  })
+  @Transform(trimOrUndefined)
+  @MaxLength(100)
+  @IsString()
+  @IsOptional()
+  search?: string;
+
   @ApiPropertyOptional({ enum: AuditEntity })
   @IsEnum(AuditEntity)
   @Transform(trimUpper)
@@ -452,4 +463,34 @@ export class AuditEntryDto {
   > | null;
   @ApiProperty({ type: String, nullable: true }) ipAddress!: string | null;
   @ApiProperty() createdAt!: Date;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Asha Rao',
+    description: 'Who made the change (null: the system)',
+  })
+  changedByName!: string | null;
+  @ApiProperty({ type: String, nullable: true, example: 'asha@example.com' })
+  changedByEmail!: string | null;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Support Team → Helpdesk Agent',
+    description:
+      'What changed, in words (a name, or "group → role" for assignments)',
+  })
+  entityLabel!: string | null;
+}
+
+/** GET /access-control/audit-logs/stats */
+export class AuditStatsDto {
+  @ApiProperty({ example: 420 }) total!: number;
+  @ApiProperty({ example: 12 }) last24Hours!: number;
+  @ApiProperty({ example: 80 }) created!: number;
+  @ApiProperty({ example: 150 }) updated!: number;
+  @ApiProperty({ example: 20 }) deleted!: number;
+  @ApiProperty({ example: 120 }) assigned!: number;
+  @ApiProperty({ example: 50 }) revoked!: number;
+  @ApiProperty({ example: 4, description: 'Different people who made changes' })
+  people!: number;
 }

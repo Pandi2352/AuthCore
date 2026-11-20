@@ -6,7 +6,7 @@ import type { DropdownOptionDto } from '@common/dto/dropdown.dto';
 import type { ExistsResponseDto } from '@common/dto/exists.dto';
 import { ValidationException } from '@common/exceptions/validation.exception';
 import type { Paginated } from '@common/interfaces/api-response.interface';
-import { normalizePagination, paginate } from '@common/utils/pagination.util';
+import { paginate } from '@common/utils/pagination.util';
 import {
   buildDateRange,
   buildSort,

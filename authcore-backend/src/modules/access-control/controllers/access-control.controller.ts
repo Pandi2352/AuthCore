@@ -18,6 +18,7 @@ import { ACCESS_PERMISSIONS as P } from '../constants/access-control.constants';
 import {
   AuditEntryDto,
   AuditQueryDto,
+  AuditStatsDto,
   EffectiveAccessDto,
 } from '../dto/access-mapping.dto';
 import { AccessAuditService } from '../services/access-audit.service';
@@ -48,6 +49,21 @@ export class AccessControlController {
     return this.mappingsService.effectiveAccess(auth.userId);
   }
 
+  @Get('audit-logs/stats')
+  @RequirePermissions(P.AuditRead)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Audit log statistics')
+  @ApiOperation({
+    summary: 'Counts for the audit log page',
+    description:
+      'Needs ACCESS_AUDIT_READ. Total, last 24 hours, per action (create / update / delete / assign / revoke) and how many different people made changes.',
+  })
+  @ApiWrappedResponse(AuditStatsDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  auditStats(): Promise<AuditStatsDto> {
+    return this.auditService.stats();
+  }
+
   @Get('audit-logs')
   @RequirePermissions(P.AuditRead)
   @ResponseMessage('Access-control audit log')
@@ -55,7 +71,8 @@ export class AccessControlController {
     summary: 'Access-control change history',
     description:
       'Needs ACCESS_AUDIT_READ. Every create / update / delete of roles, permissions and groups and every ' +
-      'assign / revoke, with before / after values, who and from which IP. Newest first.',
+      'assign / revoke, with before / after values, who (name and email) and from which IP, and what changed in words ' +
+      '(`entityLabel`). Search by who or what. Newest first.',
   })
   @ApiPaginatedResponse(AuditEntryDto)
   @ApiErrorResponses(

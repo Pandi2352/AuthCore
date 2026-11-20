@@ -235,16 +235,39 @@ export interface EffectiveAccess {
   permissions: Array<{ id: string; permissionKey: string; permissionName: string }>;
 }
 
+export type AuditEntityType =
+  'ROLE' | 'PERMISSION' | 'GROUP' | 'ACCESS_MAPPING' | 'USER' | 'INVITE' | 'USER_ATTRIBUTE';
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'ASSIGN' | 'REVOKE';
+
+/** GET /access-control/audit-logs item (same fields as the API). */
 export interface AuditEntry {
   id: string;
-  entity: 'ROLE' | 'PERMISSION' | 'GROUP' | 'ACCESS_MAPPING';
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'ASSIGN' | 'REVOKE';
+  entityType: AuditEntityType;
   entityId: string;
-  actorId: string;
-  actorEmail?: string;
-  ipAddress?: string;
-  changes: Record<string, { before: unknown; after: unknown }>;
-  timestamp: string;
+  action: AuditAction;
+  /** User id of who made it, or "system". */
+  changedBy: string;
+  changedByName: string | null;
+  changedByEmail: string | null;
+  /** What changed, in words ("Support Team → Helpdesk Agent"). */
+  entityLabel: string | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  ipAddress: string | null;
+  createdAt: string;
+}
+
+/** GET /access-control/audit-logs/stats */
+export interface AuditStats {
+  total: number;
+  last24Hours: number;
+  created: number;
+  updated: number;
+  deleted: number;
+  assigned: number;
+  revoked: number;
+  /** Different people who made changes. */
+  people: number;
 }
 
 export interface AccessTreeGroup {
