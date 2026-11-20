@@ -4,8 +4,8 @@ import { ErrorCode } from '@common/constants/error-codes.constants';
 import { AppException } from '@common/exceptions/app.exception';
 
 import {
-  KEY_PATTERN,
   ROLE_KEY_MAX_LENGTH,
+  ROLE_KEY_PATTERN,
 } from '../constants/access-control.constants';
 
 /** Route param :roleKey → trimmed, uppercase, format-checked (400 INVALID_ID otherwise). */
@@ -16,7 +16,7 @@ export class RoleKeyPipe implements PipeTransform<string, string> {
     if (
       key.length < 2 ||
       key.length > ROLE_KEY_MAX_LENGTH ||
-      !KEY_PATTERN.test(key)
+      !ROLE_KEY_PATTERN.test(key)
     ) {
       throw new AppException(
         HttpStatus.BAD_REQUEST,
@@ -25,7 +25,7 @@ export class RoleKeyPipe implements PipeTransform<string, string> {
         [
           {
             field: 'roleKey',
-            message: 'roleKey may contain only letters, digits and _',
+            message: 'roleKey may contain only letters, digits, _ and -',
           },
         ],
       );
