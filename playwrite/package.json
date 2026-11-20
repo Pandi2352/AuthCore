@@ -1,0 +1,27 @@
+{
+  "name": "authcore-playwright",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end browser tests for the AuthCore frontend (Playwright).",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen",
+    "install:browsers": "playwright install chromium",
+    "typecheck": "tsc --noEmit",
+    "dashboard": "node dashboard/server.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/node": "20.19.43",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20.12"
+  }
+}

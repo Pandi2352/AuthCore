@@ -1,0 +1,10 @@
+# Playwright output and saved sign-ins (contain session cookies) — never commit.
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+.auth/
+.env
+# Test dashboard history (screenshots, traces, logs).
+reports/

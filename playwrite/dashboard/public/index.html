@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AuthCore Tests</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%233b5bdb'/%3E%3Cpath d='M7 12.5l3 3 7-7' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script>
+      // Apply the saved theme before first paint (no flash).
+      try {
+        const t = localStorage.getItem('pw-dashboard-theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="shell">
+      <aside class="sidebar" id="sidebar" aria-label="Main menu">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <strong>AuthCore</strong>
+            <span>Test dashboard</span>
+          </div>
+        </div>
+        <nav id="nav"></nav>
+        <div class="sidebar-foot">
+          <div id="live-pill" class="live-pill" hidden></div>
+          <button type="button" class="btn btn-ghost btn-block" id="theme-toggle"></button>
+        </div>
+      </aside>
+      <div class="sidebar-scrim" id="scrim" hidden></div>
+      <div class="main-col">
+        <header class="topbar">
+          <button type="button" class="icon-btn" id="menu-btn" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false"></button>
+          <strong>AuthCore Tests</strong>
+        </header>
+        <main id="main" tabindex="-1"></main>
+      </div>
+    </div>
+    <div id="dialogs"></div>
+    <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+    <div id="tip" class="tip" role="tooltip" hidden></div>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
