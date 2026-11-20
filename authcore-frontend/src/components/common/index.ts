@@ -9,3 +9,4 @@ export { ThemeCustomizer } from './ThemeCustomizer';
 export { EmojiIcon } from './EmojiIcon';
 export { ThemeToggle } from './ThemeToggle';
 export { StatCard, type StatTone } from './StatCard';
+export { StepList, type Step } from './StepList';

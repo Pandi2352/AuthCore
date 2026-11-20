@@ -10,6 +10,7 @@ import type { Model } from 'mongoose';
 import { ErrorCode } from '@common/constants/error-codes.constants';
 import { AppException } from '@common/exceptions/app.exception';
 import type { AuthContext } from '@common/interfaces/auth-context.interface';
+import { csvCell } from '@common/utils/csv.util';
 import { generateUuid } from '@common/utils/uuid.util';
 import { FilePurpose } from '@modules/files/enums/file.enum';
 import { FilesService } from '@modules/files/services/files.service';
@@ -31,34 +32,6 @@ import { UserReport } from '../schemas/user-report.schema';
 import { UserAdminService } from './user-admin.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Excel / Sheets run cells starting with these as formulas: prefix them (CSV injection). */
-const FORMULA_START = /^[=+\-@\t\r]/;
-
-function csvCell(value: unknown): string {
-  let text: string;
-  if (value === null || value === undefined) {
-    text = '';
-  } else if (Array.isArray(value)) {
-    text = value
-      .map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v)))
-      .join('; ');
-  } else if (value instanceof Date) {
-    text = value.toISOString();
-  } else if (typeof value === 'object') {
-    text = JSON.stringify(value);
-  } else if (typeof value === 'string') {
-    text = value;
-  } else if (typeof value === 'number' || typeof value === 'boolean') {
-    text = String(value);
-  } else {
-    text = '';
-  }
-  if (FORMULA_START.test(text)) {
-    text = `'${text}`;
-  }
-  return `"${text.replaceAll('"', '""')}"`;
-}
 
 /** Filters worth remembering on a report (no paging). */
 function filtersOf(query: AdminUserListQueryDto): Record<string, unknown> {

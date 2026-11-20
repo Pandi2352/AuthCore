@@ -120,6 +120,51 @@ export class AccessMappingsService {
     );
   }
 
+  /** Group IDs (GRP-01 …, any case) → internal ids, for imports. Unknown codes are left out. */
+  async groupIdsByCodes(codes: string[]): Promise<Map<string, string>> {
+    const wanted = [
+      ...new Set(codes.map((c) => c.trim().toUpperCase()).filter(Boolean)),
+    ];
+    if (wanted.length === 0) {
+      return new Map();
+    }
+    const groups = await this.groupModel
+      .find({ groupId: { $in: wanted }, isDeleted: false }, { groupId: 1 })
+      .lean();
+    return new Map(groups.map((g) => [g.groupId, g._id]));
+  }
+
+  /** Each user's groups (internal id + group ID), for exports and imports. */
+  async groupsOfUsers(
+    userIds: string[],
+  ): Promise<Map<string, Array<{ id: string; code: string }>>> {
+    const result = new Map<string, Array<{ id: string; code: string }>>();
+    if (userIds.length === 0) {
+      return result;
+    }
+    const links = await this.mappingModel
+      .find(
+        { type: MappingType.GroupUser, userId: { $in: userIds } },
+        { userId: 1, groupId: 1 },
+      )
+      .lean();
+    const groupIds = [...new Set(links.map((l) => l.groupId ?? ''))];
+    const groups = await this.groupModel
+      .find({ _id: { $in: groupIds }, isDeleted: false }, { groupId: 1 })
+      .lean();
+    const codeOf = new Map(groups.map((g) => [g._id, g.groupId]));
+    for (const link of links) {
+      const code = codeOf.get(link.groupId ?? '');
+      if (!link.userId || !code) {
+        continue;
+      }
+      const list = result.get(link.userId) ?? [];
+      list.push({ id: link.groupId ?? '', code });
+      result.set(link.userId, list);
+    }
+    return result;
+  }
+
   /**
    * Adds a new user to every active default group (system action: no
    * escalation check, audited as "system"). Never throws: a failure is logged

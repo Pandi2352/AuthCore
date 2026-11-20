@@ -14,7 +14,7 @@ const net = require('node:net');
 const path = require('node:path');
 
 const BACKEND = path.resolve(__dirname, '..', '..');
-const SUITES = ['flows', 'login', 'refresh', 'me', 'logout', 'sessions', 'password', 'policy', 'access', 'users', 'profile', 'files', 'notify', 'bootstrap', 'ops', 'maintenance'];
+const SUITES = ['flows', 'login', 'refresh', 'me', 'logout', 'sessions', 'password', 'policy', 'access', 'users', 'profile', 'files', 'notify', 'bootstrap', 'ops', 'maintenance', 'bulk'];
 const PORT = process.env.E2E_PORT || '3999';
 const MONGODB_URI = process.env.E2E_MONGODB_URI || 'mongodb://localhost:27017/authcore_e2e';
 

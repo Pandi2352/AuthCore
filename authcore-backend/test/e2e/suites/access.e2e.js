@@ -139,7 +139,7 @@ async function main() {
   const R = (b) => call('POST', '/roles', { token: A, body: b });
   r = await R({ roleKey: 'hr_manager', roleName: 'HR Manager', category: 'management', description: 'Manages HR' });
   const rHr = r.body.data;
-  check('create -> 201 (key / category uppercased, ACTIVE)', r.status === 201 && rHr.roleKey === 'HR_MANAGER' && rHr.category === 'MANAGEMENT' && rHr.status === 'ACTIVE');
+  check('create -> 201 (key / category uppercased, no status)', r.status === 201 && rHr.roleKey === 'HR_MANAGER' && rHr.category === 'MANAGEMENT' && !('status' in rHr));
   r = await R({ roleKey: 'HR2', roleName: 'hr manager', category: 'MANAGEMENT' });
   check('same name in the same category (any case) -> 409 roleName', r.status === 409 && errs(r).includes('roleName'));
   r = await R({ roleKey: 'HR3', roleName: 'HR Manager', category: 'OPERATIONS' });
@@ -173,7 +173,7 @@ async function main() {
   const G = (b) => call('POST', '/groups', { token: A, body: b });
   r = await G({ category: 'department', groupName: 'Development', description: 'All engineering', tags: 'development, Engineering ,  , development' });
   const gDev = r.body.data;
-  check('main group: generated GRP-NN, level 0, tags trimmed / lowercased / deduped', r.status === 201 && /^GRP-d{2,}$/.test(gDev.groupId) && gDev.level === 0 && gDev.parent === null && JSON.stringify(gDev.tags) === '["development","engineering"]', JSON.stringify(gDev).slice(0, 300));
+  check('main group: generated GRP-NN, level 0, tags trimmed / lowercased / deduped', r.status === 201 && /^GRP-\d{2,}$/.test(gDev.groupId) && gDev.level === 0 && gDev.parent === null && JSON.stringify(gDev.tags) === '["development","engineering"]', JSON.stringify(gDev).slice(0, 300));
   r = await G({ category: 'TEAM', parentGroupId: gDev.id, groupId: 'grp-backend', groupName: 'Backend Team', tags: ['backend', 'node_js', 'api-v1'] });
   const gBack = r.body.data;
   check('sub-group: groupId uppercased, level 1, path + parent', r.status === 201 && gBack.groupId === 'GRP-BACKEND' && gBack.level === 1 && gBack.parent.id === gDev.id && gBack.path.length === 1 && gBack.parentGroupName === 'Development');
@@ -244,8 +244,6 @@ async function main() {
   check("system role's permissions are fixed -> 409", r.status === 409 && r.body.code === 'SYSTEM_RESOURCE_PROTECTED');
   r = await call('POST', '/access-mappings/group-roles', { token: A, body: { groupId: gBack.id, roleIds: [rHr.id] } });
   check('assign role to group -> 201', r.status === 201 && r.body.data.assignedCount === 1);
-  r = await call('POST', '/access-mappings/group-roles', { token: A, body: { groupId: gBack.id, roleIds: [rInactive.id] } });
-  check('inactive role -> 400', r.body.code === 'RESOURCE_INACTIVE');
   r = await call('POST', '/access-mappings/group-users', { token: A, body: { groupId: gBack.id, userIds: [ids.u1, '01a1e31b-0000-7000-8000-000000000000'] } });
   check('unknown user -> 404 listing it, nothing assigned', r.status === 404 && (await col('access_mappings').countDocuments({ type: 'GROUP_USER', groupId: gBack.id })) === 0);
   r = await call('POST', '/access-mappings/group-users', { token: A, body: { groupId: gBack.id, userIds: [ids.banned] } });

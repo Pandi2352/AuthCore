@@ -1001,7 +1001,7 @@ Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWO
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /admin/users` | List: search (email, username, names **and custom variables marked "include in search filter"**, e.g. employee ID), `status` / `role` (one or more, comma-separated), `groupId` (members of these groups), `activity=ACTIVE\|DORMANT\|INACTIVE`, source, isEmailVerified, isPendingDeletion, `deleted=EXCLUDE\|ONLY\|INCLUDE`, dates, sort, `attr[name]=value` |
-| `GET /admin/users/stats` | Search page cards: total, active (signed in within 30 days), dormant (active account, no sign-in for 30 days or never), inactive (any other status), counts per status Also `admins`, `verified` (email confirmed), `neverSignedIn` and `newLast30Days`. |
+| `GET /admin/users/stats` | Search page cards: total, active (signed in within 30 days), dormant (active account, no sign-in for 30 days or never), inactive (any other status), counts per status. Also `admins`, `verified` (email confirmed), `neverSignedIn` and `newLast30Days`. |
 | `POST /admin/users/reports` | Generate report: CSV of the users matching the same query parameters as the list (background job, max 25 000 rows, private file kept 7 days; formula-looking cells are escaped) |
 | `GET /admin/users/reports` · `GET …/reports/:id/download` · `DELETE …/reports/:id` | My reports ("View downloads"), download a READY one (409 while preparing), delete |
 | `GET /admin/users/:id` | User info: profile, status history, active sessions, groups, effective permissions, sign-in lock, `lastActivityAt`, custom variable values |
@@ -1025,6 +1025,23 @@ Needs `USER_READ` / `USER_CREATE` / `USER_UPDATE` / `USER_DELETE` / `USER_PASSWO
 | `POST /admin/users/deletion-purge/run` | Run the scheduled purge now |
 
 Guard rails: admins can't act on their own account here (use `/users/me`); only ADMIN users manage ADMIN accounts; the last active ADMIN can't be suspended, demoted or deleted. Every action is in the audit log (`GET /access-control/audit-logs?entityType=USER`).
+
+### Bulk user operations: `/api/v1/admin/users/bulk/:type`
+
+Create users, update users or reset passwords from a CSV or Excel (.xlsx) file, up to 1000 rows. `:type` is `create`, `update` or `password`. Every route needs USER_READ; templates, exports and uploads also need the operation's permission (USER_CREATE / USER_UPDATE / USER_PASSWORD_MANAGE). Each row goes through the same service as the single-user endpoints (password policy, unique email / username, "only grant access you have"), so the rules never differ.
+
+| Endpoint | What it does |
+| --- | --- |
+| `GET …/:type/template` | Blank CSV with every column, including the custom profile fields (object groups as `group.field`) |
+| `GET …/:type/export` | update / password: the users matching the search filters (same query as `GET /admin/users`) as an editable CSV; 400 above 1000 |
+| `POST …/:type/upload` | multipart `file`. Checks the columns, then runs the rows in the background: 202 with the job (PROCESSING). Wrong columns, an empty / unreadable file or more than 1000 rows are kept as INVALID_TEMPLATE with the reason |
+| `GET …/:type/jobs` · `GET …/:type/jobs/:id` | History (newest first, `search` by file name or uploader) / one job's status and counts (poll while PROCESSING) |
+| `GET …/:type/jobs/:id/result` | The uploaded rows with a `result` (Succeeded / Skipped / Failed) and `reason` column |
+| `GET …/:type/stats` | Page cards: files, rows, succeeded, failed, rejected files |
+
+Columns: **create** `email`*, `given_name`*, `family_name`, `username`, `password`*, `must_change_password` (default true), `email_verified` (default true), `send_welcome_email` (default false), `groups` (group IDs separated by `|`, e.g. `GRP-01|GRP-05`). **update** `email`* (finds the user), `given_name`, `family_name`, `username`, `email_verified`, `status`, `groups` (every group the user should be in; `-` = none); a blank cell keeps the value, a single `-` empties it. **password** `email`*, `action` (`link` emails a reset link, the default; `set` uses `new_password`), `new_password`, `must_change_password`, `notify`. Custom profile fields are extra columns (booleans true / false, dropdowns by value or label, multi-selects separated by `|`).
+
+Passwords are never stored with the job or written to the results. Jobs live in `bulk_jobs`; one still running when the server stops is marked FAILED on the next start. The runner (`modules/bulk-jobs`) and the CSV / Excel helpers (`common/utils/csv.util.ts`, `common/utils/table-file.util.ts`) are generic: another feature gives `BulkJobsService.start` a definition of one row.
 
 ### User invites: `/api/v1/user-invites`
 
