@@ -7,7 +7,11 @@ import {
   type Response,
 } from '@playwright/test';
 
+import { AdminApi } from './api';
 import { adminCredentials, ROUTES } from './constants';
+
+/** The app's current access token per signed-in tab (captured from its own auth calls). */
+const tokens = new WeakMap<Page, { value: string | null }>();
 
 /**
  * Why signed-in tests share one browser tab per worker:
@@ -41,7 +45,7 @@ export async function signIn(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 }
 
-export const test = base.extend<{ app: AdminApp }, { adminPage: Page }>({
+export const test = base.extend<{ app: AdminApp; api: AdminApi }, { adminPage: Page }>({
   // One signed-in tab per worker, with the project's device settings (desktop / phone).
   adminPage: [
     async ({ browser }, use, workerInfo) => {
@@ -58,6 +62,19 @@ export const test = base.extend<{ app: AdminApp }, { adminPage: Page }>({
       });
       // Playwright traces this context per test by itself (the `trace` setting).
       const page = await context.newPage();
+      // Keep the access token the app gets at sign-in and on every refresh, for AdminApi.
+      const token = { value: null as string | null };
+      tokens.set(page, token);
+      page.on('response', async (response) => {
+        const { pathname } = new URL(response.url());
+        if (!/\/api\/v1\/auth\/(login|refresh)$/.test(pathname) || !response.ok()) return;
+        try {
+          const body = (await response.json()) as { data?: { accessToken?: string }; accessToken?: string };
+          token.value = body.data?.accessToken ?? body.accessToken ?? token.value;
+        } catch {
+          /* not JSON */
+        }
+      });
       await signIn(page);
       await use(page);
       await context.close();
@@ -148,6 +165,16 @@ export const test = base.extend<{ app: AdminApp }, { adminPage: Page }>({
         contentType: 'text/plain',
       });
     }
+  },
+
+  api: async ({ adminPage }, use) => {
+    const token = tokens.get(adminPage) ?? { value: null };
+    // Token expired (or not seen yet): a reload makes the app refresh it with its cookie
+    // (one tab per worker, so the single-use refresh token is never shared). Captured above.
+    const reauth = async () => {
+      await adminPage.reload({ waitUntil: 'networkidle' });
+    };
+    await use(new AdminApi(adminPage, token, reauth));
   },
 });
 

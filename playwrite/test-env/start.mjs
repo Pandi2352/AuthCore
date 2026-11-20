@@ -312,6 +312,27 @@ process.on('SIGINT', () => (log('Stopping…'), shutdown(0)));
 process.on('SIGTERM', () => shutdown(0));
 
 mkdirSync(DIR, { recursive: true });
+// A backend left over from a run that was killed (not Ctrl+C): stop it first.
+try {
+  const stale = JSON.parse(readFileSync(path.join(DIR, 'state.json'), 'utf8'));
+  let parentAlive = true;
+  try {
+    process.kill(stale.pid, 0);
+  } catch {
+    parentAlive = false;
+  }
+  if (!parentAlive && stale.backendPid) {
+    try {
+      process.kill(stale.backendPid);
+      log(`Stopped a test backend left over from an earlier run (pid ${stale.backendPid})`);
+      await new Promise((r) => setTimeout(r, 800));
+    } catch {
+      /* already gone */
+    }
+  }
+} catch {
+  /* no earlier run */
+}
 for (const [port, what] of [
   [TEST_ENV.apiPort, 'test backend'],
   [TEST_ENV.webPort, 'test frontend'],
