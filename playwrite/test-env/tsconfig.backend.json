@@ -1,0 +1,14 @@
+{
+  "//": "Builds the backend for the test environment into authcore-backend/dist-pw, so it never touches dist/ (which the dev server runs from).",
+  "extends": "../../authcore-backend/tsconfig.build.json",
+  "compilerOptions": {
+    "outDir": "../../authcore-backend/dist-pw",
+    "tsBuildInfoFile": "../../authcore-backend/dist-pw/tsconfig.build.tsbuildinfo"
+  },
+  "include": ["../../authcore-backend/src/**/*"],
+  "exclude": [
+    "../../authcore-backend/node_modules",
+    "../../authcore-backend/dist",
+    "../../authcore-backend/dist-pw"
+  ]
+}

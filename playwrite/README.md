@@ -9,19 +9,44 @@ Playwright **1.65.1** (pinned), Chromium, TypeScript.
 cd playwrite
 npm install
 npm run install:browsers      # downloads Chromium for Playwright
-cp .env.example .env          # then fill it in
+cp .env.example .env
 ```
 
-`.env`:
+Needs MongoDB on `localhost:27017` (the same one the backend's own e2e tests use).
 
-| Variable | What |
+## Test environment (default target)
+
+Tests run against a **separate AuthCore**, never your dev data:
+
+```bash
+npm run env:test          # build what changed, start, keep running (Ctrl+C stops)
+npm run env:test:reset    # same, from an empty database, outbox and uploads
+```
+
+| Part | Where |
 | --- | --- |
-| `PW_BASE_URL` | The frontend to test (default `http://localhost:5173`, the Vite dev server) |
-| `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD` | An ADMIN account on that environment |
+| App (built frontend; `/api` goes to the test backend) | http://localhost:5174 |
+| Backend (built into `authcore-backend/dist-pw`; your `dist/` is untouched) | http://localhost:3998/api/v1, docs at `/api/docs` |
+| Database | `mongodb://localhost:27017/authcore_pw_test` |
+| Emails (never sent) | `.test-env/mail-outbox/*.eml`; tests read them with `tests/support/mail.ts` |
+| Uploads, logs | `.test-env/uploads`, `.test-env/logs/backend.log` |
 
-> Prefer a **test environment** (its own database, backend started with
-> `MAIL_TRANSPORT=outbox`) over your dev data: tests sign in, and later tests will create
-> and change records. `.env` is git-ignored.
+- Settings come from `authcore-backend/.env.example` plus test overrides, never from your
+  backend `.env` (so no real SMTP, no dev database).
+- The test admin `playwright.admin@authcore.test` is created by the backend's own first-run
+  setup; its password is generated once and saved in `.env` (`E2E_TEST_ADMIN_PASSWORD`).
+- Rebuilds only when backend or frontend sources changed (`-- --rebuild` forces it).
+  The general per-IP request limit is raised for tests; sign-in limits stay as in the app.
+
+### Choosing the target
+
+| `.env` | Tests run against |
+| --- | --- |
+| `PW_ENV=test` (default) | The test environment above |
+| `PW_ENV=dev` | Your dev servers (`PW_BASE_URL`, default http://localhost:5173) with `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD`: your dev database, and the dev backend may send real email |
+
+The dashboard's **Run tests** page can pick either for one run. If the chosen app isn't
+answering, the run stops at once and says how to start it.
 
 ## Run
 

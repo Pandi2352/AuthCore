@@ -25,7 +25,7 @@ const CLI = path.join(ROOT, 'node_modules', '@playwright', 'test', 'cli.js');
 const PORT = Number(process.env.PW_DASHBOARD_PORT ?? 9400);
 const HOST = '127.0.0.1';
 
-if (existsSync(path.join(ROOT, '.env'))) process.loadEnvFile(path.join(ROOT, '.env'));
+import { resolveTarget, TARGETS, TEST_ENV } from '../target.mjs';
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -242,6 +242,7 @@ function liveState() {
     options: current?.options ?? null,
     command: current ? `npx playwright ${current.args.join(' ')}` : null,
     exitCode: current?.exitCode ?? null,
+    runId: current?.runId ?? null,
     progress: fresh ? live : null,
   };
 }
@@ -282,6 +283,7 @@ async function startRun(options) {
   if (child) throw new Error('A run is already going');
   const args = await buildArgs(options);
   const label = typeof options.label === 'string' ? options.label.trim().slice(0, 80) : '';
+  const target = TARGETS.includes(options.target) ? options.target : resolveTarget().name;
   current = { startedAt: new Date().toISOString(), options, args, log: [], exitCode: null };
   child = spawn(process.execPath, [CLI, ...args], {
     cwd: ROOT,
@@ -289,6 +291,7 @@ async function startRun(options) {
       ...process.env,
       PW_RUN_TRIGGER: 'ui',
       PW_RUN_LABEL: label,
+      PW_ENV: target,
       FORCE_COLOR: '0',
       CI: '',
     },
@@ -439,13 +442,22 @@ async function handleApi(req, res, url) {
   }
 
   if (method === 'GET' && parts[0] === 'environment') {
-    const baseURL = process.env.PW_BASE_URL ?? 'http://localhost:5173';
     const cat = await loadCatalog();
+    const current = resolveTarget();
+    const targets = await Promise.all(
+      TARGETS.map(async (name) => {
+        const t = resolveTarget(name);
+        return { name, label: t.label, baseURL: t.baseURL, account: t.email, passwordSet: Boolean(t.password), status: await baseUrlStatus(t.baseURL) };
+      }),
+    );
     return send(res, 200, {
-      baseURL,
-      base: await baseUrlStatus(baseURL),
-      account: process.env.E2E_ADMIN_EMAIL ?? null,
-      passwordSet: Boolean(process.env.E2E_ADMIN_PASSWORD),
+      target: current.name,
+      targets,
+      testEnv: { api: `http://localhost:${TEST_ENV.apiPort}`, database: TEST_ENV.mongoUri, outbox: path.join(TEST_ENV.dir, 'mail-outbox'), logs: path.join(TEST_ENV.dir, 'logs') },
+      baseURL: current.baseURL,
+      base: await baseUrlStatus(current.baseURL),
+      account: current.email,
+      passwordSet: Boolean(current.password),
       envFile: existsSync(path.join(ROOT, '.env')),
       playwright: cat.version,
       node: process.version,

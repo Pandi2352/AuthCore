@@ -36,6 +36,7 @@ export function runBanner(run, actions) {
           <span>${icon('flask')}${num(c.total)} tests · ${pct(run.passRate)} pass rate</span>
           <span>${icon(run.trigger === 'dashboard' ? 'monitor' : 'terminal')}${run.trigger === 'dashboard' ? 'Started from the dashboard' : 'Started from the command line'}</span>
           ${run.branch ? html`<span>${icon('branch')}${run.branch}${run.commit ? ` @ ${run.commit}` : ''}</span>` : ''}
+          ${run.target ? html`<span>${icon(run.target === 'dev' ? 'monitor' : 'flask')}${run.target === 'dev' ? 'Dev servers' : 'Test environment'}</span>` : ''}
           ${run.label ? html`<span>${icon('tag')}${run.label}</span>` : ''}
         </div>
       </div>

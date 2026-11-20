@@ -72,3 +72,6 @@ desktop.ini
 
 # ----- Local email outbox (development) -----
 mail-outbox/
+
+# Backend build used by the Playwright test environment (playwrite/test-env).
+authcore-backend/dist-pw/

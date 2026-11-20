@@ -93,7 +93,7 @@ export async function page(main) {
       {
         key: 'run',
         label: 'Run',
-        render: (r) => html`<div class="two-line"><strong>${runTitle(r)}</strong><span>${ago(r.startedAt)} · ${triggerBadge(r)}</span></div>`,
+        render: (r) => html`<div class="two-line"><strong>${runTitle(r)}</strong><span>${ago(r.startedAt)} · ${triggerBadge(r)} ${r.target ? html`<span class="badge badge-sm ${r.target === 'dev' ? 'tone-warning' : 'tone-violet'}">${r.target === 'dev' ? 'Dev' : 'Test env'}</span>` : ''}</span></div>`,
         sort: (r) => r.startedAt,
       },
       { key: 'status', label: 'Result', className: 'fit', render: (r) => runBadge(r.status, true), sort: (r) => r.status },

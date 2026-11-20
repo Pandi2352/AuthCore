@@ -1,22 +1,23 @@
-import { existsSync } from 'node:fs';
-
 import { defineConfig, devices } from '@playwright/test';
 
-// Local settings (URLs, test account) from .env when present — never committed.
-if (existsSync('.env')) process.loadEnvFile('.env');
+// Reads .env and picks the target: PW_ENV=test (default, npm run env:test) or dev.
+import { resolveTarget } from './target.mjs';
 
-const baseURL = process.env.PW_BASE_URL ?? 'http://localhost:5173';
+const target = resolveTarget();
+const baseURL = target.baseURL;
 const isCI = Boolean(process.env.CI);
 const PUBLIC_TESTS = /public[\\/].*\.spec\.ts/;
 
 /**
- * AuthCore browser tests. Run against a running frontend (default: the Vite dev server on
- * 5173); point PW_BASE_URL at a test environment to keep test data and email out of dev.
+ * AuthCore browser tests. By default against the separate test environment (own database,
+ * emails to a folder): start it with `npm run env:test`. PW_ENV=dev uses your dev servers.
  * Signed-in tests: each worker signs in once and keeps its tab (tests/support/fixtures.ts).
  * https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: './tests',
+  // Stops early with a clear message when the app isn't running.
+  globalSetup: './tests/support/global-setup.ts',
   outputDir: './test-results',
   fullyParallel: true,
   forbidOnly: isCI,
