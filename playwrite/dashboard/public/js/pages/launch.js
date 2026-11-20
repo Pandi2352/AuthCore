@@ -11,7 +11,7 @@ const PRESETS = [
   { id: 'failed', label: 'Failed last time', icon: 'repeat', options: { lastFailed: true } },
 ];
 
-const blank = () => ({ projects: [], files: [], tags: [], grep: '', grepInvert: '', workers: null, retries: null, repeatEach: null, maxFailures: null, headed: false, lastFailed: false, trace: false, label: '' });
+const blank = () => ({ target: null, projects: [], files: [], tags: [], grep: '', grepInvert: '', workers: null, retries: null, repeatEach: null, maxFailures: null, headed: false, lastFailed: false, trace: false, label: '' });
 
 export async function page(main) {
   render(main, loading());
@@ -21,6 +21,7 @@ export async function page(main) {
     return null;
   }
   let opts = blank();
+  const defaultTarget = env?.target ?? 'test';
   try {
     const saved = sessionStorage.getItem('pw-dashboard-launch');
     if (saved) {
@@ -37,11 +38,23 @@ export async function page(main) {
         <div><h1>Run tests</h1><p>Pick what to run and how. Progress and output show here live, and the full report is saved with the other runs.</p></div>
       </div>
       <div class="stack">
-        ${env && !env.base.reachable ? html`<div class="callout t-danger">${icon('alert')}<div><strong>The app isn't answering at ${env.baseURL}</strong><div>${env.base.error}. Start the frontend and backend first, or most tests will fail.</div></div></div>` : ''}
-        ${env && !(env.account && env.passwordSet) ? html`<div class="callout t-warning">${icon('user')}<div><strong>No test account</strong><div>Add E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to playwrite/.env; signed-in tests need them.</div></div></div>` : ''}
+        <div id="target-note"></div>
         <div id="live"></div>
         <div class="grid grid-2" style="align-items:start">
           <div class="stack">
+            ${sectionCard({
+              tone: 'info',
+              icon: 'globe',
+              title: 'Run against',
+              description: 'The test environment keeps test data and emails away from your dev data.',
+              body: html`<div class="stack" style="gap:8px" data-targets>${(env?.targets ?? []).map(
+                (t) => html`<button type="button" class="switch" style="width:100%;text-align:left;background:none" data-target="${t.name}" aria-pressed="false">
+                  ${icon(t.name === 'test' ? 'flask' : 'monitor')}
+                  <div style="flex:1;min-width:0"><strong>${t.label}</strong><span style="display:block">${t.baseURL}${t.account ? ` · ${t.account}` : ''}</span></div>
+                  ${t.status.reachable ? html`<span class="badge badge-sm tone-success">${icon('check')}Answering</span>` : html`<span class="badge badge-sm tone-danger">${icon('x')}Not running</span>`}
+                </button>`,
+              )}</div>`,
+            })}
             ${sectionCard({
               tone: 'primary',
               icon: 'zap',
@@ -110,6 +123,26 @@ export async function page(main) {
   });
 
   const syncForm = () => {
+    const chosen = opts.target ?? defaultTarget;
+    main.querySelectorAll('[data-target]').forEach((b) => {
+      const on = b.dataset.target === chosen;
+      b.setAttribute('aria-pressed', String(on));
+      b.style.borderColor = on ? 'var(--primary)' : '';
+      b.style.background = on ? 'var(--primary-soft)' : 'none';
+    });
+    const t = env?.targets?.find((x) => x.name === chosen);
+    render(
+      main.querySelector('#target-note'),
+      !t
+        ? ''
+        : !t.status.reachable
+          ? html`<div class="callout t-danger">${icon('alert')}<div><strong>${t.label} isn't running (${t.baseURL})</strong><div>${t.name === 'test' ? 'Start it in a terminal in the playwrite folder: npm run env:test' : 'Start your dev frontend and backend first.'}</div></div></div>`
+          : !(t.account && t.passwordSet)
+            ? html`<div class="callout t-warning">${icon('user')}<div><strong>No account for ${t.label}</strong><div>${t.name === 'test' ? 'Start the test environment once; it saves the password in playwrite/.env.' : 'Add E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to playwrite/.env.'}</div></div></div>`
+            : t.name === 'dev'
+              ? html`<div class="callout t-warning">${icon('alert')}<div><strong>Running against your dev data</strong><div>Tests that create or change records do it in your dev database, and your dev backend may send real email.</div></div></div>`
+              : '',
+    );
     for (const group of ['projects', 'tags']) {
       main.querySelectorAll(`[data-chips="${group}"] .chip`).forEach((c) => c.setAttribute('aria-pressed', String(opts[group].includes(c.dataset.value))));
     }
@@ -123,6 +156,7 @@ export async function page(main) {
     main.querySelector('#cmd').textContent = command(opts);
   };
 
+  main.querySelectorAll('[data-target]').forEach((b) => b.addEventListener('click', () => ((opts.target = b.dataset.target), syncForm())));
   main.querySelectorAll('[data-chips]').forEach((box) =>
     box.addEventListener('click', (e) => {
       const chip = e.target.closest('.chip');
@@ -145,13 +179,13 @@ export async function page(main) {
   main.querySelectorAll('[data-preset]').forEach((b) =>
     b.addEventListener('click', () => {
       const p = PRESETS.find((x) => x.id === b.dataset.preset);
-      opts = { ...blank(), ...structuredClone(p.options), label: p.label };
+      opts = { ...blank(), ...structuredClone(p.options), target: opts.target, label: p.label };
       filesDd.set(opts.files);
       syncForm();
     }),
   );
   main.querySelector('[data-reset]').addEventListener('click', () => {
-    opts = blank();
+    opts = { ...blank(), target: opts.target };
     filesDd.set([]);
     syncForm();
   });
@@ -183,6 +217,7 @@ export async function page(main) {
       liveBox.innerHTML = '';
       return;
     }
+    const finished = lastResult ?? (s && !s.running && s.exitCode !== null && s.exitCode !== undefined ? { exitCode: s.exitCode, runId: s.runId } : null);
     const p = s?.progress;
     const done = p?.done ?? 0;
     const total = p?.total ?? 0;
@@ -191,14 +226,14 @@ export async function page(main) {
     render(
       liveBox,
       sectionCard({
-        tone: s?.running ? 'info' : lastResult?.exitCode === 0 ? 'success' : 'danger',
-        icon: s?.running ? 'activity' : lastResult?.exitCode === 0 ? 'checkCircle' : 'xCircle',
-        title: s?.running ? 'Running…' : lastResult ? (lastResult.exitCode === 0 ? 'Finished: all passed' : 'Finished with failures') : 'Last run output',
+        tone: s?.running ? 'info' : finished?.exitCode === 0 ? 'success' : finished ? 'danger' : 'neutral',
+        icon: s?.running ? 'activity' : finished?.exitCode === 0 ? 'checkCircle' : finished ? 'xCircle' : 'terminal',
+        title: s?.running ? 'Running…' : finished ? (finished.exitCode === 0 ? 'Finished: all passed' : 'Finished with failures or stopped') : 'Last run output',
         description: s?.command ?? '',
         aside: s?.running
           ? html`<button type="button" class="btn btn-danger btn-sm" data-stop>${icon('stop')}Stop</button>`
-          : lastResult?.runId
-            ? html`<a class="btn btn-primary btn-sm" href="#/runs/${encodeURIComponent(lastResult.runId)}">${icon('eye')}Open the report</a>`
+          : finished?.runId
+            ? html`<a class="btn btn-primary btn-sm" href="#/runs/${encodeURIComponent(finished.runId)}">${icon('eye')}Open the report</a>`
             : '',
         body: html`<div class="stack" style="gap:14px">
           ${p
@@ -277,7 +312,7 @@ function lineHtml(line) {
 
 /** Mirror of the server's argument building, for display. */
 function command(o) {
-  const a = ['npx playwright test'];
+  const a = [o.target === 'dev' ? 'PW_ENV=dev npx playwright test' : o.target === 'test' ? 'PW_ENV=test npx playwright test' : 'npx playwright test'];
   for (const p of o.projects) a.push(`--project=${p}`);
   const parts = [];
   if (o.tags.length) parts.push(o.tags.join('|'));

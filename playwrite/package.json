@@ -14,7 +14,9 @@
     "codegen": "playwright codegen",
     "install:browsers": "playwright install chromium",
     "typecheck": "tsc --noEmit",
-    "dashboard": "node dashboard/server.mjs"
+    "dashboard": "node dashboard/server.mjs",
+    "env:test": "node test-env/start.mjs",
+    "env:test:reset": "node test-env/start.mjs --reset"
   },
   "devDependencies": {
     "@playwright/test": "1.65.1",

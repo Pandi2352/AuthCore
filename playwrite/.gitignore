@@ -8,3 +8,5 @@ playwright/.cache/
 .env
 # Test dashboard history (screenshots, traces, logs).
 reports/
+# Test environment data: built frontend, emails, uploads, logs, secrets.
+.test-env/

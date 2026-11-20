@@ -4,6 +4,8 @@ import { confirmDialog, copyText, emptyState, loading, refreshButton, sectionCar
 import { forgetRun } from '../lib.js';
 
 const COMMANDS = [
+  ['npm run env:test', 'Start the test environment (own database, emails to a folder)'],
+  ['npm run env:test:reset', 'Start it from an empty database'],
   ['npm test', 'Run every test (headless)'],
   ['npm run test:smoke', 'Only tests tagged @smoke'],
   ['npm run test:headed', 'Watch the browser while tests run'],
@@ -38,14 +40,21 @@ export async function page(main) {
               tone: 'primary',
               icon: 'globe',
               title: 'What the tests run against',
-              body: html`<div class="kv">
-                <div>App address</div><div><a href="${e.baseURL}" target="_blank" rel="noopener">${e.baseURL}</a></div>
-                <div>Status</div><div>${e.base.reachable ? `Answering (HTTP ${e.base.status}, ${e.base.ms} ms)` : `Not answering: ${e.base.error}`}</div>
-                <div>Account</div><div>${e.account ?? 'Not set'}</div>
-                <div>Password</div><div>${e.passwordSet ? 'Set (hidden)' : 'Not set'}</div>
-                <div>Settings file</div><div>${e.envFile ? 'playwrite/.env' : 'Missing: copy .env.example to .env'}</div>
-              </div>
-              <div class="callout t-warning" style="margin-top:14px">${icon('alert')}<div>Tests use the app and database at this address. Tests that create or change records do so there; a separate test environment keeps your data clean.</div></div>`,
+              description: html`Default: <strong>${e.targets.find((t) => t.name === e.target)?.label}</strong> (PW_ENV in playwrite/.env). Each run can pick another on Run tests.`,
+              body: html`<div class="stack" style="gap:10px">${e.targets.map(
+                  (t) => html`<div class="switch" style="align-items:center">${icon(t.name === 'test' ? 'flask' : 'monitor')}
+                    <div style="flex:1;min-width:0"><strong>${t.label}${t.name === e.target ? html` <span class="badge badge-sm tone-primary">Default</span>` : ''}</strong>
+                      <span style="display:block">${t.baseURL} · ${t.account ?? 'no account set'}${t.passwordSet ? '' : ' · password missing'}</span></div>
+                    ${t.status.reachable ? html`<span class="badge badge-sm tone-success">${icon('check')}Answering${t.status.ms !== undefined ? ` · ${t.status.ms} ms` : ''}</span>` : html`<span class="badge badge-sm tone-danger">${icon('x')}Not running</span>`}
+                  </div>`,
+                )}</div>
+                <div class="kv" style="margin-top:14px">
+                  <div>Test environment API</div><div class="mono small">${e.testEnv.api}/api/v1</div>
+                  <div>Its database</div><div class="mono small">${e.testEnv.database}</div>
+                  <div>Its emails (never sent)</div><div class="mono small">${e.testEnv.outbox}</div>
+                  <div>Its logs</div><div class="mono small">${e.testEnv.logs}</div>
+                </div>
+                <div class="callout t-info" style="margin-top:14px">${icon('terminal')}<div>Start the test environment in a terminal in the playwrite folder with <code>npm run env:test</code> (<code>npm run env:test:reset</code> starts from an empty database). The dev servers use your dev database and may send real email.</div></div>`,
             })}
             ${sectionCard({
               tone: 'cyan',

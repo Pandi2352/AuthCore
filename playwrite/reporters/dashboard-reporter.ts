@@ -24,6 +24,8 @@ import type {
   TestStep,
 } from '@playwright/test/reporter';
 
+import { resolveTarget } from '../target.mjs';
+
 /**
  * Records every run in full for the test dashboard (dashboard/server.mjs):
  *   reports/runs/<runId>/run.json      everything about the run, every test and attempt
@@ -196,6 +198,7 @@ export default class DashboardReporter implements Reporter {
       branch: git(['rev-parse', '--abbrev-ref', 'HEAD']),
       commit: git(['rev-parse', '--short', 'HEAD']),
       errors: this.globalErrors.length,
+      target: resolveTarget().name,
     };
     const run = {
       ...summary,
@@ -379,8 +382,9 @@ export default class DashboardReporter implements Reporter {
       cpus: os.cpus().length,
       memoryGb: Math.round(os.totalmem() / 1024 ** 3),
       ci: Boolean(process.env.CI),
-      baseURL: process.env.PW_BASE_URL ?? 'http://localhost:5173',
-      account: process.env.E2E_ADMIN_EMAIL ?? null,
+      target: resolveTarget().label,
+      baseURL: resolveTarget().baseURL,
+      account: resolveTarget().email,
       command: `playwright ${process.argv.slice(2).join(' ')}`.trim(),
       gitDirty: (git(['status', '--porcelain']) ?? '').split('\n').filter(Boolean).length,
       gitMessage: git(['log', '-1', '--format=%s']),
