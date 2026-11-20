@@ -155,3 +155,41 @@ export class ActivityEventTypeDto {
   @ApiProperty({ description: 'Shown in the login history view' })
   isLoginEvent!: boolean;
 }
+
+/** GET /admin/activity/stats: counts for the Activity & sign-ins cards. */
+export class AdminActivityStatsDto {
+  @ApiProperty({
+    example: 120,
+    description: 'Successful sign-ins, last 24 hours',
+  })
+  signIns24h!: number;
+  @ApiProperty({ example: 6, description: 'Failed sign-ins, last 24 hours' })
+  failedSignIns24h!: number;
+  @ApiProperty({
+    example: 48,
+    description: 'Different people who signed in, last 24 hours',
+  })
+  activeUsers24h!: number;
+  @ApiProperty({ example: 90, description: 'Sign-outs, last 24 hours' })
+  signOuts24h!: number;
+  @ApiProperty({
+    example: 3,
+    description: 'Sign-ins from a new device, last 7 days',
+  })
+  newDevices7d!: number;
+  @ApiProperty({
+    example: 1,
+    description: 'Accounts locked after failed sign-ins, last 7 days',
+  })
+  lockouts7d!: number;
+  @ApiProperty({
+    example: 4,
+    description: 'Passwords changed, reset or set by an admin, last 7 days',
+  })
+  passwordChanges7d!: number;
+  @ApiProperty({
+    example: 5400,
+    description: 'Events kept (older ones expire)',
+  })
+  totalEvents!: number;
+}

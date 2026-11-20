@@ -41,7 +41,7 @@ import { Alert, Avatar, Badge, Button, Progress, Select, Switch } from '@/compon
 import { isFeatureEnabled, paths } from '@/config';
 import { useAuth, type UserProfileDetails } from '@/features/auth';
 import { isAbortError } from '@/lib/api';
-import { formatDateTime } from '@/lib/format';
+import { formatActivityEvent, formatDateTime, formatVerificationType } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { accountApi } from '../api/account.api';
@@ -73,37 +73,6 @@ const EVENT_FILTERS = [
   { value: 'NEW_DEVICE_LOGIN', label: 'New device sign in' },
 ];
 const ACTIVITY_PREVIEW = 10;
-
-/** Readable event names ("Logged in", "MFA verified" …); others are humanized. */
-const EVENT_LABEL: Record<string, string> = {
-  LOGIN: 'Logged in',
-  LOGIN_FAILED: 'Sign-in failed',
-  LOGOUT: 'Logged out',
-  LOGOUT_ALL: 'Logged out everywhere',
-  PASSWORD_CHANGED: 'Password changed',
-  PASSWORD_RESET: 'Password reset',
-  PASSWORD_SET_BY_ADMIN: 'Password set by an admin',
-  PASSWORD_CHANGE_REQUIRED: 'New password required',
-  EMAIL_CHANGED: 'Email changed',
-  PROFILE_UPDATED: 'Profile updated',
-  ACCOUNT_DEACTIVATED: 'Account deactivated',
-  ACCOUNT_DELETION_REQUESTED: 'Account deletion requested',
-  ACCOUNT_RECOVERED: 'Account recovered',
-  STATUS_CHANGED: 'Status changed',
-  SESSIONS_REVOKED: 'Other devices signed out',
-  SESSION_REVOKED: 'Device signed out',
-  DATA_EXPORTED: 'Data downloaded',
-  NEW_DEVICE_LOGIN: 'Signed in on a new device',
-  ACCOUNT_LOCKED: 'Account locked',
-};
-const eventLabel = (event: string) => EVENT_LABEL[event] ?? humanize(event);
-
-const VERIFICATION_LABEL: Record<string, string> = {
-  PASSWORD: 'Password',
-  EMAIL_CODE: 'Email code',
-  EMAIL_LINK: 'Email link',
-  ADMIN: 'By an admin',
-};
 
 const humanize = (value: string) =>
   value.charAt(0) + value.slice(1).toLowerCase().replaceAll('_', ' ');
@@ -950,7 +919,7 @@ export function MyProfilePage() {
                               />
                             )}
                             <span className="font-medium text-foreground">
-                              {eventLabel(item.event)}
+                              {formatActivityEvent(item.event)}
                             </span>
                           </span>
                         </td>
@@ -959,8 +928,7 @@ export function MyProfilePage() {
                             <span className="text-muted-foreground">N/A</span>
                           ) : (
                             <Badge size="sm" tone="info" variant="outline">
-                              {VERIFICATION_LABEL[item.verificationType] ??
-                                humanize(item.verificationType)}
+                              {formatVerificationType(item.verificationType)}
                             </Badge>
                           )}
                         </td>

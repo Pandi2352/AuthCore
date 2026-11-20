@@ -7,6 +7,7 @@ import { normalizePagination, paginate } from '@common/utils/pagination.util';
 import { buildDateRange, containsPattern } from '@common/utils/query.util';
 import { UsersService } from '@modules/users/users.service';
 
+import type { AdminActivityStatsDto } from '../dto/admin-activity.dto';
 import {
   type ActivityEventTypeDto,
   type AdminActivityDto,
@@ -114,6 +115,60 @@ export class ActivitySearchService {
       limit,
       total,
     );
+  }
+
+  /** Counts for the page cards (rolling windows: 24 hours and 7 days). */
+  async stats(): Promise<AdminActivityStatsDto> {
+    const now = Date.now();
+    const day = { $gte: new Date(now - 24 * 60 * 60 * 1000) };
+    const week = { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) };
+    const count = (filter: Record<string, unknown>) =>
+      this.activityModel.countDocuments(filter);
+    const [
+      signIns24h,
+      failedSignIns24h,
+      activeUsers,
+      signOuts24h,
+      newDevices7d,
+      lockouts7d,
+      passwordChanges7d,
+      totalEvents,
+    ] = await Promise.all([
+      count({ event: ActivityEvent.Login, isSuccess: true, createdAt: day }),
+      count({ event: ActivityEvent.LoginFailed, createdAt: day }),
+      this.activityModel.distinct('userId', {
+        event: ActivityEvent.Login,
+        isSuccess: true,
+        createdAt: day,
+      }),
+      count({
+        event: { $in: [ActivityEvent.Logout, ActivityEvent.LogoutAll] },
+        createdAt: day,
+      }),
+      count({ event: ActivityEvent.NewDeviceLogin, createdAt: week }),
+      count({ event: ActivityEvent.AccountLocked, createdAt: week }),
+      count({
+        event: {
+          $in: [
+            ActivityEvent.PasswordChanged,
+            ActivityEvent.PasswordReset,
+            ActivityEvent.PasswordSetByAdmin,
+          ],
+        },
+        createdAt: week,
+      }),
+      this.activityModel.estimatedDocumentCount(),
+    ]);
+    return {
+      signIns24h,
+      failedSignIns24h,
+      activeUsers24h: activeUsers.length,
+      signOuts24h,
+      newDevices7d,
+      lockouts7d,
+      passwordChanges7d,
+      totalEvents,
+    };
   }
 
   eventTypes(): ActivityEventTypeDto[] {

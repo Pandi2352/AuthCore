@@ -8,3 +8,4 @@ export {
 export { formatFileSize } from './file-size';
 export { getFormatDefaults, setFormatDefaults } from './locale';
 export { formatCompact, formatCount, formatCurrency, formatNumber, formatPercent } from './number';
+export { formatActivityEvent, formatVerificationType } from './activity';

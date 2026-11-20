@@ -17,6 +17,7 @@ import {
   ActivityEventTypeDto,
   AdminActivityDto,
   AdminActivityQueryDto,
+  AdminActivityStatsDto,
   LOGIN_HISTORY_EVENTS,
 } from './dto/admin-activity.dto';
 import { ActivitySearchService } from './services/activity-search.service';
@@ -51,6 +52,22 @@ export class AdminActivityController {
     @Query() query: AdminActivityQueryDto,
   ): Promise<Paginated<AdminActivityDto>> {
     return this.searchService.search(query);
+  }
+
+  @Get('stats')
+  @RequirePermissions(USER_PERMISSIONS.Read)
+  @Header('Cache-Control', 'no-store')
+  @ResponseMessage('Activity counts')
+  @ApiOperation({
+    summary: 'Counts for the Activity & sign-ins page',
+    description:
+      'Needs USER_READ. Last 24 hours: sign-ins, failed sign-ins, people who signed in, sign-outs. ' +
+      'Last 7 days: new devices, lockouts, password changes. Plus events kept.',
+  })
+  @ApiWrappedResponse(AdminActivityStatsDto)
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN)
+  stats(): Promise<AdminActivityStatsDto> {
+    return this.searchService.stats();
   }
 
   @Get('login-history')

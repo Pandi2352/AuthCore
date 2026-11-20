@@ -193,6 +193,11 @@ async function main() {
   r = await call('GET', '/admin/activity/event-types', { token: A });
   check('event types with labels', r.body.data.some((e) => e.value === 'NEW_DEVICE_LOGIN' && e.isLoginEvent) && r.body.data.some((e) => e.value === 'PASSWORD_CHANGED' && !e.isLoginEvent));
   check('invalid event -> 400', (await call('GET', '/admin/activity?events=HACKED', { token: A })).status === 400);
+  r = await call('GET', '/admin/activity/stats', { token: A });
+  const st = r.body.data ?? {};
+  check('stats: every count present', r.status === 200 && ['signIns24h', 'failedSignIns24h', 'activeUsers24h', 'signOuts24h', 'newDevices7d', 'lockouts7d', 'passwordChanges7d', 'totalEvents'].every((k) => typeof st[k] === 'number'), dump(r));
+  check('stats: this run\'s sign-ins, failures and lockout are counted', st.signIns24h >= 1 && st.failedSignIns24h >= 3 && st.lockouts7d >= 1 && st.activeUsers24h >= 1 && st.activeUsers24h <= st.signIns24h, JSON.stringify(st));
+  check('stats: failed sign-ins match the list for the same window', st.failedSignIns24h === (await call('GET', `/admin/activity?events=LOGIN_FAILED&from=${new Date(Date.now() - 86_400_000 + 5_000).toISOString()}&limit=1`, { token: A })).body.meta.totalItems);
   check('invalid IP -> 400', (await call('GET', '/admin/activity?ipAddress=999.1.1.1', { token: A })).status === 400);
   check('normal user -> 403', (await call('GET', '/admin/activity', { token: T2 })).status === 403);
   check('USER_READ via default group can search', (await call('GET', '/admin/activity/login-history', { token: N1 })).status === 200);

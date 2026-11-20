@@ -145,7 +145,6 @@ export const navigationConfig: NavGroup[] = [
         title: 'Activity & sign-ins',
         path: paths.admin.activity,
         icon: 'Activity',
-        status: 'planned',
         permission: 'USER_READ',
       },
     ],

@@ -1186,6 +1186,7 @@ A fresh database has no one who can sign in as admin. At startup, if `BOOTSTRAP_
 | --- | --- |
 | `GET /admin/activity` | Everyone's activity: `userId`, `search` (email / name), `events` (comma-separated), `isSuccess`, `ipAddress`, `deviceType`, `browser`, `from` / `to`, `sortOrder`; each entry includes the user |
 | `GET /admin/activity/login-history` | Same filters, sign-in events only (LOGIN, LOGIN_FAILED, NEW_DEVICE_LOGIN, ACCOUNT_LOCKED, LOGOUT, LOGOUT_ALL) |
+| `GET /admin/activity/stats` | Activity & sign-ins page cards. Last 24 hours: sign-ins, failed sign-ins, people who signed in, sign-outs. Last 7 days: new devices, lockouts, password changes (changed / reset / set by an admin). Plus events kept |
 | `GET /admin/activity/event-types` | Event values + labels for the filter dropdown |
 
 Needs `USER_READ`.
