@@ -1,1 +1,0 @@
-function e(e){if(!Number.isFinite(e)||e<0)return`-`;if(e<1024)return`${e} B`;let t=[`KB`,`MB`,`GB`,`TB`],n=e/1024,r=0;for(;n>=1024&&r<t.length-1;)n/=1024,r++;return`${n.toFixed(+(n<10))} ${t[r]}`}export{e as t};
